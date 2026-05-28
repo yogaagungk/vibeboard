@@ -688,8 +688,13 @@ body.mcp-banner-open #log-sidebar {
   content: ''; position: absolute; left: 3px; top: 3px;
   width: 14px; height: 14px; border-radius: 50%;
   background: #fff; transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
 .toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
+:root[data-theme="dark"] .toggle-switch input:checked + .toggle-track::after { background: var(--bg); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .toggle-switch input:checked + .toggle-track::after { background: var(--bg); }
+}
 
 .btn-danger {
   height: 32px; padding: 0 14px;
@@ -758,11 +763,12 @@ body.mcp-banner-open #log-sidebar {
 #card-modal { width: 600px; }
 
 #card-modal-title-input {
-  flex: 1; min-width: 0;
+  width: 100%;
   font-family: 'DM Sans', sans-serif;
   font-size: 14px; font-weight: 500; color: var(--text);
   border: none; outline: none; background: transparent; padding: 0;
 }
+#card-modal-title-input::placeholder { color: var(--text-muted); font-weight: 400; }
 .modal-col-badge {
   font-size: 10px; font-weight: 500; padding: 2px 8px;
   border-radius: 20px; color: #fff; white-space: nowrap; flex-shrink: 0;
@@ -772,6 +778,7 @@ body.mcp-banner-open #log-sidebar {
   border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
   font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 300;
   background: var(--bg); color: var(--text); outline: none; line-height: 1.55;
+  transition: border-color 0.15s;
 }
 #card-modal-desc:focus { border-color: var(--border-strong); background: var(--surface); }
 #card-modal-desc::placeholder { color: var(--text-muted); }
@@ -789,12 +796,16 @@ body.mcp-banner-open #log-sidebar {
 .agent-btn.unavailable { opacity: 0.38; cursor: not-allowed; }
 
 .agent-permission-warning {
-  margin-top: 8px; padding: 7px 10px;
-  border-radius: 6px; border: 1px solid #d97706;
+  padding: 7px 10px;
+  border-radius: 6px; border: 1px solid rgba(217,119,6,0.5);
   background: rgba(217,119,6,0.07);
   font-size: 11px; line-height: 1.5; color: var(--text-muted);
 }
 .agent-warning-icon { color: #d97706; margin-right: 4px; }
+:root[data-theme="dark"] .agent-permission-warning { background: rgba(217,119,6,0.12); border-color: rgba(217,119,6,0.4); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .agent-permission-warning { background: rgba(217,119,6,0.12); border-color: rgba(217,119,6,0.4); }
+}
 
 /* ── Priority ── */
 .priority-picker { display: flex; gap: 5px; }
@@ -806,10 +817,17 @@ body.mcp-banner-open #log-sidebar {
 }
 .priority-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg); }
 .priority-btn.active { font-weight: 500; }
-.priority-btn.active[data-priority="high"]   { background: #dc2626; border-color: #dc2626; color: #fff; }
-.priority-btn.active[data-priority="medium"] { background: #d97706; border-color: #d97706; color: #fff; }
-.priority-btn.active[data-priority="low"]    { background: #2563eb; border-color: #2563eb; color: #fff; }
-.priority-btn.active[data-priority=""]       { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.priority-btn.active[data-priority="high"],
+.priority-btn.active[data-nc-priority="high"]   { background: #dc2626; border-color: #dc2626; color: #fff; }
+.priority-btn.active[data-priority="medium"],
+.priority-btn.active[data-nc-priority="medium"] { background: #d97706; border-color: #d97706; color: #fff; }
+.priority-btn.active[data-priority="low"],
+.priority-btn.active[data-nc-priority="low"]    { background: #2563eb; border-color: #2563eb; color: #fff; }
+.priority-btn.active[data-priority=""],
+.priority-btn.active[data-nc-priority=""]       { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+.nc-meta-col .priority-btn,
+.sidebar-field-col .priority-btn { font-size: 10px; }
 
 .priority-badge {
   display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
@@ -849,6 +867,10 @@ body.mcp-banner-open #log-sidebar {
 }
 .due-input:focus { border-color: var(--border-strong); }
 .due-input.overdue { border-color: #dc2626; color: #dc2626; }
+:root[data-theme="dark"] .due-input.overdue { border-color: #f87171; color: #f87171; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .due-input.overdue { border-color: #f87171; color: #f87171; }
+}
 
 /* ── Keyboard shortcuts ── */
 #shortcuts-overlay {
