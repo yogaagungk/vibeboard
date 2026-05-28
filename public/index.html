@@ -970,6 +970,7 @@ kbd {
 }
 .card-agent-badge.claude-code { background: #d97706; color: #fff; }
 .card-agent-badge.opencode    { background: #7c3aed; color: #fff; }
+.card-agent-badge.codex       { background: #2563eb; color: #fff; }
 .card-agent-badge.codex       { background: #0ea5e9; color: #fff; }
 
 /* ── Diff viewer ── */
@@ -1442,6 +1443,7 @@ kbd {
           <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
           <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
+          <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
         <div id="nc-model-row" style="display:none">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -1532,6 +1534,7 @@ kbd {
         </div>
         <div id="card-agent-run-section" style="display:none">
           <button class="agent-run-btn" id="card-run-agent-btn" style="width:100%">Run agent</button>
+          <button class="btn-ghost" id="card-stop-agent-btn" style="width:100%;margin-top:6px;display:none;color:var(--danger);border-color:var(--danger)">Stop agent</button>
           <div class="agent-last-run" id="card-agent-last-run"></div>
         </div>
         <div id="card-review-toggle-row" class="toggle-row" style="display:none">
@@ -2984,6 +2987,8 @@ function updateRunAgentBtn(card) {
   if (section) section.style.display = '';
   const running = runningCards.has(card.id);
   if (btn) { btn.disabled = running; btn.textContent = running ? 'Running…' : 'Run agent'; }
+  const stopBtn = document.getElementById('card-stop-agent-btn');
+  if (stopBtn) { stopBtn.style.display = running ? '' : 'none'; stopBtn.disabled = false; stopBtn.textContent = 'Stop agent'; }
   if (lastRunEl) lastRunEl.textContent = card.agent_ran_at ? 'Last run: ' + timeAgo(card.agent_ran_at) : '';
 }
 
@@ -3284,6 +3289,22 @@ document.getElementById('card-run-agent-btn').addEventListener('click', async fu
     }
   } catch(err) {
     this.disabled = false; this.textContent = 'Run agent';
+    showToast('Failed: ' + err.message);
+  }
+});
+
+document.getElementById('card-stop-agent-btn').addEventListener('click', async function() {
+  if (!modalCardId) return;
+  this.disabled = true; this.textContent = 'Stopping…';
+  try {
+    const resp = await fetch(`/api/cards/${modalCardId}/stop`, { method: 'POST' });
+    if (!resp.ok) {
+      let msg = `HTTP ${resp.status}`;
+      try { const d = await resp.json(); msg = d.error || msg; } catch(_) {}
+      throw new Error(msg);
+    }
+  } catch(err) {
+    this.disabled = false; this.textContent = 'Stop agent';
     showToast('Failed: ' + err.message);
   }
 });

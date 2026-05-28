@@ -12,16 +12,25 @@ const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60
 
 // Build a shell command string for each agent that reads the prompt from a temp file.
 // Using a shell command string (not arg array) avoids quoting issues with multiline prompts.
+// Model ids look like `claude-sonnet-4-6` or `provider/model-name`. Anything
+// outside this charset is rejected so a model value can't break out of the shell
+// command string (the command runs with shell: true).
+function isSafeModel(model) {
+  return typeof model === 'string' && /^[A-Za-z0-9._:/-]+$/.test(model);
+}
+
 function buildShellCmd(agentType, promptFile, model) {
   const win = process.platform === 'win32';
   let modelFlag = '';
-  
-  if (model) {
+
+  if (model && isSafeModel(model)) {
     if (agentType === 'claude-code') {
       modelFlag = ` --model ${model}`;
     } else if (agentType === 'opencode') {
       modelFlag = ` --model ${model}`;
     }
+  } else if (model) {
+    process.stderr.write(`Ignoring unsafe model value: ${JSON.stringify(model)}\n`);
   }
   
   switch (agentType) {

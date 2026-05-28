@@ -230,7 +230,9 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const id = 'card-' + crypto.randomUUID();
   const now = new Date().toISOString();
   const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(columnId).pos;
-  const requiresReview = options.requires_review ? 1 : 0;
+  // Default review ON unless explicitly disabled, matching the UI sync path
+  // (db.syncBoard) so a card behaves the same however it was created.
+  const requiresReview = options.requires_review === false ? 0 : 1;
   const priority = options.priority || null;
   const customPrompt = options.custom_prompt || null;
   const dueDate = options.due_date || null;

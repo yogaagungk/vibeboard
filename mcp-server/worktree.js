@@ -1,6 +1,18 @@
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+// Run a binary with an argument array (no shell), so user-controlled values like
+// branch names and card titles can't inject shell metacharacters.
+function execFileCapture(file, args, opts) {
+  try {
+    return execFileSync(file, args, { ...opts, stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
+  } catch (err) {
+    const stderr = err.stderr?.toString().trim() || '';
+    const stdout = err.stdout?.toString().trim() || '';
+    throw new Error(stderr || stdout || err.message);
+  }
+}
 
 function isGitRepo(dir) {
   try { execSync('git rev-parse --git-dir', { cwd: dir, stdio: 'ignore' }); return true; }
@@ -118,25 +130,15 @@ function getCommits(worktreePath, baseBranch) {
   } catch (_) { return ''; }
 }
 
-function execCapture(cmd, opts) {
-  try {
-    return execSync(cmd, { ...opts, stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
-  } catch (err) {
-    const stderr = err.stderr?.toString().trim() || '';
-    const stdout = err.stdout?.toString().trim() || '';
-    throw new Error(stderr || stdout || err.message);
-  }
-}
-
 function mergeBranch(workspacePath, branch, worktreePath) {
-  execCapture(`git merge --no-ff "${branch}" -m "Merge ${branch}"`, { cwd: workspacePath });
-  try { execSync(`git branch -d "${branch}"`, { cwd: workspacePath, stdio: 'ignore' }); } catch (_) {}
+  execFileCapture('git', ['merge', '--no-ff', branch, '-m', `Merge ${branch}`], { cwd: workspacePath });
+  try { execFileSync('git', ['branch', '-d', branch], { cwd: workspacePath, stdio: 'ignore' }); } catch (_) {}
   if (worktreePath) removeWorktree(workspacePath, worktreePath);
 }
 
 function pushAndCreatePR(worktreePath, title) {
-  execCapture('git push -u origin HEAD', { cwd: worktreePath });
-  return execCapture(`gh pr create --title "${title.replace(/"/g, '\\"')}" --fill`, { cwd: worktreePath });
+  execFileCapture('git', ['push', '-u', 'origin', 'HEAD'], { cwd: worktreePath });
+  return execFileCapture('gh', ['pr', 'create', '--title', title, '--fill'], { cwd: worktreePath });
 }
 
 module.exports = {

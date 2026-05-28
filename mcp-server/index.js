@@ -15,6 +15,9 @@ const { refreshAvailableModels, getAvailableModels } = require('./models');
 
 const PUBLIC_DIR = path.resolve('./public');
 const PORT = process.env.PORT || 7341;
+// Bind to loopback by default. The board has no auth and can spawn agents with
+// skipped permissions, so exposing it on the network is opt-in via VB_HOST=0.0.0.0.
+const HOST = process.env.VB_HOST || '127.0.0.1';
 
 migrateLegacyData();
 
@@ -45,6 +48,33 @@ function emitSSE(type, data) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, data }),
     }).catch(() => {});
+  }
+}
+
+// Agent processes are tracked in-memory by the process that spawns them. The
+// HTTP server and the MCP stdio server can be two separate processes (when the
+// agent connects, it launches its own `node index.js` which finds the port in
+// use and runs MCP-only). To keep a single owner for every agent's lifecycle,
+// agent spawn/stop is always routed to the HTTP-server process. Otherwise the
+// child's completion callback (which POSTs to the HTTP server) would land in a
+// process whose activeAgents map never had the card — leaking timeouts and
+// dropping the session-output note.
+function routeSpawnAgent(cardId) {
+  if (httpServerRunning) {
+    const card = db.getCard(cardId);
+    if (card?.agent && !isAgentRunning(cardId)) {
+      spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    }
+  } else {
+    fetch(`http://localhost:${PORT}/api/cards/${cardId}/run`, { method: 'POST' }).catch(() => {});
+  }
+}
+
+function routeStopAgent(cardId) {
+  if (httpServerRunning) {
+    if (isAgentRunning(cardId)) stopAgent(cardId);
+  } else {
+    fetch(`http://localhost:${PORT}/api/cards/${cardId}/stop`, { method: 'POST' }).catch(() => {});
   }
 }
 
@@ -213,6 +243,15 @@ app.post('/api/cards/:cardId/run', (req, res) => {
   if (!card.agent) return res.status(400).json({ error: 'Card has no assigned agent' });
   if (isAgentRunning(cardId)) return res.status(409).json({ error: 'Agent already running' });
   spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+  res.json({ ok: true });
+});
+
+app.post('/api/cards/:cardId/stop', (req, res) => {
+  const { cardId } = req.params;
+  if (!isAgentRunning(cardId)) return res.status(409).json({ error: 'No agent running' });
+  stopAgent(cardId);
+  const card = db.getCard(cardId);
+  if (card) emitSSE('agent_completed', { cardId, agentType: card.agent, code: 130, duration: 0 });
   res.json({ ok: true });
 });
 
@@ -581,7 +620,7 @@ mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.st
 });
 
 mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
-  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional() },
+  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional() },
   async ({ title, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date }) => {
     try {
       const activeId = db.getActiveWorkspaceId();
@@ -598,7 +637,7 @@ mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
 );
 
 mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, or priority",
-  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional() },
+  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional() },
   async ({ cardId, title, description, tags, agent, model, priority, due_date }) => {
     try {
       const card = db.getCard(cardId);
@@ -629,9 +668,9 @@ mcp.tool('move_card', 'Move a card to a different column',
       db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
       emitSSE('board_update', db.getBoard(card.workspace_id));
       
-      if (toColumnTitle === 'In Progress' && card.agent && !isAgentRunning(cardId)) {
+      if ((toColumnTitle === 'In Progress' || toColumnTitle === 'Review') && card.agent) {
         emitSSE('trigger', { card, toColumn: toColumnTitle, agent: card.agent });
-        spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+        routeSpawnAgent(cardId);
       }
       
       return { content: [{ type: 'text', text: JSON.stringify({ card, fromColumn: fromColumn.title, toColumn: toColumnTitle }) }] };
@@ -655,11 +694,9 @@ mcp.tool('complete_card', 'Mark a card as done (moves to Done column)', { cardId
     db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`);
     emitSSE('board_update', db.getBoard(card.workspace_id));
     emitSSE('trigger', { card, toColumn: 'Done' });
-    
-    if (isAgentRunning(cardId)) {
-      stopAgent(cardId);
-    }
-    
+
+    routeStopAgent(cardId);
+
     return { content: [{ type: 'text', text: JSON.stringify({ card, fromColumn: fromColumn.title }) }] };
   } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
 });
@@ -669,14 +706,12 @@ mcp.tool('delete_card', 'Delete a card from the board', { cardId: z.string() }, 
     const card = db.getCard(cardId);
     if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
     
+    routeStopAgent(cardId);
+
     db.deleteCard(cardId);
     db.addAgentLog(card.workspace_id, 'system', 'delete_card', `Deleted '${card.title}'`);
     emitSSE('board_update', db.getBoard(card.workspace_id));
-    
-    if (isAgentRunning(cardId)) {
-      stopAgent(cardId);
-    }
-    
+
     return { content: [{ type: 'text', text: JSON.stringify({ deleted: true, card }) }] };
   } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
 });
@@ -706,23 +741,23 @@ mcp.tool('get_card_notes', 'Get all notes for a card', { cardId: z.string() }, a
   } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, HOST, () => {
   httpServerRunning = true;
-  const { networkInterfaces } = require('os');
-  let localIP = 'localhost';
-  try {
-    const nets = networkInterfaces();
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        if (net.family === 'IPv4' && !net.internal) {
-          localIP = net.address;
-          break;
+  process.stderr.write(`HTTP server listening on http://localhost:${PORT}\n`);
+  if (HOST !== '127.0.0.1' && HOST !== 'localhost') {
+    const { networkInterfaces } = require('os');
+    let localIP = HOST;
+    try {
+      const nets = networkInterfaces();
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          if (net.family === 'IPv4' && !net.internal) { localIP = net.address; break; }
         }
       }
-    }
-  } catch (_) {}
-  process.stderr.write(`HTTP server listening on http://localhost:${PORT}\n`);
-  process.stderr.write(`Network access: http://${localIP}:${PORT}\n`);
+    } catch (_) {}
+    process.stderr.write(`Network access ENABLED (no auth): http://${localIP}:${PORT}\n`);
+    process.stderr.write(`WARNING: anyone on this network can move cards and run agents in your project dirs.\n`);
+  }
 });
 
 server.on('error', err => {
