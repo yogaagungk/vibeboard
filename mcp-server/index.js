@@ -90,10 +90,16 @@ app.get('/api/folder-dialog', (_req, res) => {
   let cmd;
   if (process.platform === 'win32') {
     cmd = [
-      'powershell', '-NoProfile', '-Command',
-      '$shell = New-Object -ComObject Shell.Application;' +
-      '$folder = $shell.BrowseForFolder(0, \'Select project folder\', 0, 0);' +
-      'if ($folder) { $folder.Self.Path }'
+      'powershell', '-NoProfile', '-STA', '-Command',
+      'Add-Type -AssemblyName System.Windows.Forms;' +
+      '$dialog = New-Object System.Windows.Forms.OpenFileDialog;' +
+      '$dialog.ValidateNames = $false;' +
+      '$dialog.CheckFileExists = $false;' +
+      '$dialog.CheckPathExists = $true;' +
+      '$dialog.FileName = \'Folder Selection\';' +
+      '$dialog.Filter = \'Folders|*.none\';' +
+      '$dialog.Title = \'Select project folder\';' +
+      'if ($dialog.ShowDialog() -eq \'OK\') { Split-Path $dialog.FileName }'
     ];
   } else if (process.platform === 'darwin') {
     cmd = `osascript -e 'POSIX path of (choose folder with prompt "Select project folder:")'`;
