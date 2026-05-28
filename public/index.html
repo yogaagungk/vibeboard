@@ -733,13 +733,12 @@ body.mcp-banner-open #log-sidebar {
 .agent-btn.unavailable { opacity: 0.38; cursor: not-allowed; }
 
 .agent-permission-warning {
-  margin-top: 8px; padding: 8px 10px;
+  margin-top: 8px; padding: 7px 10px;
   border-radius: 6px; border: 1px solid #d97706;
   background: rgba(217,119,6,0.07);
   font-size: 11px; line-height: 1.5; color: var(--text-muted);
-  display: flex; gap: 6px; align-items: flex-start;
 }
-.agent-warning-icon { color: #d97706; flex-shrink: 0; font-style: normal; margin-top: 1px; }
+.agent-warning-icon { color: #d97706; margin-right: 4px; }
 
 .agent-run-btn {
   height: 32px; padding: 0 14px; white-space: nowrap;
@@ -1229,8 +1228,7 @@ body.mcp-banner-open #log-sidebar {
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
         <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
-          <span class="agent-warning-icon">⚠</span>
-          Agent runs automatically with <strong>full permissions</strong> — it can read, write, delete files and execute commands in your workspace without asking. Only assign to trusted projects.
+          <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
         </div>
       </div>
       <div class="toggle-row">
