@@ -1,5 +1,6 @@
 ﻿const { spawn } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const express = require('express');
 const path = require('path');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
@@ -8,18 +9,29 @@ const { z } = require('zod');
 
 const db = require('./db');
 const { migrateLegacyData } = require('./migrate');
-const { spawnAgent, agentDone, stopAgent, isAgentRunning } = require('./agent');
+const { spawnAgent, agentDone, stopAgent, isAgentRunning, getRunningCardIds, getOutputFile } = require('./agent');
 const wt = require('./worktree');
 
 const PUBLIC_DIR = path.resolve('./public');
+const PORT = process.env.PORT || 7341;
 
 migrateLegacyData();
 
 const sseClients = new Set();
+let httpServerRunning = false;
 
 function emitSSE(type, data) {
-  const payload = 'data: ' + JSON.stringify({ type, data }) + '\n\n';
-  for (const res of sseClients) res.write(payload);
+  if (httpServerRunning) {
+    const payload = 'data: ' + JSON.stringify({ type, data }) + '\n\n';
+    for (const res of sseClients) res.write(payload);
+  } else {
+    // MCP-only mode: proxy to the running HTTP server
+    fetch(`http://localhost:${PORT}/api/sse-emit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, data }),
+    }).catch(() => {});
+  }
 }
 
 const app = express();
@@ -88,6 +100,42 @@ app.delete('/workspaces/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/git-status', (req, res) => {
+  const { path: wsPath } = req.query;
+  if (!wsPath) return res.status(400).json({ error: 'path required' });
+  const { execSync } = require('child_process');
+  try {
+    execSync('git rev-parse --git-dir', { cwd: wsPath, stdio: 'ignore' });
+    let branch = '';
+    try {
+      branch = execSync('git rev-parse --abbrev-ref HEAD', {
+        cwd: wsPath, stdio: ['ignore', 'pipe', 'ignore'],
+      }).toString().trim();
+    } catch(_) {}
+    res.json({ isGit: true, branch });
+  } catch(_) {
+    res.json({ isGit: false, branch: null });
+  }
+});
+
+app.post('/api/git-init', (req, res) => {
+  const { path: wsPath } = req.body || {};
+  if (!wsPath) return res.status(400).json({ error: 'path required' });
+  const { execSync } = require('child_process');
+  try {
+    execSync('git init', { cwd: wsPath, stdio: 'ignore' });
+    let branch = 'main';
+    try {
+      branch = execSync('git symbolic-ref --short HEAD', {
+        cwd: wsPath, stdio: ['ignore', 'pipe', 'ignore'],
+      }).toString().trim() || 'main';
+    } catch(_) {}
+    res.json({ ok: true, branch });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/folder-dialog', (_req, res) => {
   if (process.platform === 'win32') {
     const tmpdir = process.env.TEMP || 'C:\\Windows\\Temp';
@@ -153,22 +201,21 @@ app.post('/api/agent-done/:cardId', (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/cards/:cardId/run', (req, res) => {
+  const { cardId } = req.params;
+  const card = db.getCard(cardId);
+  if (!card) return res.status(404).json({ error: 'Card not found' });
+  if (!card.agent) return res.status(400).json({ error: 'Card has no assigned agent' });
+  if (isAgentRunning(cardId)) return res.status(409).json({ error: 'Agent already running' });
+  spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+  res.json({ ok: true });
+});
+
 app.get('/api/agents/available', (_req, res) => {
-  const { execSync } = require('child_process');
-  function isInstalled(cmd) {
-    try {
-      if (process.platform === 'win32') {
-        execSync(`where ${cmd}`, { stdio: 'ignore' });
-      } else {
-        execSync(`which ${cmd}`, { stdio: 'ignore' });
-      }
-      return true;
-    } catch (_) { return false; }
-  }
   res.json({
-    'claude-code': isInstalled('claude'),
-    'opencode': isInstalled('opencode'),
-    'codex': isInstalled('codex'),
+    'claude-code': isAgentInstalled('claude'),
+    'opencode':    isAgentInstalled('opencode'),
+    'codex':       isAgentInstalled('codex'),
   });
 });
 
@@ -185,7 +232,19 @@ app.get('/board', (_req, res) => {
   const activeId = db.getActiveWorkspaceId();
   if (!activeId) return res.json(null);
   const board = db.getBoard(activeId);
+  board.runningCards = getRunningCardIds();
   res.json(board);
+});
+
+app.get('/api/cards/:cardId/output', (req, res) => {
+  const { cardId } = req.params;
+  const outputFile = getOutputFile(cardId);
+  try {
+    const raw = fs.readFileSync(outputFile, 'utf8');
+    res.json({ cardId, output: raw });
+  } catch (_) {
+    res.json({ cardId, output: '' });
+  }
 });
 
 app.post('/board', (req, res) => {
@@ -203,6 +262,114 @@ app.post('/board', (req, res) => {
   const fresh = db.getBoard(activeId);
   emitSSE('board_update', { ...fresh, _tabId: body._tabId });
   res.json({ ok: true });
+});
+
+// ── MCP helpers ──────────────────────────────────────────────────────────────
+function getAgentMcpConfigs() {
+  const home = os.homedir();
+  const appdata = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+  const xdgConfig = process.env.XDG_CONFIG_HOME || path.join(home, '.config');
+  const serverPath = path.join(__dirname, 'index.js');
+
+  return {
+    'claude-code': {
+      label: 'Claude Code',
+      cmd: 'claude',
+      configPath: path.join(home, '.claude.json'),
+      read: cfg => !!(cfg.mcpServers?.vibeboard),
+      write: (_cfg, configPath) => {
+        // Use the CLI so Claude Code manages its own registry correctly
+        const { execSync } = require('child_process');
+        execSync(`claude mcp add -s user vibeboard -- node "${serverPath}"`, {
+          stdio: 'pipe', timeout: 10000,
+        });
+        // Return null to signal the caller to skip the JSON write
+        return null;
+      },
+    },
+    'opencode': {
+      label: 'OpenCode',
+      cmd: 'opencode',
+      // OpenCode uses XDG-style ~/.config/opencode/opencode.json on all platforms
+      configPath: path.join(xdgConfig, 'opencode', 'opencode.json'),
+      read: cfg => !!(cfg.mcp?.vibeboard),
+      write: cfg => ({
+        ...cfg,
+        mcp: {
+          ...(cfg.mcp || {}),
+          vibeboard: { type: 'local', command: ['node', serverPath] },
+        },
+      }),
+    },
+    'codex': {
+      label: 'Codex CLI',
+      cmd: 'codex',
+      configPath: path.join(home, '.codex', 'config.json'),
+      read: cfg => !!(cfg.mcpServers?.vibeboard || cfg.mcp?.vibeboard),
+      write: cfg => ({
+        ...cfg,
+        mcpServers: { ...(cfg.mcpServers || {}), vibeboard: { command: 'node', args: [serverPath] } },
+      }),
+    },
+  };
+}
+
+function isAgentInstalled(cmd) {
+  const { execSync } = require('child_process');
+  try {
+    execSync(process.platform === 'win32' ? `where ${cmd}` : `which ${cmd}`, { stdio: 'ignore' });
+    return true;
+  } catch (_) { return false; }
+}
+
+function readAgentMcpStatus(key, info) {
+  const installed = isAgentInstalled(info.cmd);
+  if (!installed) return { installed: false, configured: false, configPath: info.configPath };
+  try {
+    const cfg = JSON.parse(fs.readFileSync(info.configPath, 'utf8'));
+    return { installed: true, configured: info.read(cfg), configPath: info.configPath };
+  } catch (_) {
+    return { installed: true, configured: false, configPath: info.configPath };
+  }
+}
+
+app.get('/api/mcp-status', (_req, res) => {
+  const configs = getAgentMcpConfigs();
+  const agents = {};
+  for (const [key, info] of Object.entries(configs)) {
+    agents[key] = readAgentMcpStatus(key, info);
+  }
+  const anyUnconfigured = Object.values(agents).some(a => a.installed && !a.configured);
+  res.json({ agents, anyUnconfigured });
+});
+
+app.post('/api/mcp-setup', (req, res) => {
+  const { agent } = req.body || {};
+  const configs = getAgentMcpConfigs();
+  const targets = agent && agent !== 'all' ? [agent] : Object.keys(configs);
+  const results = {};
+
+  for (const key of targets) {
+    const info = configs[key];
+    if (!info) { results[key] = { ok: false, error: 'Unknown agent' }; continue; }
+    if (!isAgentInstalled(info.cmd)) { results[key] = { ok: false, error: 'Not installed' }; continue; }
+    try {
+      fs.mkdirSync(path.dirname(info.configPath), { recursive: true });
+      let existing = {};
+      try { existing = JSON.parse(fs.readFileSync(info.configPath, 'utf8')); } catch (_) {}
+      const updated = info.write(existing, info.configPath);
+      // null means the write function handled it directly (e.g. via CLI)
+      if (updated !== null) {
+        fs.writeFileSync(info.configPath, JSON.stringify(updated, null, 2), 'utf8');
+      }
+      results[key] = { ok: true, configPath: info.configPath };
+    } catch (err) {
+      results[key] = { ok: false, error: err.message };
+    }
+  }
+
+  emitSSE('mcp_configured', { results });
+  res.json({ ok: true, results });
 });
 
 app.get('/api/cards/:cardId/diff', (req, res) => {
@@ -256,6 +423,15 @@ app.get('/api/cards/:cardId/notes', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.post('/api/sse-emit', (req, res) => {
+  const { type, data } = req.body || {};
+  if (type) {
+    const payload = 'data: ' + JSON.stringify({ type, data }) + '\n\n';
+    for (const client of sseClients) client.write(payload);
+  }
+  res.json({ ok: true });
 });
 
 app.get('/events', (req, res) => {
@@ -364,11 +540,8 @@ mcp.tool('update_card', "Update a card's title, description, tags, or assigned a
       const card = db.getCard(cardId);
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
       db.updateCard(cardId, { title, description, tags, agent: agent || undefined });
-      const activeId = db.getActiveWorkspaceId();
-      if (activeId) {
-        db.addAgentLog(activeId, agent || 'system', 'update_card', `Updated '${card.title}'`);
-        emitSSE('board_update', db.getBoard(activeId));
-      }
+      db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Updated '${card.title}'`);
+      emitSSE('board_update', db.getBoard(card.workspace_id));
       return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   }
@@ -381,21 +554,20 @@ mcp.tool('move_card', 'Move a card to a different column',
       const card = db.getCard(cardId);
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
       
-      const activeId = db.getActiveWorkspaceId();
-      if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+      const board = db.getBoard(card.workspace_id);
+      if (!board) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Card workspace not found' }) }] };
       
-      const board = db.getBoard(activeId);
       const toColumn = board.columns.find(c => c.title === toColumnTitle);
       if (!toColumn) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${toColumnTitle}` }) }] };
       
       const fromColumn = db.getColumn(card.column_id);
       db.moveCard(cardId, toColumn.id);
-      db.addAgentLog(activeId, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
-      emitSSE('board_update', db.getBoard(activeId));
+      db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
+      emitSSE('board_update', db.getBoard(card.workspace_id));
       
       if (toColumnTitle === 'In Progress' && card.agent && !isAgentRunning(cardId)) {
         emitSSE('trigger', { card, toColumn: toColumnTitle, agent: card.agent });
-        spawnAgent(cardId, activeId, card.agent, emitSSE);
+        spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
       }
       
       return { content: [{ type: 'text', text: JSON.stringify({ card, fromColumn: fromColumn.title, toColumn: toColumnTitle }) }] };
@@ -408,17 +580,16 @@ mcp.tool('complete_card', 'Mark a card as done (moves to Done column)', { cardId
     const card = db.getCard(cardId);
     if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
     
-    const activeId = db.getActiveWorkspaceId();
-    if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+    const board = db.getBoard(card.workspace_id);
+    if (!board) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Card workspace not found' }) }] };
     
-    const board = db.getBoard(activeId);
     const doneColumn = board.columns.find(c => c.title === 'Done');
     if (!doneColumn) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Done column not found' }) }] };
     
     const fromColumn = db.getColumn(card.column_id);
     db.moveCard(cardId, doneColumn.id);
-    db.addAgentLog(activeId, card.agent || 'system', 'complete_card', `Completed '${card.title}'`);
-    emitSSE('board_update', db.getBoard(activeId));
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`);
+    emitSSE('board_update', db.getBoard(card.workspace_id));
     emitSSE('trigger', { card, toColumn: 'Done' });
     
     if (isAgentRunning(cardId)) {
@@ -434,13 +605,9 @@ mcp.tool('delete_card', 'Delete a card from the board', { cardId: z.string() }, 
     const card = db.getCard(cardId);
     if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
     
-    const activeId = db.getActiveWorkspaceId();
     db.deleteCard(cardId);
-    
-    if (activeId) {
-      db.addAgentLog(activeId, 'system', 'delete_card', `Deleted '${card.title}'`);
-      emitSSE('board_update', db.getBoard(activeId));
-    }
+    db.addAgentLog(card.workspace_id, 'system', 'delete_card', `Deleted '${card.title}'`);
+    emitSSE('board_update', db.getBoard(card.workspace_id));
     
     if (isAgentRunning(cardId)) {
       stopAgent(cardId);
@@ -458,12 +625,8 @@ mcp.tool('add_card_note', 'Add a note or checkpoint to a card',
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
       
       const note = db.addCardNote(cardId, content);
-      
-      const activeId = db.getActiveWorkspaceId();
-      if (activeId) {
-        db.addAgentLog(activeId, card.agent || 'system', 'add_note', `Added note to '${card.title}'`);
-        emitSSE('board_update', db.getBoard(activeId));
-      }
+      db.addAgentLog(card.workspace_id, card.agent || 'system', 'add_note', `Added note to '${card.title}'`);
+      emitSSE('board_update', db.getBoard(card.workspace_id));
       
       return { content: [{ type: 'text', text: JSON.stringify(note) }] };
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
@@ -479,37 +642,29 @@ mcp.tool('get_card_notes', 'Get all notes for a card', { cardId: z.string() }, a
   } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
 });
 
-mcp.tool('add_column', 'Add a new column to the board',
-  { title: z.string(), color: z.string().optional() },
-  async ({ title, color = '#6b6860' }) => {
-    try {
-      const activeId = db.getActiveWorkspaceId();
-      if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
-      const board = db.getBoard(activeId);
-      if (board.columns.find(c => c.title === title)) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column already exists: ${title}` }) }] };
-      const column = db.addColumn(activeId, title, color);
-      emitSSE('board_update', db.getBoard(activeId));
-      return { content: [{ type: 'text', text: JSON.stringify(column) }] };
-    } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
-  }
-);
-
-const PORT = process.env.PORT || 7341;
-const server = app.listen(PORT, () => process.stderr.write(`HTTP server listening on http://localhost:${PORT}\n`));
+const server = app.listen(PORT, () => {
+  httpServerRunning = true;
+  process.stderr.write(`HTTP server listening on http://localhost:${PORT}\n`);
+});
 
 server.on('error', err => {
   if (err.code === 'EADDRINUSE') {
-    process.stderr.write(`Port ${PORT} already in use — kill the existing process then retry.\n`);
+    process.stderr.write(`Port ${PORT} in use — running in MCP-only mode, proxying SSE to main server\n`);
+    // Don't exit — MCP stdio still works, emitSSE will proxy to the running server
   } else {
     process.stderr.write('Server error: ' + err.message + '\n');
+    process.exit(1);
   }
-  process.exit(1);
 });
 
 function shutdown() {
-  for (const res of sseClients) { try { res.end(); } catch(_) {} }
-  sseClients.clear();
-  server.close(() => process.exit(0));
+  if (httpServerRunning) {
+    for (const res of sseClients) { try { res.end(); } catch(_) {} }
+    sseClients.clear();
+    server.close(() => process.exit(0));
+  } else {
+    process.exit(0);
+  }
   setTimeout(() => process.exit(0), 500).unref();
 }
 process.on('SIGTERM', shutdown);

@@ -304,40 +304,16 @@ function addAgentLog(workspaceId, agent, action, detail) {
   return { id, timestamp: now, agent, action, detail };
 }
 
-function addColumn(workspaceId, title, color = '#6b6860') {
-  const id = 'col-' + crypto.randomUUID();
-  const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM columns WHERE workspace_id = ?').get(workspaceId).pos;
-  
-  db.prepare('INSERT INTO columns (id, workspace_id, title, color, position) VALUES (?, ?, ?, ?, ?)')
-    .run(id, workspaceId, title, color, position);
-  
-  return { id, title, color, cards: [] };
-}
-
 function syncBoard(workspaceId, columns) {
-  const existingCols  = db.prepare('SELECT id FROM columns WHERE workspace_id = ?').all(workspaceId).map(r => r.id);
-  const existingCards = db.prepare('SELECT id FROM cards   WHERE workspace_id = ?').all(workspaceId).map(r => r.id);
-
-  const incomingColIds  = columns.map(c => c.id);
+  const existingCards = db.prepare('SELECT id FROM cards WHERE workspace_id = ?').all(workspaceId).map(r => r.id);
   const incomingCardIds = columns.flatMap(c => (c.cards || []).map(card => card.id));
 
   const sync = db.transaction(() => {
-    // Remove deleted columns (cascades to cards)
-    for (const id of existingCols) {
-      if (!incomingColIds.includes(id))
-        db.prepare('DELETE FROM columns WHERE id = ?').run(id);
-    }
-
-    // Upsert columns + cards
+    // Update existing columns only (no create/delete — columns are fixed)
     for (let ci = 0; ci < columns.length; ci++) {
       const col = columns[ci];
-      if (existingCols.includes(col.id)) {
-        db.prepare('UPDATE columns SET title = ?, color = ?, position = ? WHERE id = ?')
-          .run(col.title, col.color || '#6b6860', ci, col.id);
-      } else {
-        db.prepare('INSERT INTO columns (id, workspace_id, title, color, position) VALUES (?, ?, ?, ?, ?)')
-          .run(col.id, workspaceId, col.title, col.color || '#6b6860', ci);
-      }
+      db.prepare('UPDATE columns SET title = ?, color = ?, position = ? WHERE id = ? AND workspace_id = ?')
+        .run(col.title, col.color || '#6b6860', ci, col.id, workspaceId);
 
       for (let ki = 0; ki < (col.cards || []).length; ki++) {
         const card = col.cards[ki];
@@ -397,7 +373,6 @@ module.exports = {
   addCardNote,
   getCardNotes,
   addAgentLog,
-  addColumn,
   syncBoard,
   getCard,
   getColumn,

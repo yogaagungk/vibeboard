@@ -35,8 +35,19 @@ function ensureGitignored(workspacePath) {
   } catch (_) {}
 }
 
+function hasCommits(dir) {
+  try { execSync('git rev-parse HEAD', { cwd: dir, stdio: 'ignore' }); return true; }
+  catch (_) { return false; }
+}
+
 function createWorktree(workspacePath, cardId, cardTitle) {
   if (!isGitRepo(workspacePath)) return null;
+
+  // Can't create a worktree on a repo with no commits — agent will run in workspace dir
+  if (!hasCommits(workspacePath)) {
+    process.stderr.write(`No commits in ${workspacePath} — skipping worktree, agent runs in workspace dir\n`);
+    return null;
+  }
 
   const slug = slugify(cardTitle || 'task');
   const shortId = cardId.replace(/[^a-z0-9]/gi, '').slice(-8);
