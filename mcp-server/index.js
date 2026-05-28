@@ -1,4 +1,5 @@
-﻿const { exec } = require('child_process');
+﻿const { spawn } = require('child_process');
+const fs = require('fs');
 const express = require('express');
 const path = require('path');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
@@ -87,37 +88,61 @@ app.delete('/workspaces/:id', (req, res) => {
 });
 
 app.get('/api/folder-dialog', (_req, res) => {
-  let cmd;
   if (process.platform === 'win32') {
-    const psScript = `
-      Add-Type -AssemblyName System.Windows.Forms
-      $dialog = New-Object System.Windows.Forms.OpenFileDialog
-      $dialog.ValidateNames = $false
-      $dialog.CheckFileExists = $false
-      $dialog.CheckPathExists = $true
-      $dialog.FileName = 'Folder Selection'
-      $dialog.Filter = 'Folders|*.none'
-      $dialog.Title = 'Select project folder'
-      if ($dialog.ShowDialog() -eq 'OK') {
-        Split-Path $dialog.FileName
-      }
-    `.replace(/\n/g, ';').replace(/\s+/g, ' ');
-    cmd = ['powershell', '-NoProfile', '-STA', '-Command', psScript];
+    const tmpdir = process.env.TEMP || 'C:\\Windows\\Temp';
+    const psPath = path.join(tmpdir, `folder-dialog-${Date.now()}.ps1`);
+    const psScript = [
+      'Add-Type -AssemblyName System.Windows.Forms',
+      '$f = New-Object System.Windows.Forms.Form',
+      '$f.StartPosition = "CenterScreen"',
+      '$f.WindowState = "Minimized"',
+      '$f.ShowInTaskbar = $false',
+      '$f.TopMost = $true',
+      '$f.Show()',
+      '$f.TopMost = $false',
+      '$d = New-Object System.Windows.Forms.OpenFileDialog',
+      '$d.ValidateNames = $false',
+      '$d.CheckFileExists = $false',
+      '$d.CheckPathExists = $true',
+      "$d.FileName = 'Folder Selection'",
+      "$d.Filter = 'Folders|*.none'",
+      "$d.Title = 'Select project folder'",
+      "if ($d.ShowDialog($f) -eq 'OK') {",
+      '  Split-Path $d.FileName',
+      '}',
+      '$f.Close()',
+    ].join('\n');
+    fs.writeFileSync(psPath, psScript, 'utf8');
+    const child = spawn('powershell', [
+      '-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', psPath
+    ], { windowsHide: false, stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '', err = '';
+    child.stdout.on('data', d => out += d);
+    child.stderr.on('data', d => err += d);
+    child.on('close', () => {
+      try { fs.unlinkSync(psPath); } catch(_) {}
+      if (err) process.stderr.write('folder-dialog: ' + err + '\n');
+      const p = out.trim().replace(/[/\\]+$/, '');
+      res.json(p ? { path: p } : { path: null, cancelled: true });
+    });
   } else if (process.platform === 'darwin') {
-    cmd = `osascript -e 'POSIX path of (choose folder with prompt "Select project folder:")'`;
+    const child = spawn('osascript', ['-e', 'POSIX path of (choose folder with prompt "Select project folder:")'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', d => out += d);
+    child.on('close', () => {
+      const p = out.trim().replace(/[/\\]+$/, '');
+      res.json(p ? { path: p } : { path: null, cancelled: true });
+    });
   } else {
-    cmd = `zenity --file-selection --directory --title="Select project folder" 2>/dev/null || kdialog --getexistingdirectory "$HOME" --title "Select project folder" 2>/dev/null`;
+    const child = spawn('zenity', ['--file-selection', '--directory', '--title=Select project folder'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', d => out += d);
+    child.on('close', (code) => {
+      if (code !== 0) { res.json({ path: null, cancelled: true }); return; }
+      const p = out.trim().replace(/[/\\]+$/, '');
+      res.json(p ? { path: p } : { path: null, cancelled: true });
+    });
   }
-
-  const run = Array.isArray(cmd)
-    ? (cb) => exec(cmd.join(' '), { timeout: 60000 }, cb)
-    : (cb) => exec(cmd, { timeout: 60000 }, cb);
-
-  run((err, stdout, stderr) => {
-    if (err) process.stderr.write('folder-dialog error: ' + (stderr || err.message) + '\n');
-    const p = (stdout || '').trim().replace(/[/\\]+$/, '');
-    res.json(p ? { path: p } : { path: null, cancelled: true });
-  });
 });
 
 app.get('/api/info', (_req, res) => {
