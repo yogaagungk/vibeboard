@@ -21,8 +21,8 @@ function buildShellCmd(agentType, promptFile) {
     case 'opencode':
       // opencode run takes the message as a positional argument, not stdin
       return win
-        ? `powershell -NoProfile -NonInteractive -Command "opencode run (Get-Content -Raw '${promptFile.replace(/'/g, "''")}')"`
-        : `opencode run "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;
+        ? `powershell -NoProfile -NonInteractive -Command "opencode run --dangerously-skip-permissions (Get-Content -Raw '${promptFile.replace(/'/g, "''")}')"`
+        : `opencode run --dangerously-skip-permissions "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;
     case 'codex':
       return win
         ? `type "${promptFile}" | codex --full-auto`
