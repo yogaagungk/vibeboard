@@ -642,9 +642,23 @@ mcp.tool('get_card_notes', 'Get all notes for a card', { cardId: z.string() }, a
   } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   httpServerRunning = true;
+  const { networkInterfaces } = require('os');
+  let localIP = 'localhost';
+  try {
+    const nets = networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          localIP = net.address;
+          break;
+        }
+      }
+    }
+  } catch (_) {}
   process.stderr.write(`HTTP server listening on http://localhost:${PORT}\n`);
+  process.stderr.write(`Network access: http://${localIP}:${PORT}\n`);
 });
 
 server.on('error', err => {
