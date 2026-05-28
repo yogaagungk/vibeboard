@@ -72,12 +72,15 @@ function buildPrompt(card, column, workspace, branch) {
   let columnContext = '';
   const colTitle = column?.title || '';
   if (colTitle === 'In Progress') {
+    const nextStep = card.requires_review
+      ? '- When done implementing, commit all changes, then call move_card to move to Review'
+      : '- This card does NOT require review — when done implementing, commit all changes, then call complete_card to move directly to Done (skip Review)';
     columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
 - Plan and implement the feature/fix
 - Write code, make changes
-- Commit your work with clear commit messages
+- IMPORTANT: Commit all changes before moving the card (one logical unit per commit)
 - Use add_card_note to log your progress
-- When ready for review/testing, call move_card to move to Review`;
+${nextStep}`;
   } else if (colTitle === 'Review') {
     columnContext = `\nYou are in the REVIEW phase. Your job is to:
 - Review the existing code changes
@@ -173,17 +176,19 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   if (!workspace?.path) { process.stderr.write(`Workspace ${workspaceId} has no path\n`); return; }
 
   let branch = null, worktreePath = null, spawnDir = workspace.path;
-  try {
-    const wtResult = wt.createWorktree(workspace.path, cardId, card.title);
-    if (wtResult) {
-      branch = wtResult.branch;
-      worktreePath = wtResult.worktreePath;
-      spawnDir = wtResult.worktreePath;
-      updateCard(cardId, { branch, worktreePath });
-      emitSSE('board_update', require('./db').getBoard(workspaceId));
+  if (workspace.use_worktree) {
+    try {
+      const wtResult = wt.createWorktree(workspace.path, cardId, card.title);
+      if (wtResult) {
+        branch = wtResult.branch;
+        worktreePath = wtResult.worktreePath;
+        spawnDir = wtResult.worktreePath;
+        updateCard(cardId, { branch, worktreePath });
+        emitSSE('board_update', require('./db').getBoard(workspaceId));
+      }
+    } catch (err) {
+      process.stderr.write(`Worktree creation failed (running in workspace dir): ${err.message}\n`);
     }
-  } catch (err) {
-    process.stderr.write(`Worktree creation failed (running in workspace dir): ${err.message}\n`);
   }
 
   const prompt = buildPrompt(card, column, workspace, branch);

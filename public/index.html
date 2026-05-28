@@ -167,6 +167,8 @@ body {
 .browse-btn:disabled { opacity: 0.4; cursor: default; }
 
 .ws-create-actions { display: flex; gap: 5px; }
+.ws-create-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+.ws-create-toggle-label { font-size: 12px; color: var(--text-muted); }
 
 .btn-primary {
   flex: 1; height: 28px; border: none; border-radius: 6px;
@@ -604,11 +606,34 @@ body.mcp-banner-open #log-sidebar {
 .modal-textarea:focus { border-color: var(--border-strong); background: var(--surface); }
 .modal-textarea::placeholder { color: var(--text-muted); }
 
-.ws-modal-stats { display: flex; flex-direction: column; gap: 5px; }
-.ws-stat-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
-.ws-stat-label { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+.ws-modal-stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.ws-stat-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg);
+  font-size: 12px; color: var(--text-muted);
+}
 .ws-stat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.ws-stat-count { font-size: 12px; font-weight: 500; color: var(--text); }
+.ws-stat-chip .ws-stat-count { font-weight: 500; color: var(--text); margin-left: 2px; }
+
+/* ── Toggle switch ── */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.toggle-row-label { font-size: 13px; color: var(--text); }
+.toggle-row-hint { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0; border-radius: 10px;
+  background: var(--border-strong); cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+.toggle-track::after {
+  content: ''; position: absolute; left: 3px; top: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s;
+}
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
 
 .btn-danger {
   height: 32px; padding: 0 14px;
@@ -767,23 +792,25 @@ body.mcp-banner-open #log-sidebar {
 
 /* ── Diff viewer ── */
 #card-changes-section { margin-top: 4px; }
-.changes-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.changes-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.changes-header .field-label { margin: 0; flex-shrink: 0; }
+.changes-meta { font-size: 12px; color: var(--text-muted); }
 .branch-badge {
   font-family: monospace; font-size: 10px; padding: 1px 7px;
   border-radius: 4px; background: var(--bg); border: 1px solid var(--border);
-  color: var(--text-muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .card-branch-pill {
   max-width: 120px; font-size: 9px; padding: 1px 5px; display: inline-block; vertical-align: middle;
 }
-.diff-toggle-btn {
-  height: 28px; padding: 0 12px;
-  border: 1px solid var(--border); border-radius: 6px;
-  background: transparent; color: var(--text-muted); cursor: pointer;
+.diff-link-btn {
+  background: none; border: none; padding: 0; margin-left: auto;
   font-family: 'DM Sans', sans-serif; font-size: 12px;
-  white-space: nowrap; transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+  text-decoration: underline; text-underline-offset: 2px;
+  transition: color 0.15s;
 }
-.diff-toggle-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+.diff-link-btn:hover { color: var(--text); }
 #card-diff-view {
   max-height: 280px; overflow: auto; border: 1px solid var(--border);
   border-radius: 6px; background: var(--bg); margin-top: 6px;
@@ -795,7 +822,7 @@ body.mcp-banner-open #log-sidebar {
 .diff-line.hunk { background: rgba(37,99,235,0.07); color: #6b84c8; }
 .diff-line.meta { color: var(--text-muted); }
 .diff-empty { padding: 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
-.card-merge-actions { display: flex; gap: 8px; }
+.card-merge-actions { display: flex; gap: 8px; margin-top: 8px; }
 .card-merge-actions .btn-primary { flex: 1; }
 .card-merge-actions .btn-ghost   { flex: 1; }
 
@@ -1019,6 +1046,13 @@ body.mcp-banner-open #log-sidebar {
     </div>
     <div id="ws-git-status" style="display:none;font-size:11px;padding:4px 2px;display:flex;align-items:center;gap:6px"></div>
     <input class="ws-input" id="ws-create-name" type="text" placeholder="Name (optional)" spellcheck="false" autocomplete="off">
+    <div class="ws-create-toggle-row">
+      <span class="ws-create-toggle-label">Git worktree</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="ws-create-use-worktree">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
     <div class="ws-create-actions">
       <button class="btn-primary" id="ws-create-submit">Create</button>
       <button class="btn-ghost" id="ws-create-cancel">Cancel</button>
@@ -1078,6 +1112,16 @@ body.mcp-banner-open #log-sidebar {
           <input class="modal-path-input" id="ws-modal-path" type="text" placeholder="/path/to/project" spellcheck="false">
           <button class="browse-btn" id="ws-modal-browse" style="height:36px">Browse</button>
         </div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-row-label">Git worktree</div>
+          <div class="toggle-row-hint">Agent works in an isolated branch per card</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ws-modal-use-worktree">
+          <span class="toggle-track"></span>
+        </label>
       </div>
       <div>
         <div class="field-label">Notes</div>
@@ -1176,6 +1220,16 @@ body.mcp-banner-open #log-sidebar {
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
       </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-row-label">Needs review</div>
+          <div class="toggle-row-hint">Agent moves to Review before Done</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="nc-needs-review">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <div class="modal-spacer"></div>
@@ -1224,6 +1278,16 @@ body.mcp-banner-open #log-sidebar {
         </div>
         <button class="agent-run-btn" id="card-run-agent-btn" style="display:none;margin-top:8px;width:100%">Run agent</button>
       </div>
+      <div id="card-review-toggle-row" class="toggle-row" style="display:none">
+        <div>
+          <div class="toggle-row-label">Needs review</div>
+          <div class="toggle-row-hint">Agent moves to Review before Done</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="card-needs-review-toggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
       <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
       <div id="card-notes-section" style="display:none">
         <div class="field-label">Notes &amp; Checkpoints</div>
@@ -1236,11 +1300,11 @@ body.mcp-banner-open #log-sidebar {
       </div>
       <div id="card-changes-section" style="display:none">
         <div class="changes-header">
-          <div class="field-label" style="margin:0">Changes</div>
+          <div class="field-label">Changes</div>
           <span class="branch-badge" id="card-branch-badge"></span>
+          <span class="changes-meta" id="card-changes-meta"></span>
+          <button class="diff-link-btn" id="card-diff-toggle">Show diff</button>
         </div>
-        <div id="card-changes-meta" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
-        <button class="diff-toggle-btn" id="card-diff-toggle" style="margin-bottom:8px">Show diff</button>
         <div id="card-diff-view" style="display:none;margin-bottom:8px"></div>
         <div class="card-merge-actions" id="card-merge-actions" style="display:none">
           <button class="btn-primary" id="card-merge-btn">Merge</button>
@@ -1499,10 +1563,11 @@ wsCreateSubmit.addEventListener('click', async () => {
   wsCreatePath.classList.remove('error');
 
   const name = wsCreateName.value.trim() || folderName(wsPath) || '';
+  const use_worktree = document.getElementById('ws-create-use-worktree').checked ? 1 : 0;
   try {
     const resp = await fetch('/workspaces', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ name, path: wsPath }),
+      body: JSON.stringify({ name, path: wsPath, use_worktree }),
     });
     const ws = await resp.json();
     closeCreateForm();
@@ -1529,25 +1594,16 @@ function openWsModal(wsId) {
   document.getElementById('ws-modal-name').value = ws.name || folderName(ws.path) || '';
   document.getElementById('ws-modal-path').value = ws.path || '';
   document.getElementById('ws-modal-desc').value = ws.description || '';
+  document.getElementById('ws-modal-use-worktree').checked = !!(ws.use_worktree || (wsId === activeWsId && board.use_worktree));
 
   const stats = document.getElementById('ws-modal-stats');
   stats.innerHTML = '';
   if (wsId === activeWsId && board.columns?.length) {
     board.columns.forEach(col => {
-      const row = document.createElement('div');
-      row.className = 'ws-stat-row';
-      const lbl = document.createElement('div');
-      lbl.className = 'ws-stat-label';
-      const dot = document.createElement('span');
-      dot.className = 'ws-stat-dot';
-      dot.style.background = col.color || '#6b6860';
-      lbl.appendChild(dot);
-      lbl.appendChild(document.createTextNode(col.title));
-      const cnt = document.createElement('span');
-      cnt.className = 'ws-stat-count';
-      cnt.textContent = col.cards.length;
-      row.appendChild(lbl); row.appendChild(cnt);
-      stats.appendChild(row);
+      const chip = document.createElement('div');
+      chip.className = 'ws-stat-chip';
+      chip.innerHTML = `<span class="ws-stat-dot" style="background:${col.color||'#6b6860'}"></span>${col.title}<span class="ws-stat-count">${col.cards.length}</span>`;
+      stats.appendChild(chip);
     });
   } else {
     const hint = document.createElement('p');
@@ -1573,19 +1629,20 @@ document.getElementById('ws-modal-save').addEventListener('click', async () => {
   const name = document.getElementById('ws-modal-name').value.trim();
   const wsPath = document.getElementById('ws-modal-path').value.trim();
   const description = document.getElementById('ws-modal-desc').value.trim();
+  const useWorktree = document.getElementById('ws-modal-use-worktree').checked;
 
   try {
     if (editingWsId === activeWsId) {
-      board.name = name; board.path = wsPath; board.description = description;
+      board.name = name; board.path = wsPath; board.description = description; board.use_worktree = useWorktree ? 1 : 0;
       await postBoard();
     } else {
       await fetch(`/workspaces/${editingWsId}`, {
         method: 'PATCH', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ name, path: wsPath, description }),
+        body: JSON.stringify({ name, path: wsPath, description, use_worktree: useWorktree ? 1 : 0 }),
       });
     }
     const ws = workspaces.find(w => w.id === editingWsId);
-    if (ws) { ws.name = name; ws.path = wsPath; ws.description = description; }
+    if (ws) { ws.name = name; ws.path = wsPath; ws.description = description; ws.use_worktree = useWorktree ? 1 : 0; }
     renderWorkspaceList();
   } catch(_){}
   closeWsModal();
@@ -1654,7 +1711,8 @@ function submitNewCard() {
   const activeAgentBtn = document.querySelector('#nc-agent-opts .agent-btn.active');
   const agent = activeAgentBtn?.dataset.ncAgent || undefined;
   const description = document.getElementById('nc-desc').value.trim() || undefined;
-  col.cards.push({ id: uid(), title, tags, ...(description && { description }), ...(agent && { agent }) });
+  const requires_review = document.getElementById('nc-needs-review').checked;
+  col.cards.push({ id: uid(), title, tags, requires_review, ...(description && { description }), ...(agent && { agent }) });
   closeNewCardModal();
   renderBoard(board); postBoard();
 }
@@ -1719,7 +1777,7 @@ function buildColumn(col) {
     } else { tCol.cards.push(card); }
     draggingCard = null; draggingFromCol = null;
 
-    const spawnsAgent = card.agent && (tCol.title === 'In Progress' || tCol.title === 'Review');
+    const spawnsAgent = card.agent && sCol.id !== tCol.id && (tCol.title === 'In Progress' || tCol.title === 'Review');
     if (spawnsAgent) {
       const agentStatus = mcpStatusCache?.agents?.[card.agent];
       if (agentStatus?.installed && !agentStatus?.configured) {
@@ -2259,7 +2317,18 @@ function openCardModal(cardId, colId) {
     card.agent = btn.dataset.agent || undefined;
     updatePromptBox(card); saveModal(card);
     updateRunAgentBtn(card);
+    document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
   });
+
+  const reviewToggleRow = document.getElementById('card-review-toggle-row');
+  const reviewToggle = document.getElementById('card-needs-review-toggle');
+  reviewToggleRow.style.display = card.agent ? '' : 'none';
+  reviewToggle.checked = !!card.requires_review;
+  reviewToggle.onchange = () => {
+    card.requires_review = reviewToggle.checked;
+    updatePromptBox(card);
+    saveModal(card);
+  };
 
   cardModalCreateBtn.style.display = 'none';
   updatePromptBox(card);
@@ -2342,6 +2411,7 @@ function openNewCardModal(colId) {
     } : null;
   });
 
+  document.getElementById('nc-needs-review').checked = false;
   document.getElementById('nc-modal-overlay').classList.add('open');
   document.getElementById('nc-title-input').focus();
 }
@@ -2423,16 +2493,20 @@ function updatePromptBox(card) {
     
     let columnContext = '';
     const colTitle = col?.title || '';
+    const needsReview = !!card.requires_review;
     if (colTitle === 'In Progress') {
+      const nextStep = needsReview
+        ? '- When implementation is complete and all changes are committed, call move_card to move to Review'
+        : '- This card does NOT require review — when done, commit all changes, then call complete_card to move directly to Done (skip Review)';
       columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
 - Call get_board first to see the full board state
 - Plan and implement the feature/fix
 - Write code and make changes in the project directory
 - Commit ALL changes with git before moving columns: run \`git add -A && git commit -m "...\"\`
 - Use add_card_note to log progress, decisions, and blockers
-- When implementation is complete and all changes are committed, call move_card to move to Review
+${nextStep}
 
-IMPORTANT: Do NOT call move_card until you have committed your changes with git commit.`;
+IMPORTANT: Do NOT call move_card or complete_card until you have committed your changes with git commit.`;
     } else if (colTitle === 'Review') {
       columnContext = `\nYou are in the REVIEW phase. Your job is to:
 - Call get_board first to see the full board state
@@ -2488,20 +2562,26 @@ function showChangesSection(card) {
   section.style.display = 'block';
   const inDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
   actions.style.display = inDone ? 'flex' : 'none';
+  document.getElementById('card-merge-btn').disabled = true;
+  document.getElementById('card-pr-btn').disabled = true;
   badge.textContent = card.branch;
-  meta.textContent = 'Loading…';
+  meta.textContent = '';
   diffView.style.display = 'none';
   diffView.innerHTML = '';
   toggleBtn.textContent = 'Show diff';
+  toggleBtn._diffData = null;
 
   fetch(`/api/cards/${card.id}/diff`)
     .then(r => r.json())
     .then(data => {
       const count = data.commits ? data.commits.split('\n').filter(Boolean).length : 0;
-      meta.textContent = count ? `${count} commit${count > 1 ? 's' : ''} on ${data.branch}` : `No commits yet on ${data.branch}`;
+      meta.textContent = count ? `${count} commit${count > 1 ? 's' : ''}` : 'no commits yet';
       toggleBtn._diffData = data;
+      const hasCommits = count > 0;
+      document.getElementById('card-merge-btn').disabled = !hasCommits;
+      document.getElementById('card-pr-btn').disabled = !hasCommits;
     })
-    .catch(() => { meta.textContent = card.branch; });
+    .catch(() => { meta.textContent = ''; });
 }
 
 function saveModal(card) {
@@ -2587,6 +2667,7 @@ function closeCardModal() {
   cardModalCreateBtn.style.display = 'none';
   document.getElementById('card-prompt-section').style.display = 'none';
   document.getElementById('card-run-agent-btn').style.display = 'none';
+  document.getElementById('card-review-toggle-row').style.display = 'none';
   document.getElementById('card-move-actions').style.display = 'none';
   document.getElementById('card-sidebar-meta-row').style.display = 'none';
   document.getElementById('card-merge-actions').style.display = 'none';

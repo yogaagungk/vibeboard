@@ -46,8 +46,8 @@ app.get('/workspaces', (_req, res) => {
 });
 
 app.post('/workspaces', (req, res) => {
-  const { name = '', path: wsPath = '', description = '' } = req.body;
-  const ws = db.createWorkspace(name, wsPath, description);
+  const { name = '', path: wsPath = '', description = '', use_worktree = 0 } = req.body;
+  const ws = db.createWorkspace(name, wsPath, description, use_worktree);
   if (!db.getActiveWorkspaceId()) {
     db.setActiveWorkspaceId(ws.id);
     emitSSE('workspace_switch', { board: db.getBoard(ws.id), workspaceId: ws.id });
@@ -252,8 +252,8 @@ app.post('/board', (req, res) => {
   if (!activeId) return res.status(400).json({ error: 'No active workspace' });
 
   const body = req.body;
-  if (body.name !== undefined || body.path !== undefined || body.description !== undefined) {
-    db.updateWorkspace(activeId, { name: body.name, path: body.path, description: body.description });
+  if (body.name !== undefined || body.path !== undefined || body.description !== undefined || body.use_worktree !== undefined) {
+    db.updateWorkspace(activeId, { name: body.name, path: body.path, description: body.description, use_worktree: body.use_worktree });
   }
   if (Array.isArray(body.columns)) {
     db.syncBoard(activeId, body.columns);

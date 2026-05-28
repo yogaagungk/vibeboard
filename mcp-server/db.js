@@ -102,8 +102,12 @@ db.exec(`
 // Column migrations for existing databases
 (function migrate() {
   const cardCols = db.pragma('table_info(cards)').map(r => r.name);
-  if (!cardCols.includes('branch'))       db.exec('ALTER TABLE cards ADD COLUMN branch TEXT');
-  if (!cardCols.includes('worktree_path')) db.exec('ALTER TABLE cards ADD COLUMN worktree_path TEXT');
+  if (!cardCols.includes('branch'))          db.exec('ALTER TABLE cards ADD COLUMN branch TEXT');
+  if (!cardCols.includes('worktree_path'))   db.exec('ALTER TABLE cards ADD COLUMN worktree_path TEXT');
+  if (!cardCols.includes('requires_review')) db.exec('ALTER TABLE cards ADD COLUMN requires_review INTEGER DEFAULT 0');
+
+  const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
+  if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
 })();
 
 function getActiveWorkspaceId() {
@@ -116,21 +120,21 @@ function setActiveWorkspaceId(id) {
 }
 
 function listWorkspaces() {
-  return db.prepare('SELECT id, name, path, description FROM workspaces ORDER BY created_at DESC').all();
+  return db.prepare('SELECT id, name, path, description, use_worktree FROM workspaces ORDER BY created_at DESC').all();
 }
 
 function getWorkspace(id) {
   return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(id);
 }
 
-function createWorkspace(name, wsPath, description = '') {
+function createWorkspace(name, wsPath, description = '', useWorktree = 0) {
   const id = 'ws-' + crypto.randomUUID();
   const now = new Date().toISOString();
-  
+
   db.prepare(`
-    INSERT INTO workspaces (id, name, path, description, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, name, wsPath, description, now, now);
+    INSERT INTO workspaces (id, name, path, description, use_worktree, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, name, wsPath, description, useWorktree ? 1 : 0, now, now);
   
   const defaultColumns = [
     { id: 'col-' + crypto.randomUUID(), title: 'Backlog', color: '#6b6860', position: 0 },
@@ -150,11 +154,12 @@ function createWorkspace(name, wsPath, description = '') {
 function updateWorkspace(id, updates) {
   const fields = [];
   const values = [];
-  
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
-  if (updates.path !== undefined) { fields.push('path = ?'); values.push(updates.path); }
-  if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description); }
-  
+
+  if (updates.name !== undefined)         { fields.push('name = ?');         values.push(updates.name); }
+  if (updates.path !== undefined)         { fields.push('path = ?');         values.push(updates.path); }
+  if (updates.description !== undefined)  { fields.push('description = ?');  values.push(updates.description); }
+  if (updates.use_worktree !== undefined) { fields.push('use_worktree = ?'); values.push(updates.use_worktree ? 1 : 0); }
+
   if (fields.length === 0) return;
   
   fields.push('updated_at = ?');
@@ -179,7 +184,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, position, created_at
+    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, requires_review, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -201,6 +206,7 @@ function getBoard(workspaceId) {
         tags: c.tags ? JSON.parse(c.tags) : [],
         createdAt: c.created_at,
         worktreePath: c.worktree_path,
+        requires_review: !!c.requires_review,
       }))
   }));
   
@@ -209,6 +215,7 @@ function getBoard(workspaceId) {
     name: workspace.name,
     path: workspace.path,
     description: workspace.description,
+    use_worktree: workspace.use_worktree || 0,
     columns: columnsWithCards,
     agentLog,
   };
@@ -218,31 +225,34 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const id = 'card-' + crypto.randomUUID();
   const now = new Date().toISOString();
   const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(columnId).pos;
-  
+  const requiresReview = options.requires_review ? 1 : 0;
+
   db.prepare(`
-    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, position, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, columnId, workspaceId, title,
     options.description || null,
     options.tags ? JSON.stringify(options.tags) : null,
     options.agent || null,
+    requiresReview,
     position, now, now
   );
-  
-  return { id, title, tags: options.tags || [], createdAt: now, ...options };
+
+  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, createdAt: now, ...options };
 }
 
 function updateCard(cardId, updates) {
   const fields = [];
   const values = [];
   
-  if (updates.title !== undefined)       { fields.push('title = ?');        values.push(updates.title); }
-  if (updates.description !== undefined) { fields.push('description = ?');   values.push(updates.description || null); }
-  if (updates.tags !== undefined)        { fields.push('tags = ?');          values.push(JSON.stringify(updates.tags)); }
-  if (updates.agent !== undefined)       { fields.push('agent = ?');         values.push(updates.agent || null); }
-  if (updates.branch !== undefined)      { fields.push('branch = ?');        values.push(updates.branch || null); }
-  if (updates.worktreePath !== undefined){ fields.push('worktree_path = ?'); values.push(updates.worktreePath || null); }
+  if (updates.title !== undefined)           { fields.push('title = ?');           values.push(updates.title); }
+  if (updates.description !== undefined)     { fields.push('description = ?');      values.push(updates.description || null); }
+  if (updates.tags !== undefined)            { fields.push('tags = ?');             values.push(JSON.stringify(updates.tags)); }
+  if (updates.agent !== undefined)           { fields.push('agent = ?');            values.push(updates.agent || null); }
+  if (updates.branch !== undefined)          { fields.push('branch = ?');           values.push(updates.branch || null); }
+  if (updates.worktreePath !== undefined)    { fields.push('worktree_path = ?');    values.push(updates.worktreePath || null); }
+  if (updates.requires_review !== undefined) { fields.push('requires_review = ?'); values.push(updates.requires_review ? 1 : 0); }
   
   if (fields.length === 0) return;
   
@@ -319,12 +329,13 @@ function syncBoard(workspaceId, columns) {
         const card = col.cards[ki];
         const now  = new Date().toISOString();
         const tags = JSON.stringify(card.tags || []);
+        const rr = card.requires_review !== false ? 1 : 0;
         if (existingCards.includes(card.id)) {
-          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, position=?, updated_at=? WHERE id=?')
-            .run(col.id, card.title, card.description || null, tags, card.agent || null, ki, now, card.id);
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, requires_review=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, rr, ki, now, card.id);
         } else {
-          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
-            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, ki, now, now);
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, rr, ki, now, now);
         }
       }
     }
@@ -347,6 +358,7 @@ function getCard(cardId) {
     ...card,
     tags: card.tags ? JSON.parse(card.tags) : [],
     createdAt: card.created_at,
+    requires_review: !!card.requires_review,
   };
 }
 
