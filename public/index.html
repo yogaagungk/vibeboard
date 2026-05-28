@@ -294,9 +294,9 @@ body {
 
 #card-sidebar-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  padding: 16px 16px 14px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -307,7 +307,7 @@ body {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 #card-sidebar-body::-webkit-scrollbar { width: 4px; }
 #card-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -320,6 +320,19 @@ body {
 }
 #card-sidebar-footer.visible { display: block; }
 
+/* ── Card sidebar header layout ── */
+#card-sidebar-title-group {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 5px;
+}
+#card-sidebar-title-row {
+  display: flex; align-items: center; gap: 7px;
+}
+#card-sidebar-meta-row {
+  display: flex; align-items: center; gap: 6px;
+}
+#card-sidebar-meta-row:empty { display: none; }
+
 /* ── Layout ── */
 #app {
   display: flex;
@@ -329,6 +342,11 @@ body {
 body.mcp-banner-open #app {
   height: calc(100vh - var(--header-h) - 41px);
   margin-top: 41px;
+}
+body.mcp-banner-open #card-sidebar,
+body.mcp-banner-open #log-sidebar {
+  top: calc(var(--header-h) + 41px);
+  height: calc(100vh - var(--header-h) - 41px);
 }
 
 #board-wrap {
@@ -620,6 +638,14 @@ body.mcp-banner-open #app {
 .theme-opt:hover { border-color: var(--border-strong); color: var(--text); }
 .theme-opt.active { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); font-weight: 500; }
 
+/* ── New Card Modal ── */
+#nc-modal { width: 480px; }
+#nc-title-input {
+  flex: 1; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  border: none; outline: none; background: transparent; padding: 0;
+}
+
 .data-path-box {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg); border: 1px solid var(--border);
@@ -644,8 +670,9 @@ body.mcp-banner-open #app {
 #card-modal { width: 600px; }
 
 #card-modal-title-input {
-  flex: 1; font-family: 'DM Sans', sans-serif;
-  font-size: 15px; font-weight: 500; color: var(--text);
+  flex: 1; min-width: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 500; color: var(--text);
   border: none; outline: none; background: transparent; padding: 0;
 }
 .modal-col-badge {
@@ -762,32 +789,30 @@ body.mcp-banner-open #app {
 .card-merge-actions .btn-ghost   { flex: 1; height: 34px; font-size: 12px; }
 
 /* ── Card Notes ── */
-#card-notes-section { margin-top: 8px; }
+#card-notes-section { margin-top: 4px; }
 #card-notes-list {
-  display: flex; flex-direction: column; gap: 8px;
-  max-height: 200px; overflow-y: auto;
-  padding: 8px; background: var(--bg); border: 1px solid var(--border);
-  border-radius: 6px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .card-note {
-  padding: 8px 10px; background: var(--surface); border-radius: 5px;
+  padding: 10px 12px;
+  background: var(--bg); border-radius: 7px;
+  border: 1px solid var(--border);
   border-left: 3px solid var(--border-strong);
-  font-size: 12px; line-height: 1.5; color: var(--text);
+  font-size: 12px; line-height: 1.6; color: var(--text);
+  transition: border-left-color 0.15s;
 }
 .card-note-time {
   font-size: 10px; color: var(--text-muted); margin-bottom: 4px;
-  font-weight: 500;
+  font-weight: 400; display: flex; align-items: center; gap: 5px;
 }
 .card-note-content {
-  white-space: pre-wrap; word-break: break-word;
+  white-space: pre-wrap; word-break: break-word; font-weight: 300;
 }
-#card-notes-list:empty::before {
-  content: 'No notes yet';
-  color: var(--text-muted);
-  font-size: 12px;
-  text-align: center;
-  display: block;
-  padding: 12px;
+
+/* ── Section divider ── */
+.sidebar-section-divider {
+  border: none; border-top: 1px solid var(--border);
+  margin: 2px 0;
 }
 
 /* ── MCP banner ── */
@@ -920,8 +945,6 @@ body.mcp-banner-open #app {
   #app { margin-left: 0; }
 
   #header h1 { font-size: 13px; }
-  #theme-switcher { gap: 2px; }
-  .theme-opt { width: 28px; height: 28px; font-size: 13px; }
   .header-btn { font-size: 11px; height: 26px; padding: 0 8px; }
 
   #board-wrap { padding: 12px 0 12px 12px; }
@@ -944,7 +967,6 @@ body.mcp-banner-open #app {
 @media (max-width: 480px) {
   #header { padding: 0 10px; gap: 6px; }
   .header-btn { font-size: 10px; height: 24px; padding: 0 6px; }
-  #theme-switcher { display: none; }
   .column { min-width: 220px; max-width: 220px; }
 }
 </style>
@@ -957,11 +979,7 @@ body.mcp-banner-open #app {
   <h1>VibeBoard</h1>
   <button class="header-btn" id="log-toggle-btn">Agent Log</button>
   <button class="header-btn" id="mcp-btn">MCP Setup</button>
-  <div id="theme-switcher">
-    <button class="theme-opt" data-t="light">☀</button>
-    <button class="theme-opt" data-t="system">⚙</button>
-    <button class="theme-opt" data-t="dark">☾</button>
-  </div>
+  <button class="header-btn" id="theme-btn" title="Switch theme" style="min-width:32px;padding:0 10px">☀</button>
 </header>
 
 <div id="toast-container"></div>
@@ -1118,17 +1136,62 @@ body.mcp-banner-open #app {
   </div>
 </div>
 
+<!-- New Card Modal -->
+<div class="modal-overlay" id="nc-modal-overlay">
+  <div class="modal-box" id="nc-modal">
+    <div class="modal-header">
+      <span id="nc-col-badge" class="modal-col-badge"></span>
+      <input id="nc-title-input" type="text" spellcheck="false" placeholder="Card title" autocomplete="off">
+      <button class="modal-close-btn" id="nc-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="field-label">Description</div>
+        <textarea class="modal-textarea" id="nc-desc" placeholder="Add context for the agent or yourself…"></textarea>
+      </div>
+      <div>
+        <div class="field-label">Tags</div>
+        <div class="modal-tag-picker" id="nc-tag-picker"></div>
+      </div>
+      <div>
+        <div class="field-label">Assign agent</div>
+        <div class="agent-options" id="nc-agent-opts">
+          <button class="agent-btn active" data-nc-agent="">None</button>
+          <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
+          <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
+          <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-spacer"></div>
+      <button class="btn-ghost" id="nc-cancel">Cancel</button>
+      <button class="btn-save" id="nc-create">Create card</button>
+    </div>
+  </div>
+</div>
+
 <!-- Card Detail Sidebar -->
 <aside id="card-sidebar">
   <div id="card-sidebar-resize-handle"></div>
   <div id="card-sidebar-content">
     <div id="card-sidebar-header">
-      <input id="card-modal-title-input" type="text" spellcheck="false" placeholder="Card title">
-      <span id="card-modal-col-badge" class="modal-col-badge"></span>
-      <span id="card-modal-branch-badge" class="branch-badge" style="display:none"></span>
+      <div id="card-sidebar-title-group">
+        <div id="card-sidebar-title-row">
+          <input id="card-modal-title-input" type="text" spellcheck="false" placeholder="Card title">
+          <span id="card-modal-col-badge" class="modal-col-badge"></span>
+        </div>
+        <div id="card-sidebar-meta-row" style="display:none">
+          <span id="card-modal-branch-badge" class="branch-badge"></span>
+        </div>
+      </div>
       <button class="modal-close-btn" id="card-modal-close">×</button>
     </div>
     <div id="card-sidebar-body">
+      <div id="card-move-actions" style="display:none">
+        <div class="field-label">Move to</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
+      </div>
       <div>
         <div class="field-label">Description</div>
         <textarea id="card-modal-desc" placeholder="Add context for the agent or yourself…"></textarea>
@@ -1138,7 +1201,7 @@ body.mcp-banner-open #app {
         <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
       </div>
       <div>
-        <div class="field-label">Assign agent</div>
+        <div class="field-label">Agent</div>
         <div class="agent-options">
           <button class="agent-btn active" data-agent="">None</button>
           <button class="agent-btn" data-agent="claude-code">Claude Code</button>
@@ -1147,10 +1210,7 @@ body.mcp-banner-open #app {
         </div>
         <button class="agent-run-btn" id="card-run-agent-btn" style="display:none;margin-top:8px;width:100%">Run agent</button>
       </div>
-      <div id="card-move-actions" style="display:none">
-        <div class="field-label">Move card</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
-      </div>
+      <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
       <div id="card-notes-section" style="display:none">
         <div class="field-label">Notes &amp; Checkpoints</div>
         <div id="card-notes-list"></div>
@@ -1176,7 +1236,7 @@ body.mcp-banner-open #app {
       <div id="card-prompt-section" style="display:none">
         <div class="field-label">Agent prompt</div>
         <div style="display:flex;align-items:flex-start;gap:8px">
-          <textarea id="card-modal-prompt-text" readonly style="flex:1;height:100px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);outline:none;line-height:1.5"></textarea>
+          <textarea id="card-modal-prompt-text" readonly style="flex:1;height:180px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);outline:none;line-height:1.5"></textarea>
           <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
         </div>
       </div>
@@ -1192,11 +1252,16 @@ body.mcp-banner-open #app {
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 const THEME_KEY = 'vb_theme';
+const THEME_CYCLE = ['light', 'dark'];
+const THEME_ICONS = { system: '☀', light: '☀', dark: '☾' };
+const THEME_LABELS = { system: 'Light', light: 'Light', dark: 'Dark' };
 function applyTheme(t) {
   if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
   else document.documentElement.removeAttribute('data-theme');
   document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('active', b.dataset.t === t));
   localStorage.setItem(THEME_KEY, t);
+  const btn = document.getElementById('theme-btn');
+  if (btn) { btn.textContent = THEME_ICONS[t] || '⊙'; btn.title = `Theme: ${THEME_LABELS[t] || t} (click to cycle)`; }
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'system');
 
@@ -1224,6 +1289,9 @@ const boardEl        = document.getElementById('board');
 const boardWrap      = document.getElementById('board-wrap');
 const emptyState     = document.getElementById('empty-state');
 const connDot        = document.getElementById('conn-dot');
+const logSidebar     = document.getElementById('log-sidebar');
+const logEntries     = document.getElementById('log-entries');
+const logToggleBtn   = document.getElementById('log-toggle-btn');
 const wsAddBtn       = document.getElementById('ws-add-btn');
 const wsCreateForm   = document.getElementById('ws-create-form');
 const wsCreatePath   = document.getElementById('ws-create-path');
@@ -1543,12 +1611,47 @@ document.querySelectorAll('.theme-opt').forEach(btn => {
   btn.addEventListener('click', () => applyTheme(btn.dataset.t));
 });
 
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const cur = localStorage.getItem(THEME_KEY) || 'system';
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length];
+  applyTheme(next);
+});
+
 document.getElementById('settings-copy-path').addEventListener('click', function() {
   const p = document.getElementById('settings-data-path').textContent;
   navigator.clipboard.writeText(p).then(() => {
     this.textContent = 'Copied!'; this.classList.add('copied');
     setTimeout(() => { this.textContent = 'Copy'; this.classList.remove('copied'); }, 2000);
   });
+});
+
+// ── New Card Modal ────────────────────────────────────────────────────────
+function closeNewCardModal() {
+  document.getElementById('nc-modal-overlay').classList.remove('open');
+  newCardColId = null;
+}
+
+function submitNewCard() {
+  const title = document.getElementById('nc-title-input').value.trim();
+  if (!title) { document.getElementById('nc-title-input').focus(); return; }
+  const col = board.columns.find(c => c.id === newCardColId);
+  if (!col) return;
+  const tags = Array.from(document.querySelectorAll('#nc-tag-picker .tag-pick-btn.active')).map(b => b.dataset.tag);
+  const activeAgentBtn = document.querySelector('#nc-agent-opts .agent-btn.active');
+  const agent = activeAgentBtn?.dataset.ncAgent || undefined;
+  const description = document.getElementById('nc-desc').value.trim() || undefined;
+  col.cards.push({ id: uid(), title, tags, ...(description && { description }), ...(agent && { agent }) });
+  closeNewCardModal();
+  renderBoard(board); postBoard();
+}
+
+document.getElementById('nc-close').addEventListener('click', closeNewCardModal);
+document.getElementById('nc-cancel').addEventListener('click', closeNewCardModal);
+document.getElementById('nc-create').addEventListener('click', submitNewCard);
+document.getElementById('nc-modal-overlay').addEventListener('click', e => { if (e.target.id === 'nc-modal-overlay') closeNewCardModal(); });
+document.getElementById('nc-title-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('nc-desc').focus();
+  if (e.key === 'Escape') closeNewCardModal();
 });
 
 // ── Render board ───────────────────────────────────────────────────────────
@@ -1702,10 +1805,6 @@ function prependLogEntry(entry) {
   logEntries.insertBefore(buildLogEntry(entry), logEntries.firstChild);
 }
 
-const logSidebar = document.getElementById('log-sidebar');
-const logEntries = document.getElementById('log-entries');
-const logToggleBtn = document.getElementById('log-toggle-btn');
-
 logToggleBtn.addEventListener('click', () => {
   const logOpen = logSidebar.classList.contains('open');
   if (logOpen) {
@@ -1749,8 +1848,9 @@ function connectSSE() {
         const card = col?.cards.find(c => c.id === modalCardId);
         if (card) {
           const bb = document.getElementById('card-modal-branch-badge');
-          if (card.branch) { bb.textContent = card.branch; bb.style.display = ''; }
-          else { bb.style.display = 'none'; }
+          const mr = document.getElementById('card-sidebar-meta-row');
+          if (card.branch) { bb.textContent = card.branch; mr.style.display = ''; }
+          else { mr.style.display = 'none'; }
         }
       }
     }
@@ -2042,13 +2142,15 @@ async function loadCardNotes(cardId) {
 function renderCardNotes(notes) {
   const notesList = document.getElementById('card-notes-list');
   const notesSection = document.getElementById('card-notes-section');
-  
+  const divider = document.getElementById('card-activity-divider');
+
   if (!notes || notes.length === 0) {
     notesSection.style.display = 'none';
     return;
   }
-  
+
   notesSection.style.display = 'block';
+  if (divider) divider.style.display = '';
   notesList.innerHTML = '';
   
   notes.forEach(note => {
@@ -2118,8 +2220,9 @@ function openCardModal(cardId, colId) {
   cardModalTitleEl.value = card.title || card.text || '';
   cardModalColBadge.textContent = col.title; cardModalColBadge.style.background = col.color || '#6b6860';
   const branchBadge = document.getElementById('card-modal-branch-badge');
-  if (card.branch) { branchBadge.textContent = card.branch; branchBadge.style.display = ''; }
-  else { branchBadge.style.display = 'none'; }
+  const metaRow = document.getElementById('card-sidebar-meta-row');
+  if (card.branch) { branchBadge.textContent = card.branch; metaRow.style.display = ''; }
+  else { metaRow.style.display = 'none'; }
   cardModalDesc.value = card.description || '';
 
   cardModalTagPicker.innerHTML = '';
@@ -2178,20 +2281,27 @@ function openCardModal(cardId, colId) {
   cardSidebar.classList.add('open');
   cardModalTitleEl.focus();
 
-  loadCardNotes(cardId).then(notes => renderCardNotes(notes));
+  loadCardNotes(cardId).then(notes => {
+    renderCardNotes(notes);
+    const hasActivity = notes.length > 0 || card.branch;
+    document.getElementById('card-activity-divider').style.display = hasActivity ? '' : 'none';
+  });
 }
 
 function openNewCardModal(colId) {
   logSidebar.classList.remove('open');
+  cardSidebar.classList.remove('open');
   newCardColId = colId;
-  modalCardId = null; modalColId = colId;
 
   const col = board.columns.find(c => c.id === colId);
-  cardModalTitleEl.value = '';
-  cardModalColBadge.textContent = col.title; cardModalColBadge.style.background = col.color || '#6b6860';
-  cardModalDesc.value = '';
+  const badge = document.getElementById('nc-col-badge');
+  badge.textContent = col.title; badge.style.background = col.color || '#6b6860';
 
-  cardModalTagPicker.innerHTML = '';
+  document.getElementById('nc-title-input').value = '';
+  document.getElementById('nc-desc').value = '';
+
+  const picker = document.getElementById('nc-tag-picker');
+  picker.innerHTML = '';
   TAGS.forEach(tag => {
     const btn = document.createElement('button');
     btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
@@ -2201,23 +2311,25 @@ function openNewCardModal(colId) {
       if (btn.classList.contains('active')) { btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white'; btn.style.opacity = '1'; }
       else { btn.style.backgroundColor = ''; btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45'; }
     });
-    cardModalTagPicker.appendChild(btn);
+    picker.appendChild(btn);
   });
 
-  applyAgentBtns('', null);
+  const agentOpts = document.getElementById('nc-agent-opts');
+  agentOpts.querySelectorAll('.agent-btn').forEach(btn => {
+    const agent = btn.dataset.ncAgent;
+    const reason = agentUnavailableReason(agent);
+    btn.disabled = !!reason;
+    btn.classList.toggle('unavailable', !!reason);
+    btn.classList.toggle('active', agent === '');
+    btn.title = reason ? `${AGENT_LABELS[agent] || agent}: ${reason}` : '';
+    btn.onclick = !reason ? () => {
+      agentOpts.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    } : null;
+  });
 
-  cardModalCreateBtn.style.display = '';
-  document.getElementById('card-run-agent-btn').style.display = 'none';
-  document.getElementById('card-move-actions').style.display = 'none';
-  document.getElementById('card-notes-section').style.display = 'none';
-  document.getElementById('card-changes-section').style.display = 'none';
-  document.getElementById('card-output-section').style.display = 'none';
-  document.getElementById('card-output-toggle').style.display = 'none';
-  document.getElementById('card-output-content').textContent = '';
-  document.getElementById('card-prompt-section').style.display = 'none';
-  syncFooterVisibility();
-  cardSidebar.classList.add('open');
-  cardModalTitleEl.focus();
+  document.getElementById('nc-modal-overlay').classList.add('open');
+  document.getElementById('nc-title-input').focus();
 }
 
 function getModalTags() {
@@ -2241,60 +2353,40 @@ function updateRunAgentBtn(card) {
   const running = runningCards.has(card.id);
   btn.style.display = '';
   btn.disabled = running;
-  const hasRun = (card.notes && card.notes.length > 0) || card.branch || card.worktreePath;
-  btn.textContent = running ? 'Running…' : (hasRun ? 'Rerun agent' : 'Run agent');
+  btn.textContent = running ? 'Running…' : 'Run agent';
 }
 
 function updateMoveButtons(card, currentColTitle) {
   const moveSection = document.getElementById('card-move-actions');
   const moveButtons = document.getElementById('card-move-buttons');
-  
+
   if (!card) { moveSection.style.display = 'none'; return; }
-  
-  const targetColumns = [];
-  if (currentColTitle === 'Backlog') {
-    targetColumns.push('In Progress');
-  } else if (currentColTitle === 'In Progress') {
-    targetColumns.push('Backlog', 'Review', 'Done');
-  } else if (currentColTitle === 'Review') {
-    targetColumns.push('In Progress', 'Done');
-  } else if (currentColTitle === 'Done') {
-    targetColumns.push('Review');
-  }
-  
-  if (targetColumns.length === 0) {
-    moveSection.style.display = 'none';
-    return;
-  }
-  
+
+  const targets = board.columns.filter(c => c.title !== currentColTitle);
+  if (targets.length === 0) { moveSection.style.display = 'none'; return; }
+
   moveSection.style.display = 'block';
   moveButtons.innerHTML = '';
-  
-  targetColumns.forEach(colTitle => {
+
+  targets.forEach(targetCol => {
     const btn = document.createElement('button');
     btn.className = 'card-move-btn';
-    btn.textContent = `→ ${colTitle}`;
+    btn.textContent = `→ ${targetCol.title}`;
     btn.onclick = async () => {
-      const targetCol = board.columns.find(c => c.title === colTitle);
-      if (!targetCol) return;
+      const tc = board.columns.find(c => c.id === targetCol.id);
+      if (!tc) return;
       const sourceCol = board.columns.find(c => c.id === modalColId);
       if (!sourceCol) return;
       const cardIdx = sourceCol.cards.findIndex(c => c.id === card.id);
       if (cardIdx === -1) return;
       const [movedCard] = sourceCol.cards.splice(cardIdx, 1);
-      targetCol.cards.push(movedCard);
+      tc.cards.push(movedCard);
       renderBoard(board);
       await postBoard();
-      
-      // If moving to In Progress and card has an agent, trigger agent run
-      if (colTitle === 'In Progress' && card.agent) {
-        try {
-          await fetch(`/api/cards/${card.id}/run`, { method: 'POST' });
-        } catch (err) {
-          showToast('Failed to start agent: ' + err.message);
-        }
+      if (targetCol.title === 'In Progress' && card.agent) {
+        try { await fetch(`/api/cards/${card.id}/run`, { method: 'POST' }); }
+        catch (err) { showToast('Failed to start agent: ' + err.message); }
       }
-      
       closeCardModal();
     };
     moveButtons.appendChild(btn);
@@ -2374,6 +2466,7 @@ function showChangesSection(card) {
     return;
   }
 
+  document.getElementById('card-activity-divider').style.display = '';
   section.style.display = 'block';
   actions.style.display = 'flex';
   badge.textContent = card.branch;
@@ -2476,9 +2569,11 @@ function closeCardModal() {
   document.getElementById('card-prompt-section').style.display = 'none';
   document.getElementById('card-run-agent-btn').style.display = 'none';
   document.getElementById('card-move-actions').style.display = 'none';
-  document.getElementById('card-modal-branch-badge').style.display = 'none';
+  document.getElementById('card-sidebar-meta-row').style.display = 'none';
   document.getElementById('card-merge-actions').style.display = 'none';
   document.getElementById('card-changes-section').style.display = 'none';
+  document.getElementById('card-activity-divider').style.display = 'none';
+  document.getElementById('card-notes-section').style.display = 'none';
   const outToggle = document.getElementById('card-output-toggle');
   if (outToggle) { outToggle.style.display = 'none'; outToggle.textContent = 'Show full output'; }
   document.getElementById('card-output-section').style.display = 'none';
@@ -2530,7 +2625,7 @@ document.getElementById('card-diff-toggle').addEventListener('click', async func
   diffView.style.display = 'block'; this.textContent = 'Hide diff';
 });
 
-// ── Run / Rerun agent ──────────────────────────────────────────────────────
+// ── Run agent ──────────────────────────────────────────────────────────────
 document.getElementById('card-run-agent-btn').addEventListener('click', async function() {
   if (!modalCardId) return;
   this.disabled = true; this.textContent = 'Starting…';
@@ -2551,7 +2646,7 @@ document.getElementById('card-run-agent-btn').addEventListener('click', async fu
       toggle.textContent = 'Show full output';
     }
   } catch(err) {
-    this.disabled = false; this.textContent = 'Rerun agent';
+    this.disabled = false; this.textContent = 'Run agent';
     showToast('Failed: ' + err.message);
   }
 });
@@ -2593,6 +2688,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (document.getElementById('settings-overlay').classList.contains('open')) { document.getElementById('settings-overlay').classList.remove('open'); return; }
   if (document.getElementById('ws-modal-overlay').classList.contains('open')) { closeWsModal(); return; }
+  if (document.getElementById('nc-modal-overlay').classList.contains('open')) { closeNewCardModal(); return; }
   closeCardModal();
 });
 
