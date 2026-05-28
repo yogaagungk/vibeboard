@@ -8,7 +8,7 @@ const { z } = require('zod');
 
 const db = require('./db');
 const { migrateLegacyData } = require('./migrate');
-const { spawnAgent, stopAgent, isAgentRunning } = require('./agent');
+const { spawnAgent, agentDone, stopAgent, isAgentRunning } = require('./agent');
 
 const PUBLIC_DIR = path.resolve('./public');
 
@@ -143,6 +143,13 @@ app.get('/api/folder-dialog', (_req, res) => {
       res.json(p ? { path: p } : { path: null, cancelled: true });
     });
   }
+});
+
+app.post('/api/agent-done/:cardId', (req, res) => {
+  const { cardId } = req.params;
+  const code = parseInt(req.body?.code ?? 0, 10);
+  agentDone(cardId, code, emitSSE);
+  res.json({ ok: true });
 });
 
 app.get('/api/agents/available', (_req, res) => {
