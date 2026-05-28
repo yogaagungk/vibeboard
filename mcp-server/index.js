@@ -92,7 +92,7 @@ app.get('/api/folder-dialog', (_req, res) => {
     cmd = [
       'powershell', '-NoProfile', '-Command',
       '$shell = New-Object -ComObject Shell.Application;' +
-      '$folder = $shell.BrowseForFolder(0, "Select project folder", 0, 0);' +
+      '$folder = $shell.BrowseForFolder(0, \'Select project folder\', 0, 0);' +
       'if ($folder) { $folder.Self.Path }'
     ];
   } else if (process.platform === 'darwin') {
