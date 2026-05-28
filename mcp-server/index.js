@@ -190,13 +190,17 @@ app.get('/board', (_req, res) => {
 app.post('/board', (req, res) => {
   const activeId = db.getActiveWorkspaceId();
   if (!activeId) return res.status(400).json({ error: 'No active workspace' });
-  
+
   const body = req.body;
   if (body.name !== undefined || body.path !== undefined || body.description !== undefined) {
     db.updateWorkspace(activeId, { name: body.name, path: body.path, description: body.description });
   }
-  
-  emitSSE('board_update', db.getBoard(activeId));
+  if (Array.isArray(body.columns)) {
+    db.syncBoard(activeId, body.columns);
+  }
+
+  const fresh = db.getBoard(activeId);
+  emitSSE('board_update', { ...fresh, _tabId: body._tabId });
   res.json({ ok: true });
 });
 

@@ -303,6 +303,55 @@ function addColumn(workspaceId, title, color = '#6b6860') {
   return { id, title, color, cards: [] };
 }
 
+function syncBoard(workspaceId, columns) {
+  const existingCols  = db.prepare('SELECT id FROM columns WHERE workspace_id = ?').all(workspaceId).map(r => r.id);
+  const existingCards = db.prepare('SELECT id FROM cards   WHERE workspace_id = ?').all(workspaceId).map(r => r.id);
+
+  const incomingColIds  = columns.map(c => c.id);
+  const incomingCardIds = columns.flatMap(c => (c.cards || []).map(card => card.id));
+
+  const sync = db.transaction(() => {
+    // Remove deleted columns (cascades to cards)
+    for (const id of existingCols) {
+      if (!incomingColIds.includes(id))
+        db.prepare('DELETE FROM columns WHERE id = ?').run(id);
+    }
+
+    // Upsert columns + cards
+    for (let ci = 0; ci < columns.length; ci++) {
+      const col = columns[ci];
+      if (existingCols.includes(col.id)) {
+        db.prepare('UPDATE columns SET title = ?, color = ?, position = ? WHERE id = ?')
+          .run(col.title, col.color || '#6b6860', ci, col.id);
+      } else {
+        db.prepare('INSERT INTO columns (id, workspace_id, title, color, position) VALUES (?, ?, ?, ?, ?)')
+          .run(col.id, workspaceId, col.title, col.color || '#6b6860', ci);
+      }
+
+      for (let ki = 0; ki < (col.cards || []).length; ki++) {
+        const card = col.cards[ki];
+        const now  = new Date().toISOString();
+        const tags = JSON.stringify(card.tags || []);
+        if (existingCards.includes(card.id)) {
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, ki, now, card.id);
+        } else {
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, ki, now, now);
+        }
+      }
+    }
+
+    // Remove deleted cards
+    for (const id of existingCards) {
+      if (!incomingCardIds.includes(id))
+        db.prepare('DELETE FROM cards WHERE id = ?').run(id);
+    }
+  });
+
+  sync();
+}
+
 function getCard(cardId) {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardId);
   if (!card) return null;
@@ -338,6 +387,7 @@ module.exports = {
   getCardNotes,
   addAgentLog,
   addColumn,
+  syncBoard,
   getCard,
   getColumn,
 };

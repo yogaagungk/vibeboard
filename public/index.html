@@ -856,7 +856,6 @@ let board = { columns: [], agentLog: [] };
 let workspaces = [];
 let activeWsId = null;
 let editingWsId = null;
-let lastPostHash = null;
 let draggingCard = null;
 let draggingFromCol = null;
 let logOpen = false;
@@ -899,7 +898,6 @@ function loadCache() { try { const r=localStorage.getItem('vb_board'); if(r) ret
 // ── POST board ─────────────────────────────────────────────────────────────
 async function postBoard() {
   const payload = { ...JSON.parse(JSON.stringify(board)), _tabId: TAB_ID };
-  lastPostHash = stableHash(board);
   try { await fetch('/board', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(_){}
   saveCache(board);
 }
@@ -1319,8 +1317,7 @@ function connectSSE() {
     const { type, data } = msg;
 
     if (type === 'board_update') {
-      const inc = JSON.parse(JSON.stringify(data)); delete inc._tabId;
-      if (stableHash(inc) === lastPostHash) return;
+      if (data._tabId === TAB_ID) return;
       const affected = findAffectedCards(board, data);
       board = data; board.agentLog = board.agentLog || [];
       saveCache(board); renderBoard(board);
