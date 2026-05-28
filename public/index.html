@@ -377,19 +377,6 @@ body {
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .add-card-trigger:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg); }
-.add-card-form { display: none; flex-direction: column; gap: 6px; }
-.add-card-form.open { display: flex; }
-.add-card-textarea {
-  width: 100%; resize: none;
-  border: 1px solid var(--border-strong); border-radius: 6px;
-  padding: 7px 8px;
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 300;
-  background: var(--surface); color: var(--text);
-  outline: none; min-height: 64px; transition: border-color 0.15s;
-}
-.add-card-textarea:focus { border-color: var(--accent); }
-.add-card-textarea::placeholder { color: var(--text-muted); }
-.tag-picker { display: flex; gap: 4px; flex-wrap: wrap; }
 .tag-pick-btn {
   font-size: 10px; font-weight: 500;
   padding: 2px 8px; border-radius: 20px;
@@ -401,20 +388,6 @@ body {
 .tag-pick-btn.active { color: #fff; }
 .tag-pick-btn:not(.active) { opacity: 0.45; border-color: var(--border); color: var(--text-muted); }
 .tag-pick-btn:hover:not(.active) { opacity: 0.8; }
-.add-card-actions { display: flex; gap: 6px; }
-.add-card-btn {
-  flex: 1; height: 28px; border: none; border-radius: 6px;
-  background: var(--accent); color: var(--accent-fg);
-  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
-  cursor: pointer; transition: opacity 0.15s;
-}
-.add-card-btn:hover { opacity: 0.85; }
-.add-card-cancel {
-  height: 28px; padding: 0 10px;
-  border: 1px solid var(--border); border-radius: 6px; background: transparent;
-  font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; color: var(--text-muted);
-}
-.add-card-cancel:hover { background: var(--bg); }
 
 #add-col-btn {
   flex-shrink: 0; width: 48px; height: 48px;
@@ -846,6 +819,7 @@ body {
       </div>
     </div>
     <div id="card-modal-footer">
+      <button class="btn-primary" id="card-modal-create-btn" style="display:none">Create Card</button>
       <div class="prompt-box" id="card-modal-prompt-box" style="display:none">
         <div class="prompt-box-header">
           <span class="field-label" style="margin:0">Agent prompt</span>
@@ -1277,49 +1251,8 @@ function buildCard(card, colId) {
 function buildAddCardArea(col) {
   const area = document.createElement('div'); area.className = 'add-card-area';
   const trigger = document.createElement('button'); trigger.className = 'add-card-trigger'; trigger.textContent = '+ Add card';
-  const form = document.createElement('div'); form.className = 'add-card-form';
-  const ta = document.createElement('textarea'); ta.className = 'add-card-textarea'; ta.placeholder = 'Card title…'; ta.rows = 2;
-  const tagPicker = document.createElement('div'); tagPicker.className = 'tag-picker';
-  let selectedTag = null;
-
-  TAGS.forEach(tag => {
-    const btn = document.createElement('button');
-    btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
-    btn.style.color = `var(--tag-${tag})`;
-    btn.addEventListener('click', () => {
-      if (selectedTag === tag) {
-        selectedTag = null; btn.classList.remove('active'); btn.style.color = `var(--tag-${tag})`; btn.style.backgroundColor = '';
-      } else {
-        tagPicker.querySelectorAll('.tag-pick-btn').forEach(b => { b.classList.remove('active'); b.style.backgroundColor = ''; b.style.color = `var(--tag-${b.dataset.tag})`; });
-        selectedTag = tag; btn.classList.add('active'); btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white';
-      }
-    });
-    tagPicker.appendChild(btn);
-  });
-
-  const actions = document.createElement('div'); actions.className = 'add-card-actions';
-  const addBtn = document.createElement('button'); addBtn.className = 'add-card-btn'; addBtn.textContent = 'Add card';
-  const cancelBtn = document.createElement('button'); cancelBtn.className = 'add-card-cancel'; cancelBtn.textContent = 'Cancel';
-  actions.appendChild(addBtn); actions.appendChild(cancelBtn);
-  form.appendChild(ta); form.appendChild(tagPicker); form.appendChild(actions);
-
-  function openForm() { trigger.style.display = 'none'; form.classList.add('open'); ta.focus(); }
-  function closeForm() {
-    form.classList.remove('open'); trigger.style.display = ''; ta.value = ''; selectedTag = null;
-    tagPicker.querySelectorAll('.tag-pick-btn').forEach(b => { b.classList.remove('active'); b.style.backgroundColor = ''; b.style.color = `var(--tag-${b.dataset.tag})`; });
-  }
-  function submitCard() {
-    const t = ta.value.trim(); if (!t) { ta.focus(); return; }
-    col.cards.push({ id: uid(), title: t, tags: selectedTag ? [selectedTag] : [] });
-    closeForm(); renderBoard(board); postBoard();
-  }
-
-  trigger.addEventListener('click', openForm);
-  cancelBtn.addEventListener('click', closeForm);
-  addBtn.addEventListener('click', submitCard);
-  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitCard(); } if (e.key === 'Escape') closeForm(); });
-
-  area.appendChild(trigger); area.appendChild(form);
+  trigger.addEventListener('click', () => openNewCardModal(col.id));
+  area.appendChild(trigger);
   return area;
 }
 
@@ -1450,8 +1383,9 @@ const cardModalTagPicker = document.getElementById('card-modal-tag-picker');
 const cardModalPromptBox = document.getElementById('card-modal-prompt-box');
 const cardModalPromptTxt = document.getElementById('card-modal-prompt-text');
 const cardModalCopyBtn   = document.getElementById('card-modal-copy-btn');
+const cardModalCreateBtn = document.getElementById('card-modal-create-btn');
 
-let modalCardId = null, modalColId = null;
+let modalCardId = null, modalColId = null, newCardColId = null;
 
 async function loadCardNotes(cardId) {
   try {
@@ -1537,6 +1471,52 @@ function openCardModal(cardId, colId) {
   loadCardNotes(cardId).then(notes => renderCardNotes(notes));
 }
 
+function openNewCardModal(colId) {
+  newCardColId = colId;
+  modalCardId = null; modalColId = colId;
+
+  const col = board.columns.find(c => c.id === colId);
+  cardModalTitleEl.value = '';
+  cardModalColBadge.textContent = col.title; cardModalColBadge.style.background = col.color || '#6b6860';
+  cardModalDesc.value = '';
+
+  cardModalTagPicker.innerHTML = '';
+  TAGS.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
+    btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45';
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      if (btn.classList.contains('active')) { btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white'; btn.style.opacity = '1'; }
+      else { btn.style.backgroundColor = ''; btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45'; }
+    });
+    cardModalTagPicker.appendChild(btn);
+  });
+
+  const agentBtns = document.querySelectorAll('.agent-btn');
+  agentBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.agent === '');
+    btn.onclick = () => {
+      agentBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active');
+    };
+  });
+
+  cardModalPromptBox.style.display = 'none';
+  cardModalCreateBtn.style.display = '';
+  document.getElementById('card-notes-section').style.display = 'none';
+  cardModalOverlay.classList.add('open');
+  cardModalTitleEl.focus();
+}
+
+function getModalTags() {
+  return Array.from(cardModalTagPicker.querySelectorAll('.tag-pick-btn.active')).map(b => b.dataset.tag);
+}
+
+function getModalAgent() {
+  const active = document.querySelector('.agent-btn.active');
+  return active?.dataset?.agent || undefined;
+}
+
 function updatePromptBox(card) {
   if (!card.agent) { cardModalPromptBox.style.display = 'none'; return; }
   const col = board.columns.find(c => c.id === modalColId);
@@ -1576,7 +1556,28 @@ cardModalDesc.addEventListener('change', () => saveModal(board.columns.find(c=>c
 cardModalClose.addEventListener('click', closeCardModal);
 cardModalOverlay.addEventListener('click', e => { if (e.target === cardModalOverlay) closeCardModal(); });
 
-function closeCardModal() { cardModalOverlay.classList.remove('open'); modalCardId = null; modalColId = null; }
+cardModalCreateBtn.addEventListener('click', () => {
+  const title = cardModalTitleEl.value.trim();
+  if (!title) { cardModalTitleEl.focus(); return; }
+  const col = board.columns.find(c => c.id === newCardColId);
+  if (!col) return;
+  const tags = getModalTags();
+  const agent = getModalAgent();
+  const description = cardModalDesc.value.trim() || undefined;
+  col.cards.push({ id: uid(), title, tags, ...(description && { description }), ...(agent && { agent }) });
+  cardModalCreateBtn.style.display = 'none';
+  newCardColId = null;
+  cardModalOverlay.classList.remove('open');
+  renderBoard(board); postBoard();
+});
+
+function closeCardModal() {
+  cardModalCreateBtn.style.display = 'none';
+  newCardColId = null;
+  cardModalOverlay.classList.remove('open');
+  modalCardId = null;
+  modalColId = null;
+}
 
 cardModalCopyBtn.addEventListener('click', () => {
   navigator.clipboard.writeText(cardModalPromptTxt.value).then(() => {
