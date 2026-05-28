@@ -21,7 +21,7 @@ npm install -g vibeboard
 Or run locally:
 
 ```bash
-git clone https://github.com/yourusername/vibeboard.git
+git clone https://github.com/zanuartri/vibeboard.git
 cd vibeboard
 npm install
 npm start
@@ -99,9 +99,8 @@ Add to your OpenCode config:
 {
   "mcp": {
     "vibeboard": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["./mcp-server/index.js"]
+      "type": "local",
+      "command": ["node", "./mcp-server/index.js"]
     }
   }
 }
@@ -154,5 +153,5 @@ MIT
 
 ## Support
 
-- Report issues: https://github.com/yourusername/vibeboard/issues
+- Report issues: https://github.com/zanuartri/vibeboard/issues
 - Documentation: See CLAUDE.md for agent context

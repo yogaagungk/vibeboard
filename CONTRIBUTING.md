@@ -5,7 +5,7 @@ Thank you for your interest in contributing to VibeBoard! This document provides
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/yourusername/vibeboard.git`
+2. Clone your fork: `git clone https://github.com/zanuartri/vibeboard.git`
 3. Install dependencies: `npm install`
 4. Start the dev server: `npm run dev`
 5. Open http://localhost:7341
@@ -128,4 +128,4 @@ Bad:
 - Help others learn and grow
 - Keep discussions on-topic
 
-Thank you for contributing! 🎉
+Thank you for contributing!

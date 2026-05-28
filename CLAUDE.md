@@ -104,9 +104,8 @@ Add to your OpenCode config:
 {
   "mcp": {
     "vibeboard": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["./mcp-server/index.js"]
+      "type": "local",
+      "command": ["node", "./mcp-server/index.js"]
     }
   }
 }
@@ -127,7 +126,7 @@ Add to your OpenCode config:
 - **No bundler** — index.html must work as a single file, no build step
 - **No auth** — this is a local tool, not a SaaS
 - **stdio transport** — not HTTP MCP, because it works without a running server
-- **Node.js only** — no Bun, no Deno, keep contributor barrier low
+- **Node.js only** — no Bun, no Deno, keeps the runtime consistent across contributors
 - **Vanilla JS** — no React/Vue/Svelte, keep the UI simple and dependency-free
 
 ## Open Source & NPM
