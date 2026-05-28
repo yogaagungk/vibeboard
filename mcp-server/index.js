@@ -419,6 +419,30 @@ app.post('/api/cards/:cardId/pr', (req, res) => {
   }
 });
 
+app.delete('/api/agent-log', (_req, res) => {
+  const activeId = db.getActiveWorkspaceId();
+  if (!activeId) return res.status(400).json({ error: 'No active workspace' });
+  db.db.prepare('DELETE FROM agent_log WHERE workspace_id = ?').run(activeId);
+  emitSSE('board_update', db.getBoard(activeId));
+  res.json({ ok: true });
+});
+
+app.post('/api/cards/:cardId/duplicate', (req, res) => {
+  const card = db.getCard(req.params.cardId);
+  if (!card) return res.status(404).json({ error: 'Card not found' });
+  const copy = db.createCard(card.workspace_id, card.column_id, card.title + ' (copy)', {
+    description: card.description,
+    tags: card.tags,
+    agent: card.agent,
+    requires_review: card.requires_review,
+    priority: card.priority,
+    custom_prompt: card.custom_prompt,
+  });
+  db.addAgentLog(card.workspace_id, 'system', 'duplicate_card', `Duplicated '${card.title}'`);
+  emitSSE('board_update', db.getBoard(card.workspace_id));
+  res.json(copy);
+});
+
 app.get('/api/cards/:cardId/notes', (req, res) => {
   const { cardId } = req.params;
   try {
@@ -521,15 +545,15 @@ mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.st
 });
 
 mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
-  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode']).optional() },
-  async ({ title, columnTitle = 'Backlog', tags = [], description, agent }) => {
+  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode']).optional(), priority: z.enum(['high', 'medium', 'low']).optional() },
+  async ({ title, columnTitle = 'Backlog', tags = [], description, agent, priority }) => {
     try {
       const activeId = db.getActiveWorkspaceId();
       if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
       const board = db.getBoard(activeId);
       const column = board.columns.find(c => c.title === columnTitle);
       if (!column) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
-      const card = db.createCard(activeId, column.id, title, { description, tags, agent });
+      const card = db.createCard(activeId, column.id, title, { description, tags, agent, priority });
       db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`);
       emitSSE('board_update', db.getBoard(activeId));
       return { content: [{ type: 'text', text: JSON.stringify(card) }] };
@@ -537,13 +561,13 @@ mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
   }
 );
 
-mcp.tool('update_card', "Update a card's title, description, tags, or assigned agent",
-  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', '']).optional() },
-  async ({ cardId, title, description, tags, agent }) => {
+mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, or priority",
+  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', '']).optional(), priority: z.enum(['high', 'medium', 'low', '']).optional() },
+  async ({ cardId, title, description, tags, agent, priority }) => {
     try {
       const card = db.getCard(cardId);
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
-      db.updateCard(cardId, { title, description, tags, agent: agent || undefined });
+      db.updateCard(cardId, { title, description, tags, agent: agent || undefined, priority: priority || undefined });
       db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Updated '${card.title}'`);
       emitSSE('board_update', db.getBoard(card.workspace_id));
       return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };

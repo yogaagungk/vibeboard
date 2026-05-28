@@ -100,6 +100,8 @@ db.exec(`
   if (!cardCols.includes('branch'))          db.exec('ALTER TABLE cards ADD COLUMN branch TEXT');
   if (!cardCols.includes('worktree_path'))   db.exec('ALTER TABLE cards ADD COLUMN worktree_path TEXT');
   if (!cardCols.includes('requires_review')) db.exec('ALTER TABLE cards ADD COLUMN requires_review INTEGER DEFAULT 0');
+  if (!cardCols.includes('priority'))        db.exec('ALTER TABLE cards ADD COLUMN priority TEXT');
+  if (!cardCols.includes('custom_prompt'))   db.exec('ALTER TABLE cards ADD COLUMN custom_prompt TEXT');
 
   const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
   if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
@@ -179,7 +181,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, requires_review, position, created_at
+    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, requires_review, priority, custom_prompt, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -202,6 +204,8 @@ function getBoard(workspaceId) {
         createdAt: c.created_at,
         worktreePath: c.worktree_path,
         requires_review: !!c.requires_review,
+        priority: c.priority || null,
+        custom_prompt: c.custom_prompt || '',
       }))
   }));
   
@@ -221,20 +225,23 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const now = new Date().toISOString();
   const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(columnId).pos;
   const requiresReview = options.requires_review ? 1 : 0;
+  const priority = options.priority || null;
+  const customPrompt = options.custom_prompt || null;
 
   db.prepare(`
-    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, position, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, columnId, workspaceId, title,
     options.description || null,
     options.tags ? JSON.stringify(options.tags) : null,
     options.agent || null,
     requiresReview,
+    priority, customPrompt,
     position, now, now
   );
 
-  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, createdAt: now, ...options };
+  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', createdAt: now, ...options };
 }
 
 function updateCard(cardId, updates) {
@@ -248,6 +255,8 @@ function updateCard(cardId, updates) {
   if (updates.branch !== undefined)          { fields.push('branch = ?');           values.push(updates.branch || null); }
   if (updates.worktreePath !== undefined)    { fields.push('worktree_path = ?');    values.push(updates.worktreePath || null); }
   if (updates.requires_review !== undefined) { fields.push('requires_review = ?'); values.push(updates.requires_review ? 1 : 0); }
+  if (updates.priority !== undefined)        { fields.push('priority = ?');        values.push(updates.priority || null); }
+  if (updates.custom_prompt !== undefined)   { fields.push('custom_prompt = ?');   values.push(updates.custom_prompt || null); }
   
   if (fields.length === 0) return;
   
@@ -332,12 +341,14 @@ function syncBoard(workspaceId, columns) {
         const now  = new Date().toISOString();
         const tags = JSON.stringify(card.tags || []);
         const rr = card.requires_review !== false ? 1 : 0;
+        const priority = card.priority || null;
+        const customPrompt = card.custom_prompt || null;
         if (existingCards.includes(card.id)) {
-          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, requires_review=?, position=?, updated_at=? WHERE id=?')
-            .run(col.id, card.title, card.description || null, tags, card.agent || null, rr, ki, now, card.id);
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, requires_review=?, priority=?, custom_prompt=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, ki, now, card.id);
         } else {
-          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, rr, ki, now, now);
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, ki, now, now);
         }
       }
     }
@@ -361,6 +372,8 @@ function getCard(cardId) {
     tags: card.tags ? JSON.parse(card.tags) : [],
     createdAt: card.created_at,
     requires_review: !!card.requires_review,
+    priority: card.priority || null,
+    custom_prompt: card.custom_prompt || '',
   };
 }
 

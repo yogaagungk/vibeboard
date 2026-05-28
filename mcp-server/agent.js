@@ -99,6 +99,8 @@ ${nextStep}`;
     columnContext = `\nCurrent column: ${colTitle}`;
   }
   
+  const customInstructions = card.custom_prompt ? `\n\nAdditional instructions from the user:\n${card.custom_prompt}` : '';
+
   return `You have a task on VibeBoard.
 
 Card: "${card.title}"${desc}${tags}${columnContext}
@@ -119,7 +121,7 @@ Use the vibeboard MCP tools:
 5. Call complete_card when fully finished and tested
 
 In the project directory, run git commands, edit files, and test as needed.
-Work in: ${workspace.path}`;
+Work in: ${workspace.path}${customInstructions}`;
 }
 
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId) {

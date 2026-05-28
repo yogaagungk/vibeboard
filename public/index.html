@@ -767,6 +767,52 @@ body.mcp-banner-open #log-sidebar {
 }
 .agent-warning-icon { color: #d97706; margin-right: 4px; }
 
+/* ── Priority ── */
+.priority-picker { display: flex; gap: 5px; }
+.priority-btn {
+  flex: 1; height: 28px; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; font-family: 'DM Sans', sans-serif; font-size: 11px;
+  font-weight: 400; color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.priority-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg); }
+.priority-btn.active { font-weight: 500; }
+.priority-btn.active[data-priority="high"]   { background: #dc2626; border-color: #dc2626; color: #fff; }
+.priority-btn.active[data-priority="medium"] { background: #d97706; border-color: #d97706; color: #fff; }
+.priority-btn.active[data-priority="low"]    { background: #2563eb; border-color: #2563eb; color: #fff; }
+.priority-btn.active[data-priority=""]       { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+.priority-badge {
+  display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 1px 5px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
+}
+.priority-badge.priority-high   { background: #fee2e2; color: #dc2626; }
+.priority-badge.priority-medium { background: #fef3c7; color: #d97706; }
+.priority-badge.priority-low    { background: #dbeafe; color: #2563eb; }
+:root[data-theme="dark"] .priority-badge.priority-high   { background: #3b1515; color: #f87171; }
+:root[data-theme="dark"] .priority-badge.priority-medium { background: #422006; color: #fbbf24; }
+:root[data-theme="dark"] .priority-badge.priority-low    { background: #1e3a5f; color: #60a5fa; }
+
+/* ── Custom prompt textarea ── */
+#card-custom-prompt {
+  width: 100%; min-height: 70px; resize: vertical;
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300;
+  background: var(--bg); color: var(--text); outline: none; line-height: 1.55;
+}
+#card-custom-prompt:focus { border-color: var(--border-strong); background: var(--surface); }
+#card-custom-prompt::placeholder { color: var(--text-muted); }
+
+/* ── Log clear btn ── */
+#log-clear-btn {
+  height: 22px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 5px;
+  background: transparent; font-family: 'DM Sans', sans-serif; font-size: 10px;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+#log-clear-btn:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+
 .agent-run-btn {
   height: 32px; padding: 0 14px; white-space: nowrap;
   border: 1px solid var(--border); border-radius: 6px;
@@ -796,9 +842,10 @@ body.mcp-banner-open #log-sidebar {
 }
 .output-toggle-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
 
-#card-sidebar-footer { border-top: 1px solid var(--border); padding: 12px 16px; flex-shrink: 0; display: none; }
-#card-sidebar-footer.visible { display: block; }
-#card-modal-create-btn { flex: none; width: 100%; height: 32px; font-size: 12px; border-radius: 6px; }
+#card-sidebar-footer { border-top: 1px solid var(--border); padding: 12px 16px; flex-shrink: 0; display: none; gap: 8px; }
+#card-sidebar-footer.visible { display: flex; }
+#card-modal-create-btn { flex: 1; height: 32px; font-size: 12px; border-radius: 6px; }
+#card-duplicate-btn { height: 32px; font-size: 12px; border-radius: 6px; padding: 0 14px; flex-shrink: 0; }
 .prompt-box { display: flex; flex-direction: column; gap: 8px; }
 .prompt-box-header { display: flex; align-items: center; justify-content: space-between; }
 #card-modal-prompt-text {
@@ -1133,6 +1180,7 @@ body.mcp-banner-open #log-sidebar {
   <div id="log-sidebar-content">
     <div id="log-sidebar-header">
       <span class="modal-header-title">Activity Log</span>
+      <button id="log-clear-btn" title="Clear all log entries">Clear</button>
       <button class="modal-close-btn" id="log-sidebar-close">×</button>
     </div>
     <div id="log-sidebar-body">
@@ -1255,6 +1303,15 @@ body.mcp-banner-open #log-sidebar {
         <div class="modal-tag-picker" id="nc-tag-picker"></div>
       </div>
       <div>
+        <div class="field-label">Priority</div>
+        <div class="priority-picker" id="nc-priority-picker">
+          <button class="priority-btn active" data-nc-priority="">None</button>
+          <button class="priority-btn" data-nc-priority="high">High</button>
+          <button class="priority-btn" data-nc-priority="medium">Medium</button>
+          <button class="priority-btn" data-nc-priority="low">Low</button>
+        </div>
+      </div>
+      <div>
         <div class="field-label">Assign agent</div>
         <div class="agent-options" id="nc-agent-opts">
           <button class="agent-btn active" data-nc-agent="">None</button>
@@ -1315,6 +1372,15 @@ body.mcp-banner-open #log-sidebar {
         <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
       </div>
       <div>
+        <div class="field-label">Priority</div>
+        <div class="priority-picker" id="card-priority-picker">
+          <button class="priority-btn active" data-priority="">None</button>
+          <button class="priority-btn" data-priority="high">High</button>
+          <button class="priority-btn" data-priority="medium">Medium</button>
+          <button class="priority-btn" data-priority="low">Low</button>
+        </div>
+      </div>
+      <div>
         <div class="field-label">Agent</div>
         <div class="agent-options">
           <button class="agent-btn active" data-agent="">None</button>
@@ -1333,6 +1399,10 @@ body.mcp-banner-open #log-sidebar {
           <input type="checkbox" id="card-needs-review-toggle" checked>
           <span class="toggle-track"></span>
         </label>
+      </div>
+      <div id="card-custom-prompt-section" style="display:none">
+        <div class="field-label">Additional instructions</div>
+        <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
       </div>
       <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
       <div id="card-notes-section" style="display:none">
@@ -1366,6 +1436,7 @@ body.mcp-banner-open #log-sidebar {
       </div>
     </div>
     <div id="card-sidebar-footer">
+      <button class="btn-ghost" id="card-duplicate-btn" style="display:none">Duplicate</button>
       <button class="btn-primary" id="card-modal-create-btn" style="display:none">Create Card</button>
     </div>
   </div>
@@ -1758,7 +1829,9 @@ function submitNewCard() {
   const agent = activeAgentBtn?.dataset.ncAgent || undefined;
   const description = document.getElementById('nc-desc').value.trim() || undefined;
   const requires_review = document.getElementById('nc-needs-review').checked;
-  col.cards.push({ id: uid(), title, tags, requires_review, ...(description && { description }), ...(agent && { agent }) });
+  const activePriorityBtn = document.querySelector('#nc-priority-picker .priority-btn.active');
+  const priority = activePriorityBtn?.dataset.ncPriority || undefined;
+  col.cards.push({ id: uid(), title, tags, requires_review, priority: priority || null, ...(description && { description }), ...(agent && { agent }) });
   closeNewCardModal();
   renderBoard(board); postBoard();
 }
@@ -1886,6 +1959,12 @@ function buildCard(card, colId) {
 
   const text = document.createElement('div'); text.className = 'card-text'; text.textContent = card.title || card.text;
   const footer = document.createElement('div'); footer.className = 'card-footer';
+  if (card.priority) {
+    const pb = document.createElement('span');
+    pb.className = `priority-badge priority-${card.priority}`;
+    pb.textContent = card.priority;
+    footer.appendChild(pb);
+  }
 
   (card.tags || []).forEach(tag => {
     const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag; footer.appendChild(pill);
@@ -1966,6 +2045,14 @@ logToggleBtn.addEventListener('click', () => {
 
 document.getElementById('log-sidebar-close').addEventListener('click', () => {
   logSidebar.classList.remove('open');
+});
+
+document.getElementById('log-clear-btn').addEventListener('click', async () => {
+  if (!confirm('Clear all activity log entries?')) return;
+  try {
+    await fetch('/api/agent-log', { method: 'DELETE' });
+    logEntries.innerHTML = '<p class="log-empty">No activity yet.</p>';
+  } catch(err) { showToast('Failed to clear log: ' + err.message); }
 });
 
 document.getElementById('mcp-btn').addEventListener('click', () => {
@@ -2406,6 +2493,7 @@ function openCardModal(cardId, colId) {
     updatePromptBox(card); saveModal(card);
     updateRunAgentBtn(card);
     document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
+    document.getElementById('card-custom-prompt-section').style.display = card.agent ? '' : 'none';
   });
 
   const reviewToggleRow = document.getElementById('card-review-toggle-row');
@@ -2418,6 +2506,40 @@ function openCardModal(cardId, colId) {
     saveModal(card);
   };
 
+  // Priority picker
+  document.querySelectorAll('#card-priority-picker .priority-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.priority === (card.priority || ''));
+    btn.onclick = () => {
+      card.priority = btn.dataset.priority || null;
+      document.querySelectorAll('#card-priority-picker .priority-btn').forEach(b => b.classList.toggle('active', b === btn));
+      saveModal(card);
+    };
+  });
+
+  // Custom prompt textarea
+  const customPromptSection = document.getElementById('card-custom-prompt-section');
+  const customPromptEl = document.getElementById('card-custom-prompt');
+  customPromptSection.style.display = card.agent ? '' : 'none';
+  customPromptEl.value = card.custom_prompt || '';
+  customPromptEl.onchange = () => {
+    card.custom_prompt = customPromptEl.value;
+    updatePromptBox(card);
+    saveModal(card);
+  };
+
+  // Duplicate button
+  const dupBtn = document.getElementById('card-duplicate-btn');
+  dupBtn.style.display = '';
+  dupBtn.onclick = async () => {
+    dupBtn.disabled = true; dupBtn.textContent = '…';
+    try {
+      await fetch(`/api/cards/${cardId}/duplicate`, { method: 'POST' });
+      showToast('Card duplicated');
+    } catch(err) { showToast('Duplicate failed: ' + err.message); }
+    dupBtn.disabled = false; dupBtn.textContent = 'Duplicate';
+  };
+
+  document.getElementById('card-sidebar-footer').classList.add('visible');
   cardModalCreateBtn.style.display = 'none';
   updatePromptBox(card);
   showChangesSection(card);
@@ -2498,6 +2620,15 @@ function openNewCardModal(colId) {
       btn.classList.add('active');
       document.getElementById('nc-agent-warning').style.display = agent ? '' : 'none';
     } : null;
+  });
+
+  // Reset priority picker to None
+  document.querySelectorAll('#nc-priority-picker .priority-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.ncPriority === '');
+    btn.onclick = () => {
+      document.querySelectorAll('#nc-priority-picker .priority-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
   });
 
   document.getElementById('nc-needs-review').checked = false;
@@ -2630,7 +2761,7 @@ Column workflow:
 - Done → complete, ready for manual merge/PR
 
 Git rule: ALWAYS run \`git add -A && git commit\` before calling move_card or complete_card.
-This ensures your work is never lost when the card changes state.`;
+This ensures your work is never lost when the card changes state.${card.custom_prompt ? '\n\nAdditional instructions from the user:\n' + card.custom_prompt : ''}`;
     promptSection.style.display = 'block';
   }
 }
@@ -2762,6 +2893,8 @@ function closeCardModal() {
   document.getElementById('card-prompt-section').style.display = 'none';
   document.getElementById('card-run-agent-btn').style.display = 'none';
   document.getElementById('card-review-toggle-row').style.display = 'none';
+  document.getElementById('card-custom-prompt-section').style.display = 'none';
+  document.getElementById('card-duplicate-btn').style.display = 'none';
   document.getElementById('card-move-actions').style.display = 'none';
   document.getElementById('card-sidebar-meta-row').style.display = 'none';
   document.getElementById('card-merge-actions').style.display = 'none';
