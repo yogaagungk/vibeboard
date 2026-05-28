@@ -96,10 +96,10 @@ app.get('/api/folder-dialog', (_req, res) => {
       '$dialog.ValidateNames = $false;' +
       '$dialog.CheckFileExists = $false;' +
       '$dialog.CheckPathExists = $true;' +
-      '$dialog.FileName = \'Folder Selection\';' +
-      '$dialog.Filter = \'Folders|*.none\';' +
-      '$dialog.Title = \'Select project folder\';' +
-      'if ($dialog.ShowDialog() -eq \'OK\') { Split-Path $dialog.FileName }'
+      '$dialog.FileName = "Folder Selection";' +
+      '$dialog.Filter = "Folders|*.none";' +
+      '$dialog.Title = "Select project folder";' +
+      'if ($dialog.ShowDialog() -eq "OK") { Split-Path $dialog.FileName }'
     ];
   } else if (process.platform === 'darwin') {
     cmd = `osascript -e 'POSIX path of (choose folder with prompt "Select project folder:")'`;
