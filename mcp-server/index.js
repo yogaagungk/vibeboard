@@ -137,7 +137,15 @@ app.post('/api/git-init', (req, res) => {
 });
 
 app.get('/api/folder-dialog', (_req, res) => {
-  if (process.platform === 'win32') {
+  if (process.platform === 'darwin') {
+    const child = spawn('osascript', ['-e', 'POSIX path of (choose folder with prompt "Select project folder:")'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', d => out += d);
+    child.on('close', () => {
+      const p = out.trim().replace(/[/\\]+$/, '');
+      res.json(p ? { path: p } : { path: null, cancelled: true });
+    });
+  } else {
     const tmpdir = process.env.TEMP || 'C:\\Windows\\Temp';
     const psPath = path.join(tmpdir, `folder-dialog-${Date.now()}.ps1`);
     const psScript = [
@@ -171,23 +179,6 @@ app.get('/api/folder-dialog', (_req, res) => {
     child.on('close', () => {
       try { fs.unlinkSync(psPath); } catch(_) {}
       if (err) process.stderr.write('folder-dialog: ' + err + '\n');
-      const p = out.trim().replace(/[/\\]+$/, '');
-      res.json(p ? { path: p } : { path: null, cancelled: true });
-    });
-  } else if (process.platform === 'darwin') {
-    const child = spawn('osascript', ['-e', 'POSIX path of (choose folder with prompt "Select project folder:")'], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '';
-    child.stdout.on('data', d => out += d);
-    child.on('close', () => {
-      const p = out.trim().replace(/[/\\]+$/, '');
-      res.json(p ? { path: p } : { path: null, cancelled: true });
-    });
-  } else {
-    const child = spawn('zenity', ['--file-selection', '--directory', '--title=Select project folder'], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '';
-    child.stdout.on('data', d => out += d);
-    child.on('close', (code) => {
-      if (code !== 0) { res.json({ path: null, cancelled: true }); return; }
       const p = out.trim().replace(/[/\\]+$/, '');
       res.json(p ? { path: p } : { path: null, cancelled: true });
     });

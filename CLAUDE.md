@@ -28,10 +28,9 @@ vibeboard/
 
 ## How the system works
 
-**Data storage**: SQLite database in OS-specific user data directory
+**Data storage**: SQLite database in OS user data directory
 - Windows: `%APPDATA%\vibeboard\vibeboard.db`
 - macOS: `~/Library/Application Support/vibeboard/vibeboard.db`
-- Linux: `~/.local/share/vibeboard/vibeboard.db`
 
 **Server architecture**: Single Node.js process (`mcp-server/index.js`) handles:
 1. **MCP stdio transport** → Agents call tools (get_board, create_card, move_card, add_card_note, etc.)
@@ -44,7 +43,7 @@ vibeboard/
 - `POST /board` → Write board mutations from UI
 - `GET /events` → SSE stream for live updates
 - `GET /api/cards/:id/notes` → Fetch card notes/checkpoints
-- `GET /api/folder-dialog` → Cross-platform folder picker
+- `GET /api/folder-dialog` → Native folder picker (PowerShell on Windows, osascript on macOS)
 
 ## MCP tools available to agents
 
@@ -124,7 +123,7 @@ Add to your OpenCode config:
 
 ## Tech decisions (do not change without discussion)
 
-- **SQLite database** — stored in OS user data directory for cross-platform support
+- **SQLite database** — stored in OS user data directory (Windows: `%APPDATA%`, macOS: `~/Library/Application Support`)
 - **No bundler** — index.html must work as a single file, no build step
 - **No auth** — this is a local tool, not a SaaS
 - **stdio transport** — not HTTP MCP, because it works without a running server
@@ -140,7 +139,7 @@ This project is:
 - Self-hostable with no cloud dependencies
 
 When contributing, ensure:
-- Cross-platform compatibility (Windows, macOS, Linux)
+- Windows and macOS compatibility
 - No breaking changes to MCP tool signatures
 - Backward compatibility with existing workspaces
 - Clear documentation for new features

@@ -19,7 +19,7 @@ function buildShellCmd(agentType, promptFile) {
         ? `type "${promptFile}" | claude --print --dangerously-skip-permissions`
         : `claude --print --dangerously-skip-permissions < "${promptFile}"`;
     case 'opencode':
-      // opencode run takes the message as a positional argument, not --prompt
+      // opencode run takes the message as a positional argument, not stdin
       return win
         ? `powershell -NoProfile -NonInteractive -Command "opencode run (Get-Content -Raw '${promptFile.replace(/'/g, "''")}')"`
         : `opencode run "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;

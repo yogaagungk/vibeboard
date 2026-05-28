@@ -8,7 +8,7 @@ A self-hostable kanban board with bidirectional MCP (Model Context Protocol) int
 - 🤖 **AI Agent Integration** — Automatically spawn Claude Code or OpenCode when cards move to "In Progress"
 - 📝 **Agent Checkpoints** — Agents can add notes and progress updates via MCP tools
 - 🔄 **Real-time Sync** — SSE-based live updates across UI and agents
-- 💾 **SQLite Storage** — Cross-platform local database in user data directory
+- 💾 **SQLite Storage** — Local database in your user data directory
 - 🌐 **Self-hosted** — No cloud, no account required
 - 🔧 **Multiple Workspaces** — Each workspace links to a project directory
 
@@ -123,7 +123,6 @@ VibeBoard stores data in SQLite at:
 
 - **Windows**: `%APPDATA%\vibeboard\vibeboard.db`
 - **macOS**: `~/Library/Application Support/vibeboard/vibeboard.db`
-- **Linux**: `~/.local/share/vibeboard/vibeboard.db`
 
 ## Development
 

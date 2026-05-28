@@ -5,17 +5,12 @@ const os = require('os');
 const crypto = require('crypto');
 
 function getUserDataDir() {
-  const platform = process.platform;
   let base;
-  
-  if (platform === 'win32') {
-    base = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
-  } else if (platform === 'darwin') {
+  if (process.platform === 'darwin') {
     base = path.join(os.homedir(), 'Library', 'Application Support');
   } else {
-    base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+    base = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
   }
-  
   return path.join(base, 'vibeboard');
 }
 

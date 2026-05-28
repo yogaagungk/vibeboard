@@ -24,7 +24,7 @@ Thank you for your interest in contributing to VibeBoard! This document provides
 
 1. **Single-file UI** — `public/index.html` must remain a single file with no build step
 2. **SQLite storage** — All data goes through `mcp-server/db.js`
-3. **Cross-platform** — Support Windows, macOS, and Linux
+3. **Cross-platform** — Support Windows and macOS
 4. **No auth** — This is a local tool, not a SaaS
 5. **MCP stdio** — Use stdio transport, not HTTP MCP
 
@@ -56,7 +56,7 @@ vibeboard/
 
 Before submitting:
 
-1. Test on your platform (Windows/macOS/Linux)
+1. Test on your platform (Windows/macOS)
 2. Test workspace creation and switching
 3. Test card creation, moving, and deletion
 4. Test MCP tools if you modified them
