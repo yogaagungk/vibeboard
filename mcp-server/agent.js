@@ -1,11 +1,15 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
-const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog } = require('./db');
+const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, DATA_DIR } = require('./db');
 const wt = require('./worktree');
 
 const activeAgents = new Map();
+
+// Agent prompt/output files can contain source code and secrets from a session,
+// so keep them in the user-scoped data dir rather than world-readable os.tmpdir().
+const AGENT_IO_DIR = path.join(DATA_DIR, 'agent-io');
+try { fs.mkdirSync(AGENT_IO_DIR, { recursive: true }); } catch (_) {}
 
 const PORT = process.env.PORT || 7341;
 const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60 * 1000;
@@ -54,7 +58,7 @@ function buildShellCmd(agentType, promptFile, model) {
 }
 
 function getOutputFile(cardId) {
-  return path.join(os.tmpdir(), `vb-output-${cardId}.txt`);
+  return path.join(AGENT_IO_DIR, `vb-output-${cardId}.txt`);
 }
 
 function stripAnsi(str) {
@@ -145,7 +149,7 @@ Work in: ${workspace.path}${customInstructions}`;
 }
 
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {
-  const promptFile = path.join(os.tmpdir(), `vb-prompt-${cardId}.txt`);
+  const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
   fs.writeFileSync(promptFile, prompt, 'utf8');
 
   const cmd = buildShellCmd(agentType, promptFile, model);

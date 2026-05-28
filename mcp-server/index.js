@@ -23,14 +23,13 @@ migrateLegacyData();
 
 // On startup, prune stale git worktree references for all workspaces that use worktrees.
 // This repairs git's internal tracking when .vb-worktrees/ entries were deleted externally
-// or when the server crashed while an agent had a worktree open.
+// or when the server crashed while an agent had a worktree open. Run async so a slow disk
+// or many workspaces don't block server boot.
 (function pruneOrphanedWorktrees() {
-  const { execSync } = require('child_process');
+  const { exec } = require('child_process');
   for (const ws of db.listWorkspaces()) {
     if (!ws.use_worktree || !ws.path) continue;
-    try {
-      execSync('git worktree prune', { cwd: ws.path, stdio: 'ignore' });
-    } catch (_) {}
+    exec('git worktree prune', { cwd: ws.path }, () => {});
   }
 })();
 
