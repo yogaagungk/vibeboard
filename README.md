@@ -112,9 +112,22 @@ Create a `.env` file (optional):
 
 ```
 PORT=7341
+VB_HOST=127.0.0.1
 ```
 
-Default port is 7341. Change if needed.
+- `PORT` — HTTP/UI port (default `7341`).
+- `VB_HOST` — interface to bind to. Defaults to `127.0.0.1` (loopback only).
+
+> ⚠️ **Network exposure is opt-in.** VibeBoard has no authentication and can
+> spawn coding agents with skipped permissions in your project directories.
+> Only set `VB_HOST=0.0.0.0` on a trusted network — anyone who can reach the
+> port can move cards and trigger agents on your machine.
+
+## WIP Limits
+
+Double-click a column's card count in its header to set a work-in-progress
+limit (blank to clear). The count turns red when the column is over its limit.
+Limits are advisory — drops are still allowed, with a warning toast.
 
 ## Data Storage
 

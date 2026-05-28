@@ -171,6 +171,30 @@ test('importWorkspace creates workspace with cards', () => {
   assert.equal(notes[0].content, 'a note');
 });
 
+// ── WIP limits ────────────────────────────────────────────────────────────────
+
+test('syncBoard persists column wip_limit and getBoard returns it', () => {
+  const ws = db.createWorkspace('WIP WS', '/tmp/wip');
+  const board = db.getBoard(ws.id);
+  board.columns[1].wip_limit = 3; // In Progress
+  db.syncBoard(ws.id, board.columns);
+  const fresh = db.getBoard(ws.id);
+  assert.equal(fresh.columns[1].wip_limit, 3);
+  assert.equal(fresh.columns[0].wip_limit, null);
+});
+
+test('exportWorkspace/importWorkspace preserve wip_limit', () => {
+  const ws = db.createWorkspace('WIP Export', '/tmp/wipexp');
+  const board = db.getBoard(ws.id);
+  board.columns[2].wip_limit = 5; // Review
+  db.syncBoard(ws.id, board.columns);
+  const data = db.exportWorkspace(ws.id);
+  const imported = db.importWorkspace(data);
+  const ib = db.getBoard(imported.id);
+  const review = ib.columns.find(c => c.title === 'Review');
+  assert.equal(review.wip_limit, 5);
+});
+
 // ── Active workspace ──────────────────────────────────────────────────────────
 
 test('setActiveWorkspaceId and getActiveWorkspaceId work', () => {

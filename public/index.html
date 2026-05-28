@@ -456,7 +456,9 @@ body.mcp-banner-open #log-sidebar {
   font-family: 'DM Sans', sans-serif; color: var(--text);
 }
 .col-title:focus { border-color: var(--border-strong); background: var(--bg); }
-.col-count { font-size: 11px; color: var(--text-muted); font-weight: 300; }
+.col-count { font-size: 11px; color: var(--text-muted); font-weight: 300; cursor: pointer; padding: 1px 4px; border-radius: 4px; }
+.col-count:hover { background: var(--bg); color: var(--text); }
+.col-count.over { color: var(--danger); font-weight: 500; }
 
 
 .cards-list {
@@ -2125,7 +2127,19 @@ function buildColumn(col) {
   title.addEventListener('change', () => { col.title = title.value.trim() || 'Untitled'; title.value = col.title; postBoard(); });
   title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
 
-  const count = document.createElement('span'); count.className = 'col-count'; count.textContent = col.cards.length;
+  const count = document.createElement('span'); count.className = 'col-count';
+  const limit = Number.isInteger(col.wip_limit) && col.wip_limit > 0 ? col.wip_limit : null;
+  count.textContent = limit ? `${col.cards.length}/${limit}` : col.cards.length;
+  if (limit && col.cards.length > limit) count.classList.add('over');
+  count.title = 'Double-click to set a WIP limit';
+  count.addEventListener('dblclick', () => {
+    const cur = limit ? String(limit) : '';
+    const input = prompt(`WIP limit for "${col.title}" (blank to clear):`, cur);
+    if (input === null) return;
+    const n = parseInt(input, 10);
+    col.wip_limit = (Number.isInteger(n) && n > 0) ? n : null;
+    renderBoard(board); postBoard();
+  });
 
   hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(count);
   colEl.appendChild(hdr);
@@ -2151,6 +2165,10 @@ function buildColumn(col) {
       if (oi !== -1) tCol.cards.splice(oi, 0, card); else tCol.cards.push(card);
     } else { tCol.cards.push(card); }
     draggingCard = null; draggingFromCol = null;
+
+    if (sCol.id !== tCol.id && Number.isInteger(tCol.wip_limit) && tCol.wip_limit > 0 && tCol.cards.length > tCol.wip_limit) {
+      showToast(`"${tCol.title}" is over its WIP limit (${tCol.cards.length}/${tCol.wip_limit})`, 4000);
+    }
 
     const spawnsAgent = card.agent && sCol.id !== tCol.id && (tCol.title === 'In Progress' || tCol.title === 'Review');
     if (spawnsAgent) {

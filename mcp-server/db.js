@@ -108,6 +108,9 @@ db.exec(`
 
   const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
   if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
+
+  const colCols = db.pragma('table_info(columns)').map(r => r.name);
+  if (!colCols.includes('wip_limit')) db.exec('ALTER TABLE columns ADD COLUMN wip_limit INTEGER');
 })();
 
 function getActiveWorkspaceId() {
@@ -178,8 +181,8 @@ function getBoard(workspaceId) {
   if (!workspace) return null;
   
   const columns = db.prepare(`
-    SELECT id, title, color, position FROM columns 
-    WHERE workspace_id = ? 
+    SELECT id, title, color, position, wip_limit FROM columns
+    WHERE workspace_id = ?
     ORDER BY position
   `).all(workspaceId);
   
@@ -347,8 +350,9 @@ function syncBoard(workspaceId, columns) {
     // Update existing columns only (no create/delete — columns are fixed)
     for (let ci = 0; ci < columns.length; ci++) {
       const col = columns[ci];
-      db.prepare('UPDATE columns SET title = ?, color = ?, position = ? WHERE id = ? AND workspace_id = ?')
-        .run(col.title, col.color || '#6b6860', ci, col.id, workspaceId);
+      const wipLimit = Number.isInteger(col.wip_limit) && col.wip_limit > 0 ? col.wip_limit : null;
+      db.prepare('UPDATE columns SET title = ?, color = ?, position = ?, wip_limit = ? WHERE id = ? AND workspace_id = ?')
+        .run(col.title, col.color || '#6b6860', ci, wipLimit, col.id, workspaceId);
 
       for (let ki = 0; ki < (col.cards || []).length; ki++) {
         const card = col.cards[ki];
@@ -411,7 +415,7 @@ function exportWorkspace(workspaceId) {
     exported_at: new Date().toISOString(),
     workspace: { name: workspace.name, path: workspace.path, description: workspace.description, use_worktree: workspace.use_worktree },
     columns: columns.map(col => ({
-      title: col.title, color: col.color, position: col.position,
+      title: col.title, color: col.color, position: col.position, wip_limit: col.wip_limit,
       cards: cards.filter(c => c.column_id === col.id).map(c => ({
         title: c.title, description: c.description,
         tags: c.tags ? JSON.parse(c.tags) : [],
@@ -433,6 +437,9 @@ function importWorkspace(data) {
   for (const colData of data.columns) {
     const colId = colMap[colData.title];
     if (!colId) continue;
+    if (Number.isInteger(colData.wip_limit) && colData.wip_limit > 0) {
+      db.prepare('UPDATE columns SET wip_limit = ? WHERE id = ?').run(colData.wip_limit, colId);
+    }
     for (const cardData of (colData.cards || [])) {
       const card = createCard(ws.id, colId, cardData.title || 'Untitled', {
         description: cardData.description, tags: cardData.tags,

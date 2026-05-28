@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Security
+- Server now binds to `127.0.0.1` by default; network exposure is opt-in via
+  `VB_HOST=0.0.0.0` and prints a no-auth warning. Closes unauthenticated LAN RCE.
+- Validate the `model` parameter and run `git`/`gh` via argument arrays (no shell)
+  to close command-injection vectors via model values, card titles, and branches.
+
+### Fixed
+- Agent spawn/stop is routed to the HTTP-server process, so agents triggered via
+  MCP (in the separate MCP-only process) now save their output note and clear
+  their timeout instead of leaking.
+- `requires_review` now defaults consistently (ON) however a card is created.
+- `move_card` spawns the assigned agent on moves to In Progress **and** Review,
+  matching the UI.
+
+### Added
+- Per-column WIP limits — double-click a column count to set one (advisory).
+- Stop agent button in the card sidebar (`POST /api/cards/:id/stop`).
+- Codex CLI selectable in the new-card modal.
+
 ## [0.1.0] - 2026-05-28
 
 ### Added
