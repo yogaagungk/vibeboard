@@ -24,7 +24,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     return;
   }
 
-  const agentCmd = agentType === 'claude-code' ? 'claude' : 'opencode';
+  const agentCmd = agentType === 'claude-code' ? 'claude' : agentType === 'codex' ? 'codex' : 'opencode';
   const prompt = `You have a task on VibeBoard.
 
 Card: "${card.title}"

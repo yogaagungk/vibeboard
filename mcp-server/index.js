@@ -145,6 +145,25 @@ app.get('/api/folder-dialog', (_req, res) => {
   }
 });
 
+app.get('/api/agents/available', (_req, res) => {
+  const { execSync } = require('child_process');
+  function isInstalled(cmd) {
+    try {
+      if (process.platform === 'win32') {
+        execSync(`where ${cmd}`, { stdio: 'ignore' });
+      } else {
+        execSync(`which ${cmd}`, { stdio: 'ignore' });
+      }
+      return true;
+    } catch (_) { return false; }
+  }
+  res.json({
+    'claude-code': isInstalled('claude'),
+    'opencode': isInstalled('opencode'),
+    'codex': isInstalled('codex'),
+  });
+});
+
 app.get('/api/info', (_req, res) => {
   res.json({
     dataDir: db.DATA_DIR,
