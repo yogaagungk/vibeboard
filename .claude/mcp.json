@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vibeboard": {
+      "command": "node",
+      "args": ["./mcp-server/index.js"]
+    }
+  }
+}

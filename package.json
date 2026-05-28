@@ -1,0 +1,36 @@
+{
+  "name": "vibeboard",
+  "version": "0.1.0",
+  "description": "Self-hostable kanban board with bidirectional MCP integration for AI coding agents",
+  "main": "mcp-server/index.js",
+  "bin": {
+    "vibeboard": "mcp-server/index.js"
+  },
+  "scripts": {
+    "start": "node mcp-server/index.js",
+    "dev": "node --watch mcp-server/index.js"
+  },
+  "keywords": [
+    "kanban",
+    "mcp",
+    "ai-agents",
+    "project-management",
+    "self-hosted",
+    "claude-code",
+    "opencode"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/vibeboard.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "^12.10.0",
+    "express": "^4.18.0"
+  }
+}

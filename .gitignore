@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Database (stored in user data directory, not in project)
+*.db
+*.db-shm
+*.db-wal
+
+# Backup and migration files
+*.backup
+*.old
+*.migrated
+board.json.bak
+board.json.migrated
+
+# Workspaces (legacy, now stored in SQLite)
+workspaces/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
