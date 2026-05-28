@@ -803,6 +803,55 @@ body.mcp-banner-open #log-sidebar {
 #card-custom-prompt:focus { border-color: var(--border-strong); background: var(--surface); }
 #card-custom-prompt::placeholder { color: var(--text-muted); }
 
+/* ── Due date ── */
+.due-date-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 400; color: var(--text-muted);
+  flex-shrink: 0;
+}
+.due-date-badge.overdue { color: #dc2626; font-weight: 500; }
+:root[data-theme="dark"] .due-date-badge.overdue { color: #f87171; }
+.due-input {
+  height: 28px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none;
+  transition: border-color 0.15s;
+}
+.due-input:focus { border-color: var(--border-strong); }
+.due-input.overdue { border-color: #dc2626; color: #dc2626; }
+
+/* ── Keyboard shortcuts ── */
+#shortcuts-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  z-index: 600; display: none; align-items: center; justify-content: center;
+}
+#shortcuts-overlay.open { display: flex; }
+#shortcuts-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px 28px; width: 380px; max-width: 95vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+#shortcuts-box h3 { font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+.shortcut-table { width: 100%; border-collapse: collapse; }
+.shortcut-table tr td { padding: 5px 0; font-size: 12px; }
+.shortcut-table tr td:first-child { width: 40%; }
+kbd {
+  display: inline-block; padding: 1px 6px; border: 1px solid var(--border-strong);
+  border-radius: 4px; font-family: monospace; font-size: 11px;
+  background: var(--bg); color: var(--text);
+}
+
+/* ── Export/Import ── */
+.ws-io-row { display: flex; gap: 6px; margin-top: 8px; }
+.ws-io-btn {
+  flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; font-family: 'DM Sans', sans-serif; font-size: 12px;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ws-io-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+
 /* ── Log clear btn ── */
 #log-clear-btn {
   height: 22px; padding: 0 8px;
@@ -1108,6 +1157,19 @@ body.mcp-banner-open #log-sidebar {
 
 <div id="toast-container"></div>
 
+<!-- Keyboard Shortcuts Overlay -->
+<div id="shortcuts-overlay">
+  <div id="shortcuts-box">
+    <h3>Keyboard Shortcuts</h3>
+    <table class="shortcut-table">
+      <tr><td><kbd>N</kbd></td><td>New card in first column</td></tr>
+      <tr><td><kbd>/</kbd></td><td>Focus search</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Close panel / modal</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+    </table>
+  </div>
+</div>
+
 <!-- MCP Banner -->
 <div id="mcp-banner">
   <span id="mcp-banner-icon">⚙</span>
@@ -1222,6 +1284,14 @@ body.mcp-banner-open #log-sidebar {
         <div class="field-label">Columns</div>
         <div class="ws-modal-stats" id="ws-modal-stats"></div>
       </div>
+      <div>
+        <div class="field-label">Export / Import</div>
+        <div class="ws-io-row">
+          <button class="ws-io-btn" id="ws-export-btn">Export board</button>
+          <button class="ws-io-btn" id="ws-import-btn">Import board</button>
+          <input type="file" id="ws-import-file" accept=".json" style="display:none">
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-danger" id="ws-modal-delete">Delete</button>
@@ -1312,6 +1382,10 @@ body.mcp-banner-open #log-sidebar {
         </div>
       </div>
       <div>
+        <div class="field-label">Due date</div>
+        <input type="date" class="due-input" id="nc-due-date">
+      </div>
+      <div>
         <div class="field-label">Assign agent</div>
         <div class="agent-options" id="nc-agent-opts">
           <button class="agent-btn active" data-nc-agent="">None</button>
@@ -1379,6 +1453,10 @@ body.mcp-banner-open #log-sidebar {
           <button class="priority-btn" data-priority="medium">Medium</button>
           <button class="priority-btn" data-priority="low">Low</button>
         </div>
+      </div>
+      <div>
+        <div class="field-label">Due date</div>
+        <input type="date" class="due-input" id="card-due-date">
       </div>
       <div>
         <div class="field-label">Agent</div>
@@ -1831,7 +1909,8 @@ function submitNewCard() {
   const requires_review = document.getElementById('nc-needs-review').checked;
   const activePriorityBtn = document.querySelector('#nc-priority-picker .priority-btn.active');
   const priority = activePriorityBtn?.dataset.ncPriority || undefined;
-  col.cards.push({ id: uid(), title, tags, requires_review, priority: priority || null, ...(description && { description }), ...(agent && { agent }) });
+  const due_date = document.getElementById('nc-due-date').value || null;
+  col.cards.push({ id: uid(), title, tags, requires_review, priority: priority || null, due_date, ...(description && { description }), ...(agent && { agent }) });
   closeNewCardModal();
   renderBoard(board); postBoard();
 }
@@ -1964,6 +2043,12 @@ function buildCard(card, colId) {
     pb.className = `priority-badge priority-${card.priority}`;
     pb.textContent = card.priority;
     footer.appendChild(pb);
+  }
+  if (card.due_date) {
+    const db = document.createElement('span');
+    db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : '');
+    db.textContent = '📅 ' + card.due_date;
+    footer.appendChild(db);
   }
 
   (card.tags || []).forEach(tag => {
@@ -2185,6 +2270,85 @@ function showTriggerToast(data) {
   const lbl = data.agent ? ` (${AGENT_LABELS[data.agent] || data.agent})` : '';
   showToast(`⚡ Agent triggered${lbl}: ${data.card?.title || data.card?.text || ''}`, 4000);
 }
+
+// ── Due date helpers ────────────────────────────────────────────────────────
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return dateStr < new Date().toISOString().slice(0, 10);
+}
+
+// ── Keyboard shortcuts ──────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const typing = tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable;
+
+  if (e.key === 'Escape') {
+    if (document.getElementById('shortcuts-overlay').classList.contains('open')) {
+      document.getElementById('shortcuts-overlay').classList.remove('open'); return;
+    }
+    if (document.querySelector('.modal-overlay.open')) {
+      document.querySelector('.modal-overlay.open')?.classList.remove('open'); return;
+    }
+    if (document.getElementById('card-sidebar').classList.contains('open')) { closeCardModal(); return; }
+    if (document.getElementById('log-sidebar').classList.contains('open')) {
+      document.getElementById('log-sidebar').classList.remove('open'); return;
+    }
+    return;
+  }
+  if (typing) return;
+  if (e.key === '?') {
+    e.preventDefault();
+    document.getElementById('shortcuts-overlay').classList.toggle('open');
+  }
+  if (e.key === 'n' || e.key === 'N') {
+    e.preventDefault();
+    const firstCol = board.columns?.[0];
+    if (firstCol) openNewCardModal(firstCol.id);
+  }
+  if (e.key === '/') {
+    e.preventDefault();
+    document.getElementById('board-search')?.focus();
+  }
+});
+document.getElementById('shortcuts-overlay').addEventListener('click', e => {
+  if (e.target.id === 'shortcuts-overlay') e.target.classList.remove('open');
+});
+
+// ── Export / Import ─────────────────────────────────────────────────────────
+document.getElementById('ws-export-btn').addEventListener('click', async () => {
+  if (!editingWsId) return;
+  try {
+    const resp = await fetch(`/api/workspaces/${editingWsId}/export`);
+    if (!resp.ok) { showToast('Export failed'); return; }
+    const data = await resp.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `vibeboard-${(data.workspace?.name || 'board').replace(/\s+/g, '-')}-${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch(err) { showToast('Export failed: ' + err.message); }
+});
+
+document.getElementById('ws-import-btn').addEventListener('click', () => {
+  document.getElementById('ws-import-file').click();
+});
+
+document.getElementById('ws-import-file').addEventListener('change', async function() {
+  const file = this.files?.[0]; if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const resp = await fetch('/api/workspaces/import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    const result = await resp.json();
+    if (!resp.ok) { showToast('Import failed: ' + (result.error || 'unknown error')); return; }
+    showToast(`Imported "${result.name || 'workspace'}" successfully`);
+    closeWsModal();
+    await loadWorkspaces();
+  } catch(err) { showToast('Import failed: ' + err.message); }
+  this.value = '';
+});
 
 // ── MCP Status & Setup ────────────────────────────────────────────────────
 let mcpConfigured = true;
@@ -2516,6 +2680,16 @@ function openCardModal(cardId, colId) {
     };
   });
 
+  // Due date
+  const dueDateEl = document.getElementById('card-due-date');
+  dueDateEl.value = card.due_date || '';
+  dueDateEl.classList.toggle('overdue', isOverdue(card.due_date));
+  dueDateEl.onchange = () => {
+    card.due_date = dueDateEl.value || null;
+    dueDateEl.classList.toggle('overdue', isOverdue(card.due_date));
+    saveModal(card);
+  };
+
   // Custom prompt textarea
   const customPromptSection = document.getElementById('card-custom-prompt-section');
   const customPromptEl = document.getElementById('card-custom-prompt');
@@ -2631,6 +2805,7 @@ function openNewCardModal(colId) {
     };
   });
 
+  document.getElementById('nc-due-date').value = '';
   document.getElementById('nc-needs-review').checked = false;
   document.getElementById('nc-agent-warning').style.display = 'none';
   document.getElementById('nc-modal-overlay').classList.add('open');

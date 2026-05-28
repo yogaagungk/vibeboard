@@ -21,9 +21,9 @@ function ensureDir(dir) {
 }
 
 const DATA_DIR = getUserDataDir();
-ensureDir(DATA_DIR);
+if (!process.env.VB_DB_PATH) ensureDir(DATA_DIR);
 
-const DB_PATH = path.join(DATA_DIR, 'vibeboard.db');
+const DB_PATH = process.env.VB_DB_PATH || path.join(DATA_DIR, 'vibeboard.db');
 const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
@@ -102,6 +102,7 @@ db.exec(`
   if (!cardCols.includes('requires_review')) db.exec('ALTER TABLE cards ADD COLUMN requires_review INTEGER DEFAULT 0');
   if (!cardCols.includes('priority'))        db.exec('ALTER TABLE cards ADD COLUMN priority TEXT');
   if (!cardCols.includes('custom_prompt'))   db.exec('ALTER TABLE cards ADD COLUMN custom_prompt TEXT');
+  if (!cardCols.includes('due_date'))        db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
 
   const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
   if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
@@ -181,7 +182,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, requires_review, priority, custom_prompt, position, created_at
+    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, requires_review, priority, custom_prompt, due_date, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -206,6 +207,7 @@ function getBoard(workspaceId) {
         requires_review: !!c.requires_review,
         priority: c.priority || null,
         custom_prompt: c.custom_prompt || '',
+        due_date: c.due_date || null,
       }))
   }));
   
@@ -227,21 +229,22 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const requiresReview = options.requires_review ? 1 : 0;
   const priority = options.priority || null;
   const customPrompt = options.custom_prompt || null;
+  const dueDate = options.due_date || null;
 
   db.prepare(`
-    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, columnId, workspaceId, title,
     options.description || null,
     options.tags ? JSON.stringify(options.tags) : null,
     options.agent || null,
     requiresReview,
-    priority, customPrompt,
+    priority, customPrompt, dueDate,
     position, now, now
   );
 
-  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', createdAt: now, ...options };
+  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, createdAt: now, ...options };
 }
 
 function updateCard(cardId, updates) {
@@ -257,6 +260,7 @@ function updateCard(cardId, updates) {
   if (updates.requires_review !== undefined) { fields.push('requires_review = ?'); values.push(updates.requires_review ? 1 : 0); }
   if (updates.priority !== undefined)        { fields.push('priority = ?');        values.push(updates.priority || null); }
   if (updates.custom_prompt !== undefined)   { fields.push('custom_prompt = ?');   values.push(updates.custom_prompt || null); }
+  if (updates.due_date !== undefined)        { fields.push('due_date = ?');        values.push(updates.due_date || null); }
   
   if (fields.length === 0) return;
   
@@ -343,12 +347,13 @@ function syncBoard(workspaceId, columns) {
         const rr = card.requires_review !== false ? 1 : 0;
         const priority = card.priority || null;
         const customPrompt = card.custom_prompt || null;
+        const dueDate = card.due_date || null;
         if (existingCards.includes(card.id)) {
-          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, requires_review=?, priority=?, custom_prompt=?, position=?, updated_at=? WHERE id=?')
-            .run(col.id, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, ki, now, card.id);
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, dueDate, ki, now, card.id);
         } else {
-          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, ki, now, now);
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, dueDate, ki, now, now);
         }
       }
     }
@@ -374,11 +379,60 @@ function getCard(cardId) {
     requires_review: !!card.requires_review,
     priority: card.priority || null,
     custom_prompt: card.custom_prompt || '',
+    due_date: card.due_date || null,
   };
 }
 
 function getColumn(columnId) {
   return db.prepare('SELECT * FROM columns WHERE id = ?').get(columnId);
+}
+
+function exportWorkspace(workspaceId) {
+  const workspace = getWorkspace(workspaceId);
+  if (!workspace) return null;
+  const columns = db.prepare('SELECT * FROM columns WHERE workspace_id = ? ORDER BY position').all(workspaceId);
+  const cards = db.prepare('SELECT * FROM cards WHERE workspace_id = ? ORDER BY position').all(workspaceId);
+  const notes = db.prepare('SELECT * FROM card_notes WHERE card_id IN (SELECT id FROM cards WHERE workspace_id = ?) ORDER BY created_at').all(workspaceId);
+  return {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    workspace: { name: workspace.name, path: workspace.path, description: workspace.description, use_worktree: workspace.use_worktree },
+    columns: columns.map(col => ({
+      title: col.title, color: col.color, position: col.position,
+      cards: cards.filter(c => c.column_id === col.id).map(c => ({
+        title: c.title, description: c.description,
+        tags: c.tags ? JSON.parse(c.tags) : [],
+        agent: c.agent, priority: c.priority,
+        custom_prompt: c.custom_prompt, due_date: c.due_date,
+        requires_review: !!c.requires_review,
+        notes: notes.filter(n => n.card_id === c.id).map(n => ({ content: n.content, created_at: n.created_at })),
+      })),
+    })),
+  };
+}
+
+function importWorkspace(data) {
+  if (!data?.workspace || !Array.isArray(data.columns)) throw new Error('Invalid export format');
+  const ws = createWorkspace(data.workspace.name || 'Imported', data.workspace.path || '', data.workspace.description || '', data.workspace.use_worktree || 0);
+  const existingCols = db.prepare('SELECT * FROM columns WHERE workspace_id = ? ORDER BY position').all(ws.id);
+  const colMap = {};
+  existingCols.forEach(col => { colMap[col.title] = col.id; });
+  for (const colData of data.columns) {
+    const colId = colMap[colData.title];
+    if (!colId) continue;
+    for (const cardData of (colData.cards || [])) {
+      const card = createCard(ws.id, colId, cardData.title || 'Untitled', {
+        description: cardData.description, tags: cardData.tags,
+        agent: cardData.agent, priority: cardData.priority,
+        custom_prompt: cardData.custom_prompt, due_date: cardData.due_date,
+        requires_review: cardData.requires_review,
+      });
+      for (const note of (cardData.notes || [])) {
+        addCardNote(card.id, note.content);
+      }
+    }
+  }
+  return ws;
 }
 
 module.exports = {
@@ -403,4 +457,6 @@ module.exports = {
   syncBoard,
   getCard,
   getColumn,
+  exportWorkspace,
+  importWorkspace,
 };

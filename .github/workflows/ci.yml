@@ -38,3 +38,6 @@ jobs:
             if (!html.includes('</html>')) process.exit(1);
             console.log('UI file OK (' + html.length + ' bytes)');
           "
+
+      - name: Run tests
+        run: node --test test/*.test.js

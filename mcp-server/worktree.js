@@ -118,17 +118,25 @@ function getCommits(worktreePath, baseBranch) {
   } catch (_) { return ''; }
 }
 
+function execCapture(cmd, opts) {
+  try {
+    return execSync(cmd, { ...opts, stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
+  } catch (err) {
+    const stderr = err.stderr?.toString().trim() || '';
+    const stdout = err.stdout?.toString().trim() || '';
+    throw new Error(stderr || stdout || err.message);
+  }
+}
+
 function mergeBranch(workspacePath, branch, worktreePath) {
-  execSync(`git merge --no-ff "${branch}" -m "Merge ${branch}"`, { cwd: workspacePath });
+  execCapture(`git merge --no-ff "${branch}" -m "Merge ${branch}"`, { cwd: workspacePath });
   try { execSync(`git branch -d "${branch}"`, { cwd: workspacePath, stdio: 'ignore' }); } catch (_) {}
   if (worktreePath) removeWorktree(workspacePath, worktreePath);
 }
 
 function pushAndCreatePR(worktreePath, title) {
-  execSync('git push -u origin HEAD', { cwd: worktreePath });
-  return execSync(`gh pr create --title "${title.replace(/"/g, '\\"')}" --fill`, {
-    cwd: worktreePath, stdio: ['ignore', 'pipe', 'ignore'],
-  }).toString().trim();
+  execCapture('git push -u origin HEAD', { cwd: worktreePath });
+  return execCapture(`gh pr create --title "${title.replace(/"/g, '\\"')}" --fill`, { cwd: worktreePath });
 }
 
 module.exports = {

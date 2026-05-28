@@ -68,6 +68,8 @@ function startOutputWatcher(cardId, outputFile, emitSSE) {
 function buildPrompt(card, column, workspace, branch) {
   const desc = card.description ? `\nDescription: ${card.description}` : '';
   const tags = card.tags?.length ? `\nTags: ${card.tags.join(', ')}` : '';
+  const priority = card.priority ? `\nPriority: ${card.priority}` : '';
+  const dueDate = card.due_date ? `\nDue: ${card.due_date}` : '';
   const branchLine = branch ? `\nGit branch: ${branch} (commit your changes here as you work)` : '';
   
   let columnContext = '';
@@ -103,7 +105,7 @@ ${nextStep}`;
 
   return `You have a task on VibeBoard.
 
-Card: "${card.title}"${desc}${tags}${columnContext}
+Card: "${card.title}"${desc}${tags}${priority}${dueDate}${columnContext}
 Card ID: ${card.id}
 Workspace ID: ${workspace.id}${branchLine}
 
