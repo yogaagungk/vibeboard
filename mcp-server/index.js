@@ -11,6 +11,7 @@ const db = require('./db');
 const { migrateLegacyData } = require('./migrate');
 const { spawnAgent, agentDone, stopAgent, isAgentRunning, getRunningCardIds, getOutputFile } = require('./agent');
 const wt = require('./worktree');
+const { refreshAvailableModels, getAvailableModels } = require('./models');
 
 const PUBLIC_DIR = path.resolve('./public');
 const PORT = process.env.PORT || 7341;
@@ -223,6 +224,16 @@ app.get('/api/agents/available', (_req, res) => {
   });
 });
 
+app.get('/api/models', (_req, res) => {
+  res.json(getAvailableModels());
+});
+
+app.post('/api/models/refresh', (_req, res) => {
+  const models = refreshAvailableModels();
+  emitSSE('models_updated', models);
+  res.json(models);
+});
+
 app.get('/api/info', (_req, res) => {
   res.json({
     dataDir: db.DATA_DIR,
@@ -372,6 +383,8 @@ app.post('/api/mcp-setup', (req, res) => {
     }
   }
 
+  refreshAvailableModels();
+  emitSSE('models_updated', getAvailableModels());
   emitSSE('mcp_configured', { results });
   res.json({ ok: true, results });
 });
@@ -568,15 +581,15 @@ mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.st
 });
 
 mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
-  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode']).optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional() },
-  async ({ title, columnTitle = 'Backlog', tags = [], description, agent, priority, due_date }) => {
+  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional() },
+  async ({ title, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date }) => {
     try {
       const activeId = db.getActiveWorkspaceId();
       if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
       const board = db.getBoard(activeId);
       const column = board.columns.find(c => c.title === columnTitle);
       if (!column) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
-      const card = db.createCard(activeId, column.id, title, { description, tags, agent, priority, due_date });
+      const card = db.createCard(activeId, column.id, title, { description, tags, agent, model, priority, due_date });
       db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`);
       emitSSE('board_update', db.getBoard(activeId));
       return { content: [{ type: 'text', text: JSON.stringify(card) }] };
@@ -584,13 +597,13 @@ mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
   }
 );
 
-mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, or priority",
-  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', '']).optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional() },
-  async ({ cardId, title, description, tags, agent, priority, due_date }) => {
+mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, or priority",
+  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional() },
+  async ({ cardId, title, description, tags, agent, model, priority, due_date }) => {
     try {
       const card = db.getCard(cardId);
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
-      db.updateCard(cardId, { title, description, tags, agent: agent || undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined });
+      db.updateCard(cardId, { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined });
       db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Updated '${card.title}'`);
       emitSSE('board_update', db.getBoard(card.workspace_id));
       return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };

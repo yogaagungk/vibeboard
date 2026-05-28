@@ -103,6 +103,8 @@ db.exec(`
   if (!cardCols.includes('priority'))        db.exec('ALTER TABLE cards ADD COLUMN priority TEXT');
   if (!cardCols.includes('custom_prompt'))   db.exec('ALTER TABLE cards ADD COLUMN custom_prompt TEXT');
   if (!cardCols.includes('due_date'))        db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
+  if (!cardCols.includes('agent_ran_at'))    db.exec('ALTER TABLE cards ADD COLUMN agent_ran_at TEXT');
+  if (!cardCols.includes('model'))           db.exec('ALTER TABLE cards ADD COLUMN model TEXT');
 
   const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
   if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
@@ -182,7 +184,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, requires_review, priority, custom_prompt, due_date, position, created_at
+    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -208,6 +210,7 @@ function getBoard(workspaceId) {
         priority: c.priority || null,
         custom_prompt: c.custom_prompt || '',
         due_date: c.due_date || null,
+        model: c.model || null,
       }))
   }));
   
@@ -230,21 +233,23 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const priority = options.priority || null;
   const customPrompt = options.custom_prompt || null;
   const dueDate = options.due_date || null;
+  const model = options.model || null;
 
   db.prepare(`
-    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, columnId, workspaceId, title,
     options.description || null,
     options.tags ? JSON.stringify(options.tags) : null,
     options.agent || null,
+    model,
     requiresReview,
     priority, customPrompt, dueDate,
     position, now, now
   );
 
-  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, createdAt: now, ...options };
+  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, model, createdAt: now, ...options };
 }
 
 function updateCard(cardId, updates) {
@@ -255,6 +260,7 @@ function updateCard(cardId, updates) {
   if (updates.description !== undefined)     { fields.push('description = ?');      values.push(updates.description || null); }
   if (updates.tags !== undefined)            { fields.push('tags = ?');             values.push(JSON.stringify(updates.tags)); }
   if (updates.agent !== undefined)           { fields.push('agent = ?');            values.push(updates.agent || null); }
+  if (updates.model !== undefined)           { fields.push('model = ?');            values.push(updates.model || null); }
   if (updates.branch !== undefined)          { fields.push('branch = ?');           values.push(updates.branch || null); }
   if (updates.worktreePath !== undefined)    { fields.push('worktree_path = ?');    values.push(updates.worktreePath || null); }
   if (updates.requires_review !== undefined) { fields.push('requires_review = ?'); values.push(updates.requires_review ? 1 : 0); }
@@ -348,12 +354,13 @@ function syncBoard(workspaceId, columns) {
         const priority = card.priority || null;
         const customPrompt = card.custom_prompt || null;
         const dueDate = card.due_date || null;
+        const model = card.model || null;
         if (existingCards.includes(card.id)) {
-          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, position=?, updated_at=? WHERE id=?')
-            .run(col.id, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, dueDate, ki, now, card.id);
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, model=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, ki, now, card.id);
         } else {
-          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, rr, priority, customPrompt, dueDate, ki, now, now);
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, ki, now, now);
         }
       }
     }
@@ -380,6 +387,7 @@ function getCard(cardId) {
     priority: card.priority || null,
     custom_prompt: card.custom_prompt || '',
     due_date: card.due_date || null,
+    model: card.model || null,
   };
 }
 
@@ -402,7 +410,7 @@ function exportWorkspace(workspaceId) {
       cards: cards.filter(c => c.column_id === col.id).map(c => ({
         title: c.title, description: c.description,
         tags: c.tags ? JSON.parse(c.tags) : [],
-        agent: c.agent, priority: c.priority,
+        agent: c.agent, model: c.model, priority: c.priority,
         custom_prompt: c.custom_prompt, due_date: c.due_date,
         requires_review: !!c.requires_review,
         notes: notes.filter(n => n.card_id === c.id).map(n => ({ content: n.content, created_at: n.created_at })),
@@ -423,7 +431,7 @@ function importWorkspace(data) {
     for (const cardData of (colData.cards || [])) {
       const card = createCard(ws.id, colId, cardData.title || 'Untitled', {
         description: cardData.description, tags: cardData.tags,
-        agent: cardData.agent, priority: cardData.priority,
+        agent: cardData.agent, model: cardData.model, priority: cardData.priority,
         custom_prompt: cardData.custom_prompt, due_date: cardData.due_date,
         requires_review: cardData.requires_review,
       });

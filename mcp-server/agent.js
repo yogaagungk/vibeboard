@@ -12,18 +12,27 @@ const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60
 
 // Build a shell command string for each agent that reads the prompt from a temp file.
 // Using a shell command string (not arg array) avoids quoting issues with multiline prompts.
-function buildShellCmd(agentType, promptFile) {
+function buildShellCmd(agentType, promptFile, model) {
   const win = process.platform === 'win32';
+  let modelFlag = '';
+  
+  if (model) {
+    if (agentType === 'claude-code') {
+      modelFlag = ` --model ${model}`;
+    } else if (agentType === 'opencode') {
+      modelFlag = ` --model ${model}`;
+    }
+  }
+  
   switch (agentType) {
     case 'claude-code':
       return win
-        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions`
-        : `claude --print --dangerously-skip-permissions < "${promptFile}"`;
+        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions${modelFlag}`
+        : `claude --print --dangerously-skip-permissions${modelFlag} < "${promptFile}"`;
     case 'opencode':
-      // opencode run takes the message as a positional argument, not stdin
       return win
-        ? `powershell -NoProfile -NonInteractive -Command "opencode run --dangerously-skip-permissions (Get-Content -Raw '${promptFile.replace(/'/g, "''")}')"`
-        : `opencode run --dangerously-skip-permissions "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;
+        ? `powershell -NoProfile -NonInteractive -Command "opencode run --dangerously-skip-permissions${modelFlag} (Get-Content -Raw '${promptFile.replace(/'/g, "''")}')"`
+        : `opencode run --dangerously-skip-permissions${modelFlag} "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;
     case 'codex':
       return win
         ? `type "${promptFile}" | codex --full-auto`
@@ -126,11 +135,11 @@ In the project directory, run git commands, edit files, and test as needed.
 Work in: ${workspace.path}${customInstructions}`;
 }
 
-function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId) {
+function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {
   const promptFile = path.join(os.tmpdir(), `vb-prompt-${cardId}.txt`);
   fs.writeFileSync(promptFile, prompt, 'utf8');
 
-  const cmd = buildShellCmd(agentType, promptFile);
+  const cmd = buildShellCmd(agentType, promptFile, model);
   const outStream = fs.createWriteStream(outputFile, { flags: 'w' });
 
   const child = spawn(cmd, [], {
@@ -204,7 +213,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
   try {
-    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId);
+    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, card.model);
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE);
 
     const timeoutId = setTimeout(() => {
@@ -216,12 +225,13 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
       agentDone(cardId, 1, emitSSE);
     }, AGENT_TIMEOUT_MS);
 
+    const startTime = new Date().toISOString();
     activeAgents.set(cardId, {
       cardId, workspaceId, agentType, child,
-      startTime: new Date().toISOString(),
-      outputFile, watchInterval, timeoutId,
+      startTime, outputFile, watchInterval, timeoutId,
     });
 
+    updateCard(cardId, { agent_ran_at: startTime });
     addAgentLog(workspaceId, agentType, 'agent_started', `Started ${agentType} for: ${card.title}`);
     emitSSE('agent_started', { cardId, agentType, title: card.title });
     process.stderr.write(`Started ${agentType} (background) for card ${cardId}\n`);

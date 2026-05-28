@@ -152,6 +152,12 @@ body {
 .ws-input::placeholder { color: var(--text-muted); }
 .ws-input.error { border-color: var(--danger); }
 
+select.ws-input {
+  height: 32px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
 .ws-path-row { display: flex; gap: 5px; align-items: stretch; }
 .ws-path-row .ws-input { flex: 1; font-family: monospace; font-size: 11px; }
 
@@ -1393,6 +1399,15 @@ kbd {
           <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
+        <div id="nc-model-row" style="display:none;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="field-label" style="margin:0;flex:1">Model</div>
+            <button class="icon-btn" id="nc-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
+          </div>
+          <select class="ws-input" id="nc-model-select" style="width:100%;font-family:'DM Sans',sans-serif;font-size:12px">
+            <option value="">Default</option>
+          </select>
+        </div>
         <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
           <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
         </div>
@@ -1466,7 +1481,17 @@ kbd {
           <button class="agent-btn" data-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-agent="codex">Codex CLI</button>
         </div>
-        <button class="agent-run-btn" id="card-run-agent-btn" style="display:none;margin-top:8px;width:100%">Run agent</button>
+        <div id="card-model-row" style="display:none;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="field-label" style="margin:0;flex:1">Model</div>
+            <button class="icon-btn" id="card-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
+          </div>
+          <select class="ws-input" id="card-model-select" style="width:100%;font-family:'DM Sans',sans-serif;font-size:12px">
+            <option value="">Default</option>
+          </select>
+        </div>
+        <button class="agent-run-btn" id="card-run-agent-btn" style="display:none;width:100%;margin-top:10px">Run agent</button>
+        <div id="card-agent-last-run" style="display:block;font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center"></div>
       </div>
       <div id="card-review-toggle-row" class="toggle-row" style="display:none">
         <div>
@@ -1555,6 +1580,9 @@ const AGENT_LABELS = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'co
 let agentsAvailable = { 'claude-code': true, 'opencode': true, 'codex': true };
 fetch('/api/agents/available').then(r => r.json()).then(data => { agentsAvailable = data; }).catch(() => {});
 
+let availableModels = { 'claude-code': [], 'opencode': [] };
+fetch('/api/models').then(r => r.json()).then(data => { availableModels = data; }).catch(() => {});
+
 const runningCards = new Set();
 
 // ── DOM ────────────────────────────────────────────────────────────────────
@@ -1579,6 +1607,71 @@ function uid() { return crypto.randomUUID(); }
 function stableHash(o) { return JSON.stringify(o); }
 function fmtTime(iso) { return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
 function folderName(p) { return p.replace(/[/\\]+$/, '').split(/[/\\]/).filter(Boolean).pop() || ''; }
+
+function timeAgo(isoString) {
+  if (!isoString) return '';
+  const seconds = Math.floor((new Date() - new Date(isoString)) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function updateModelDropdown(prefix, agent, selectedModel) {
+  const modelRow = document.getElementById(`${prefix}-model-row`);
+  const modelSelect = document.getElementById(`${prefix}-model-select`);
+  
+  if (!agent || !availableModels[agent] || availableModels[agent].length === 0) {
+    if (modelRow) modelRow.style.display = 'none';
+    return;
+  }
+  
+  if (!modelRow || !modelSelect) return;
+  
+  modelRow.style.display = '';
+  modelSelect.innerHTML = '<option value="">Default</option>';
+  
+  availableModels[agent].forEach(model => {
+    const opt = document.createElement('option');
+    opt.value = model.id;
+    opt.textContent = model.name;
+    if (model.description) opt.textContent += ` — ${model.description}`;
+    modelSelect.appendChild(opt);
+  });
+  
+  if (selectedModel) {
+    modelSelect.value = selectedModel;
+  }
+  
+  modelSelect.onchange = () => {
+    const card = board.columns.flatMap(c => c.cards).find(c => c.id === modalCardId);
+    if (card) {
+      card.model = modelSelect.value || undefined;
+      saveModal(card);
+    }
+  };
+}
+
+async function refreshModels() {
+  try {
+    const resp = await fetch('/api/models/refresh', { method: 'POST' });
+    const data = await resp.json();
+    availableModels = data;
+    showToast('Models refreshed');
+  } catch (err) {
+    showToast('Failed to refresh models: ' + err.message);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ncRefresh = document.getElementById('nc-model-refresh');
+  const cardRefresh = document.getElementById('card-model-refresh');
+  if (ncRefresh) ncRefresh.addEventListener('click', refreshModels);
+  if (cardRefresh) cardRefresh.addEventListener('click', refreshModels);
+});
 
 // ── Persistence ────────────────────────────────────────────────────────────
 function saveCache(b) { try { localStorage.setItem('vb_board', JSON.stringify(b)); } catch(_){} }
@@ -1899,18 +1992,24 @@ function closeNewCardModal() {
 
 function submitNewCard() {
   const title = document.getElementById('nc-title-input').value.trim();
-  if (!title) { document.getElementById('nc-title-input').focus(); return; }
+  if (!title) { showToast('Card title is required'); return; }
   const col = board.columns.find(c => c.id === newCardColId);
   if (!col) return;
   const tags = Array.from(document.querySelectorAll('#nc-tag-picker .tag-pick-btn.active')).map(b => b.dataset.tag);
   const activeAgentBtn = document.querySelector('#nc-agent-opts .agent-btn.active');
   const agent = activeAgentBtn?.dataset.ncAgent || undefined;
+  const model = document.getElementById('nc-model-select')?.value || undefined;
   const description = document.getElementById('nc-desc').value.trim() || undefined;
   const requires_review = document.getElementById('nc-needs-review').checked;
   const activePriorityBtn = document.querySelector('#nc-priority-picker .priority-btn.active');
   const priority = activePriorityBtn?.dataset.ncPriority || undefined;
   const due_date = document.getElementById('nc-due-date').value || null;
-  col.cards.push({ id: uid(), title, tags, requires_review, priority: priority || null, due_date, ...(description && { description }), ...(agent && { agent }) });
+  col.cards.push({ 
+    id: uid(), title, tags, requires_review, priority: priority || null, due_date, 
+    ...(description && { description }), 
+    ...(agent && { agent }),
+    ...(model && { model })
+  });
   closeNewCardModal();
   renderBoard(board); postBoard();
 }
@@ -2214,6 +2313,11 @@ function connectSSE() {
     }
     if (type === 'mcp_configured') {
       checkMcpStatus().then(() => refreshAgentBtnsInModal());
+      refreshModels();
+    }
+    if (type === 'models_updated') {
+      availableModels = data;
+      showToast('Models updated');
     }
     if (type === 'workspace_switch') {
       const { board: nb, workspaceId } = data;
@@ -2658,7 +2762,10 @@ function openCardModal(cardId, colId) {
     updateRunAgentBtn(card);
     document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
     document.getElementById('card-custom-prompt-section').style.display = card.agent ? '' : 'none';
+    updateModelDropdown('card', card.agent || '', card.model);
   });
+
+  updateModelDropdown('card', card.agent || '', card.model);
 
   const reviewToggleRow = document.getElementById('card-review-toggle-row');
   const reviewToggle = document.getElementById('card-needs-review-toggle');
@@ -2793,8 +2900,11 @@ function openNewCardModal(colId) {
       agentOpts.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('nc-agent-warning').style.display = agent ? '' : 'none';
+      updateModelDropdown('nc', agent);
     } : null;
   });
+
+  updateModelDropdown('nc', '');
 
   // Reset priority picker to None
   document.querySelectorAll('#nc-priority-picker .priority-btn').forEach(btn => {
@@ -2829,11 +2939,24 @@ function syncFooterVisibility() {
 
 function updateRunAgentBtn(card) {
   const btn = document.getElementById('card-run-agent-btn');
-  if (!card || !card.agent) { btn.style.display = 'none'; return; }
+  const lastRunEl = document.getElementById('card-agent-last-run');
+  if (!card || !card.agent) { 
+    if (btn) btn.style.display = 'none'; 
+    if (lastRunEl) lastRunEl.textContent = '';
+    return; 
+  }
   const running = runningCards.has(card.id);
-  btn.style.display = '';
-  btn.disabled = running;
-  btn.textContent = running ? 'Running…' : 'Run agent';
+  if (btn) {
+    btn.style.display = '';
+    btn.disabled = running;
+    btn.textContent = running ? 'Running…' : 'Run agent';
+  }
+  
+  if (lastRunEl && card.agent_ran_at) {
+    lastRunEl.textContent = 'Last run: ' + timeAgo(card.agent_ran_at);
+  } else if (lastRunEl) {
+    lastRunEl.textContent = '';
+  }
 }
 
 function updateMoveButtons(card, currentColTitle) {
