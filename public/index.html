@@ -1143,7 +1143,6 @@ document.getElementById('ws-modal-save').addEventListener('click', async () => {
 
 document.getElementById('ws-modal-delete').addEventListener('click', async () => {
   if (!editingWsId) return;
-  if (workspaces.length <= 1) { showToast('Cannot delete the last workspace'); return; }
   const ws = workspaces.find(w => w.id === editingWsId);
   if (!confirm(`Delete workspace "${ws?.name || 'Untitled'}"?`)) return;
   const id = editingWsId;

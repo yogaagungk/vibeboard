@@ -68,17 +68,20 @@ app.patch('/workspaces/:id', (req, res) => {
 app.delete('/workspaces/:id', (req, res) => {
   const { id } = req.params;
   const list = db.listWorkspaces();
-  if (list.length <= 1) return res.status(400).json({ error: 'Cannot delete the last workspace' });
   try { db.deleteWorkspace(id); } catch { return res.status(404).json({ error: 'Not found' }); }
   
   if (db.getActiveWorkspaceId() === id) {
     const next = list.find(w => w.id !== id);
-    if (next) db.setActiveWorkspaceId(next.id);
+    if (next) {
+      db.setActiveWorkspaceId(next.id);
+    } else {
+      db.db.prepare('DELETE FROM settings WHERE key = ?').run('active_workspace_id');
+    }
   }
   
   const active = db.getActiveWorkspaceId();
   const newList = db.listWorkspaces().map(w => ({ ...w, active: w.id === active }));
-  emitSSE('workspace_switch', { board: db.getBoard(active), workspaceId: active });
+  emitSSE('workspace_switch', { board: active ? db.getBoard(active) : null, workspaceId: active });
   emitSSE('workspace_list', newList);
   res.json({ ok: true });
 });
