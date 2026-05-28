@@ -625,6 +625,36 @@ body {
 .card-agent-badge.opencode    { background: #7c3aed; color: #fff; }
 .card-agent-badge.codex       { background: #0ea5e9; color: #fff; }
 
+/* ── Diff viewer ── */
+#card-changes-section { margin-top: 4px; }
+.changes-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.branch-badge {
+  font-family: monospace; font-size: 10px; padding: 1px 7px;
+  border-radius: 4px; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text-muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.diff-toggle-btn {
+  font-size: 11px; padding: 2px 9px; height: 24px;
+  border: 1px solid var(--border); border-radius: 5px;
+  background: var(--bg); color: var(--text-muted); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: background 0.15s; white-space: nowrap;
+}
+.diff-toggle-btn:hover { background: var(--border); }
+#card-diff-view {
+  max-height: 280px; overflow: auto; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--bg); margin-top: 6px;
+}
+.diff-view { font-family: monospace; font-size: 11px; line-height: 1.55; }
+.diff-line { white-space: pre; padding: 0 10px; display: block; }
+.diff-line.add { background: rgba(22,163,74,0.1); color: #16a34a; }
+.diff-line.del { background: rgba(220,38,38,0.08); color: #dc2626; }
+.diff-line.hunk { background: rgba(37,99,235,0.07); color: #6b84c8; }
+.diff-line.meta { color: var(--text-muted); }
+.diff-empty { padding: 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
+.card-merge-actions { display: flex; gap: 8px; }
+.card-merge-actions .btn-primary { flex: 1; height: 34px; font-size: 12px; border-radius: 7px; }
+.card-merge-actions .btn-ghost   { flex: 1; height: 34px; font-size: 12px; }
+
 /* ── Card Notes ── */
 #card-notes-section { margin-top: 8px; }
 #card-notes-list {
@@ -823,9 +853,22 @@ body {
         <div class="field-label">Notes & Checkpoints</div>
         <div id="card-notes-list"></div>
       </div>
+      <div id="card-changes-section" style="display:none">
+        <div class="changes-header">
+          <div class="field-label" style="margin:0">Changes</div>
+          <span class="branch-badge" id="card-branch-badge"></span>
+        </div>
+        <div id="card-changes-meta" style="font-size:12px;color:var(--text-muted);margin-bottom:6px"></div>
+        <button class="diff-toggle-btn" id="card-diff-toggle">Show diff</button>
+        <div id="card-diff-view" style="display:none"></div>
+      </div>
     </div>
     <div id="card-modal-footer">
       <button class="btn-primary" id="card-modal-create-btn" style="display:none">Create Card</button>
+      <div class="card-merge-actions" id="card-merge-actions" style="display:none">
+        <button class="btn-primary" id="card-merge-btn">Merge</button>
+        <button class="btn-ghost" id="card-pr-btn">Create PR</button>
+      </div>
       <div class="prompt-box" id="card-modal-prompt-box" style="display:none">
         <div class="prompt-box-header">
           <span class="field-label" style="margin:0">Agent prompt</span>
@@ -1489,6 +1532,7 @@ function openCardModal(cardId, colId) {
 
   cardModalCreateBtn.style.display = 'none';
   updatePromptBox(card);
+  showChangesSection(card);
   cardModalOverlay.classList.add('open');
   cardModalTitleEl.focus();
 
@@ -1522,7 +1566,9 @@ function openNewCardModal(colId) {
   cardModalPromptBox.style.display = 'none';
   cardModalCreateBtn.style.display = '';
   document.getElementById('card-notes-section').style.display = 'none';
-  document.getElementById('card-modal-footer').classList.add('visible');
+  document.getElementById('card-changes-section').style.display = 'none';
+  document.getElementById('card-merge-actions').style.display = 'none';
+  syncFooterVisibility();
   cardModalOverlay.classList.add('open');
   cardModalTitleEl.focus();
 }
@@ -1536,17 +1582,21 @@ function getModalAgent() {
   return active?.dataset?.agent || undefined;
 }
 
-function updatePromptBox(card) {
+function syncFooterVisibility() {
   const footer = document.getElementById('card-modal-footer');
+  const anyVisible = [cardModalCreateBtn, cardModalPromptBox, document.getElementById('card-merge-actions')]
+    .some(el => el.style.display !== 'none');
+  footer.classList.toggle('visible', anyVisible);
+}
+
+function updatePromptBox(card) {
   if (!card.agent) {
     cardModalPromptBox.style.display = 'none';
-    if (cardModalCreateBtn.style.display === 'none') footer.classList.remove('visible');
-    return;
-  }
-  const col = board.columns.find(c => c.id === modalColId);
-  const desc = card.description ? `\nDescription: ${card.description}` : '';
-  const tags = (card.tags||[]).length ? `\nTags: ${card.tags.join(', ')}` : '';
-  cardModalPromptTxt.value = `You have a task on VibeBoard assigned to ${AGENT_LABELS[card.agent]||card.agent}.
+  } else {
+    const col = board.columns.find(c => c.id === modalColId);
+    const desc = card.description ? `\nDescription: ${card.description}` : '';
+    const tags = (card.tags||[]).length ? `\nTags: ${card.tags.join(', ')}` : '';
+    cardModalPromptTxt.value = `You have a task on VibeBoard assigned to ${AGENT_LABELS[card.agent]||card.agent}.
 
 Card: "${card.title||card.text}"${desc}${tags}
 Column: ${col?.title||''}
@@ -1556,8 +1606,43 @@ Use the vibeboard MCP tools to work on this task:
 1. Call get_board to see the full board state
 2. Call move_card to update status as you work
 3. Call complete_card when done`;
-  cardModalPromptBox.style.display = 'block';
-  footer.classList.add('visible');
+    cardModalPromptBox.style.display = 'block';
+  }
+  syncFooterVisibility();
+}
+
+function showChangesSection(card) {
+  const section  = document.getElementById('card-changes-section');
+  const actions  = document.getElementById('card-merge-actions');
+  const badge    = document.getElementById('card-branch-badge');
+  const meta     = document.getElementById('card-changes-meta');
+  const diffView = document.getElementById('card-diff-view');
+  const toggleBtn = document.getElementById('card-diff-toggle');
+
+  if (!card.branch) {
+    section.style.display = 'none';
+    actions.style.display = 'none';
+    syncFooterVisibility();
+    return;
+  }
+
+  section.style.display = 'block';
+  actions.style.display = 'flex';
+  badge.textContent = card.branch;
+  meta.textContent = 'Loading…';
+  diffView.style.display = 'none';
+  diffView.innerHTML = '';
+  toggleBtn.textContent = 'Show diff';
+  syncFooterVisibility();
+
+  fetch(`/api/cards/${card.id}/diff`)
+    .then(r => r.json())
+    .then(data => {
+      const count = data.commits ? data.commits.split('\n').filter(Boolean).length : 0;
+      meta.textContent = count ? `${count} commit${count > 1 ? 's' : ''} on ${data.branch}` : `No commits yet on ${data.branch}`;
+      toggleBtn._diffData = data;
+    })
+    .catch(() => { meta.textContent = card.branch; });
 }
 
 function saveModal(card) {
@@ -1598,6 +1683,9 @@ cardModalCreateBtn.addEventListener('click', () => {
 
 function closeCardModal() {
   cardModalCreateBtn.style.display = 'none';
+  cardModalPromptBox.style.display = 'none';
+  document.getElementById('card-merge-actions').style.display = 'none';
+  document.getElementById('card-changes-section').style.display = 'none';
   document.getElementById('card-modal-footer').classList.remove('visible');
   newCardColId = null;
   cardModalOverlay.classList.remove('open');
@@ -1610,6 +1698,71 @@ cardModalCopyBtn.addEventListener('click', () => {
     cardModalCopyBtn.textContent = 'Copied!'; cardModalCopyBtn.classList.add('copied');
     setTimeout(() => { cardModalCopyBtn.textContent = 'Copy'; cardModalCopyBtn.classList.remove('copied'); }, 2000);
   });
+});
+
+// ── Diff toggle ────────────────────────────────────────────────────────────
+document.getElementById('card-diff-toggle').addEventListener('click', async function() {
+  const diffView = document.getElementById('card-diff-view');
+  if (diffView.style.display !== 'none') {
+    diffView.style.display = 'none'; this.textContent = 'Show diff'; return;
+  }
+  if (!this._diffData) {
+    this.textContent = 'Loading…';
+    try {
+      this._diffData = await fetch(`/api/cards/${modalCardId}/diff`).then(r => r.json());
+    } catch(_) { this.textContent = 'Show diff'; return; }
+  }
+  const data = this._diffData;
+  diffView.innerHTML = '';
+  if (!data.diff) {
+    const empty = document.createElement('div'); empty.className = 'diff-empty';
+    empty.textContent = 'No changes yet.'; diffView.appendChild(empty);
+  } else {
+    const wrap = document.createElement('div'); wrap.className = 'diff-view';
+    data.diff.split('\n').forEach(line => {
+      const el = document.createElement('span'); el.className = 'diff-line';
+      if (line.startsWith('+') && !line.startsWith('+++'))      el.classList.add('add');
+      else if (line.startsWith('-') && !line.startsWith('---')) el.classList.add('del');
+      else if (line.startsWith('@@'))                           el.classList.add('hunk');
+      else if (/^(diff |index |--- |\+\+\+ )/.test(line))      el.classList.add('meta');
+      el.textContent = line || ' ';
+      wrap.appendChild(el);
+    });
+    diffView.appendChild(wrap);
+  }
+  diffView.style.display = 'block'; this.textContent = 'Hide diff';
+});
+
+// ── Merge ──────────────────────────────────────────────────────────────────
+document.getElementById('card-merge-btn').addEventListener('click', async function() {
+  if (!modalCardId) return;
+  this.disabled = true; this.textContent = 'Merging…';
+  try {
+    const resp = await fetch(`/api/cards/${modalCardId}/merge`, { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Merge failed');
+    showToast('Merged successfully');
+    closeCardModal();
+  } catch(err) {
+    showToast('Merge failed: ' + err.message);
+    this.disabled = false; this.textContent = 'Merge';
+  }
+});
+
+// ── Create PR ──────────────────────────────────────────────────────────────
+document.getElementById('card-pr-btn').addEventListener('click', async function() {
+  if (!modalCardId) return;
+  this.disabled = true; this.textContent = 'Creating…';
+  try {
+    const resp = await fetch(`/api/cards/${modalCardId}/pr`, { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'PR creation failed');
+    showToast('PR created: ' + data.url);
+    if (data.url?.startsWith('http')) window.open(data.url, '_blank');
+  } catch(err) {
+    showToast('PR failed: ' + err.message);
+  }
+  this.disabled = false; this.textContent = 'Create PR';
 });
 
 // ── Global ESC ─────────────────────────────────────────────────────────────

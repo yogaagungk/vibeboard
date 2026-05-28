@@ -2,27 +2,30 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { getCard, getColumn, getWorkspace, addCardNote, addAgentLog } = require('./db');
+const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog } = require('./db');
+const wt = require('./worktree');
 
 const activeAgents = new Map();
 
 const AGENT_CMDS = { 'claude-code': 'claude', 'opencode': 'opencode', 'codex': 'codex' };
 const PORT = 7341;
 
-function buildPrompt(card, column, workspace) {
+function buildPrompt(card, column, workspace, branch) {
   const desc = card.description ? `\nDescription: ${card.description}` : '';
   const tags = card.tags?.length ? `\nTags: ${card.tags.join(', ')}` : '';
+  const branchLine = branch ? `\nGit branch: ${branch} (your changes go here — commit as you work)` : '';
   return `You have a task on VibeBoard.
 
 Card: "${card.title}"${desc}${tags}
 Column: ${column?.title || ''}
-Card ID: ${card.id}
+Card ID: ${card.id}${branchLine}
 
 Use the vibeboard MCP tools to work on this task:
 1. Call get_board to see the full board state
 2. Use add_card_note to log progress and checkpoints
-3. Call move_card to update status as you work
-4. Call complete_card when done
+3. Commit your changes with git as you work
+4. Call move_card to move the card to Review when ready
+5. Call complete_card when fully done
 
 Work in the project directory: ${workspace.path}`;
 }
@@ -142,13 +145,29 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   if (!workspace?.path) { process.stderr.write(`Workspace ${workspaceId} has no path\n`); return; }
 
   const agentCmd = AGENT_CMDS[agentType] || agentType;
-  const prompt = buildPrompt(card, column, workspace);
+
+  // Try to create a git worktree for isolation
+  let branch = null, worktreePath = null, spawnDir = workspace.path;
+  try {
+    const wtResult = wt.createWorktree(workspace.path, cardId, card.title);
+    if (wtResult) {
+      branch = wtResult.branch;
+      worktreePath = wtResult.worktreePath;
+      spawnDir = wtResult.worktreePath;
+      updateCard(cardId, { branch, worktreePath });
+      emitSSE('board_update', require('./db').getBoard(workspaceId));
+    }
+  } catch (err) {
+    process.stderr.write(`Worktree creation failed (running in workspace dir): ${err.message}\n`);
+  }
+
+  const prompt = buildPrompt(card, column, workspace, branch);
   const promptFile = writePromptFile(cardId, prompt);
 
   try {
-    if (process.platform === 'win32') launchWindows(agentCmd, promptFile, workspace.path, cardId, card.title);
-    else if (process.platform === 'darwin') launchMac(agentCmd, promptFile, workspace.path, cardId, card.title);
-    else launchLinux(agentCmd, promptFile, workspace.path, cardId, card.title);
+    if (process.platform === 'win32') launchWindows(agentCmd, promptFile, spawnDir, cardId, card.title);
+    else if (process.platform === 'darwin') launchMac(agentCmd, promptFile, spawnDir, cardId, card.title);
+    else launchLinux(agentCmd, promptFile, spawnDir, cardId, card.title);
 
     activeAgents.set(cardId, { cardId, workspaceId, agentType, startTime: new Date().toISOString() });
     addAgentLog(workspaceId, agentType, 'agent_started', `Spawned ${agentType} terminal for: ${card.title}`);

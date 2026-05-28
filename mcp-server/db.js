@@ -34,6 +34,7 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Schema migrations
 db.exec(`
   CREATE TABLE IF NOT EXISTS workspaces (
     id TEXT PRIMARY KEY,
@@ -97,6 +98,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_card_notes_card ON card_notes(card_id);
   CREATE INDEX IF NOT EXISTS idx_agent_log_workspace ON agent_log(workspace_id);
 `);
+
+// Column migrations for existing databases
+(function migrate() {
+  const cardCols = db.pragma('table_info(cards)').map(r => r.name);
+  if (!cardCols.includes('branch'))       db.exec('ALTER TABLE cards ADD COLUMN branch TEXT');
+  if (!cardCols.includes('worktree_path')) db.exec('ALTER TABLE cards ADD COLUMN worktree_path TEXT');
+})();
 
 function getActiveWorkspaceId() {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('active_workspace_id');
@@ -171,9 +179,9 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, position, created_at 
-    FROM cards 
-    WHERE workspace_id = ? 
+    SELECT id, column_id, title, description, tags, agent, branch, worktree_path, position, created_at
+    FROM cards
+    WHERE workspace_id = ?
     ORDER BY position
   `).all(workspaceId);
   
@@ -192,6 +200,7 @@ function getBoard(workspaceId) {
         ...c,
         tags: c.tags ? JSON.parse(c.tags) : [],
         createdAt: c.created_at,
+        worktreePath: c.worktree_path,
       }))
   }));
   
@@ -228,10 +237,12 @@ function updateCard(cardId, updates) {
   const fields = [];
   const values = [];
   
-  if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
-  if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description || null); }
-  if (updates.tags !== undefined) { fields.push('tags = ?'); values.push(JSON.stringify(updates.tags)); }
-  if (updates.agent !== undefined) { fields.push('agent = ?'); values.push(updates.agent || null); }
+  if (updates.title !== undefined)       { fields.push('title = ?');        values.push(updates.title); }
+  if (updates.description !== undefined) { fields.push('description = ?');   values.push(updates.description || null); }
+  if (updates.tags !== undefined)        { fields.push('tags = ?');          values.push(JSON.stringify(updates.tags)); }
+  if (updates.agent !== undefined)       { fields.push('agent = ?');         values.push(updates.agent || null); }
+  if (updates.branch !== undefined)      { fields.push('branch = ?');        values.push(updates.branch || null); }
+  if (updates.worktreePath !== undefined){ fields.push('worktree_path = ?'); values.push(updates.worktreePath || null); }
   
   if (fields.length === 0) return;
   

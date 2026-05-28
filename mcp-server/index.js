@@ -9,6 +9,7 @@ const { z } = require('zod');
 const db = require('./db');
 const { migrateLegacyData } = require('./migrate');
 const { spawnAgent, agentDone, stopAgent, isAgentRunning } = require('./agent');
+const wt = require('./worktree');
 
 const PUBLIC_DIR = path.resolve('./public');
 
@@ -202,6 +203,49 @@ app.post('/board', (req, res) => {
   const fresh = db.getBoard(activeId);
   emitSSE('board_update', { ...fresh, _tabId: body._tabId });
   res.json({ ok: true });
+});
+
+app.get('/api/cards/:cardId/diff', (req, res) => {
+  const card = db.getCard(req.params.cardId);
+  if (!card?.worktree_path) return res.json({ diff: '', commits: '' });
+  const wsId = db.getActiveWorkspaceId();
+  const workspace = db.getWorkspace(wsId);
+  if (!workspace) return res.json({ diff: '', commits: '' });
+  const base = wt.getBaseBranch(workspace.path);
+  res.json({
+    diff:    wt.getDiff(card.worktree_path, base),
+    commits: wt.getCommits(card.worktree_path, base),
+    branch:  card.branch,
+    base,
+  });
+});
+
+app.post('/api/cards/:cardId/merge', (req, res) => {
+  const card = db.getCard(req.params.cardId);
+  if (!card?.branch) return res.status(400).json({ error: 'Card has no branch' });
+  const wsId = db.getActiveWorkspaceId();
+  const workspace = db.getWorkspace(wsId);
+  if (!workspace) return res.status(400).json({ error: 'No active workspace' });
+  try {
+    wt.mergeBranch(workspace.path, card.branch, card.worktree_path);
+    db.updateCard(card.id, { branch: null, worktreePath: null });
+    const fresh = db.getBoard(wsId);
+    emitSSE('board_update', fresh);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/cards/:cardId/pr', (req, res) => {
+  const card = db.getCard(req.params.cardId);
+  if (!card?.worktree_path) return res.status(400).json({ error: 'Card has no worktree' });
+  try {
+    const url = wt.pushAndCreatePR(card.worktree_path, card.title);
+    res.json({ ok: true, url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/cards/:cardId/notes', (req, res) => {
