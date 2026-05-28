@@ -68,24 +68,51 @@ function buildPrompt(card, column, workspace, branch) {
   const desc = card.description ? `\nDescription: ${card.description}` : '';
   const tags = card.tags?.length ? `\nTags: ${card.tags.join(', ')}` : '';
   const branchLine = branch ? `\nGit branch: ${branch} (commit your changes here as you work)` : '';
+  
+  let columnContext = '';
+  const colTitle = column?.title || '';
+  if (colTitle === 'In Progress') {
+    columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
+- Plan and implement the feature/fix
+- Write code, make changes
+- Commit your work with clear commit messages
+- Use add_card_note to log your progress
+- When ready for review/testing, call move_card to move to Review`;
+  } else if (colTitle === 'Review') {
+    columnContext = `\nYou are in the REVIEW phase. Your job is to:
+- Review the existing code changes
+- Run tests and verify functionality
+- Check for bugs or issues
+- Add notes about what you found
+- If issues found, call move_card to move back to In Progress
+- If everything looks good, call complete_card to mark as Done`;
+  } else if (colTitle === 'Done') {
+    columnContext = `\nThis card is DONE. The work is complete but not yet merged.
+- Review what was accomplished
+- Ensure all changes are committed
+- The user will manually merge or create a PR`;
+  } else {
+    columnContext = `\nCurrent column: ${colTitle}`;
+  }
+  
   return `You have a task on VibeBoard.
 
-Card: "${card.title}"${desc}${tags}
-Column: ${column?.title || ''}
+Card: "${card.title}"${desc}${tags}${columnContext}
 Card ID: ${card.id}
 Workspace ID: ${workspace.id}${branchLine}
 
-Columns:
-- In Progress → plan and implement the feature/fix
-- Review → code review and/or testing
-- Done → complete but NOT auto-merged — the user will merge manually or create a PR
+Column workflow:
+- Backlog → not started
+- In Progress → actively working on implementation
+- Review → testing and code review phase
+- Done → complete, ready for manual merge/PR
 
-Use the vibeboard MCP tools to work on this task:
+Use the vibeboard MCP tools:
 1. Call get_board to see the full board state
 2. Use add_card_note frequently to log your progress, decisions, and any issues found
 3. Commit your changes with git as you work
-4. Call move_card to move the card to Review when ready for review/testing
-5. Call complete_card to mark as Done when fully finished
+4. Call move_card to move between columns based on your progress
+5. Call complete_card when fully finished and tested
 
 In the project directory, run git commands, edit files, and test as needed.
 Work in: ${workspace.path}`;
@@ -192,15 +219,6 @@ function agentDone(cardId, code, emitSSE) {
   if (info.watchInterval) clearInterval(info.watchInterval);
 
   if (info.outputFile) {
-    try {
-      const raw = fs.readFileSync(info.outputFile, 'utf8');
-      const output = stripAnsi(raw).trim();
-      if (output) {
-        const lines = output.split('\n');
-        const tail = lines.slice(-80).join('\n');
-        addCardNote(cardId, `Agent output:\n${tail}`);
-      }
-    } catch (_) {}
     try { fs.unlinkSync(info.outputFile); } catch (_) {}
   }
 

@@ -55,9 +55,39 @@ function createWorktree(workspacePath, cardId, cardTitle) {
   const worktreePath = path.join(workspacePath, '.vb-worktrees', `${slug}-${shortId}`);
 
   ensureGitignored(workspacePath);
+
+  // Check if worktree already exists
+  if (fs.existsSync(worktreePath)) {
+    try {
+      // Verify it's a valid worktree
+      execSync('git rev-parse --git-dir', { cwd: worktreePath, stdio: 'ignore' });
+      process.stderr.write(`Reusing existing worktree: ${worktreePath} (${branch})\n`);
+      return { branch, worktreePath };
+    } catch (_) {
+      // Worktree folder exists but is invalid, remove it
+      try { fs.rmSync(worktreePath, { recursive: true, force: true }); } catch (_) {}
+    }
+  }
+
+  // Check if branch already exists
+  const branchExists = (() => {
+    try {
+      execSync(`git rev-parse --verify "${branch}"`, { cwd: workspacePath, stdio: 'ignore' });
+      return true;
+    } catch (_) { return false; }
+  })();
+
   fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
-  execSync(`git worktree add -b "${branch}" "${worktreePath}"`, { cwd: workspacePath });
-  process.stderr.write(`Worktree created: ${worktreePath} (${branch})\n`);
+
+  if (branchExists) {
+    // Branch exists, create worktree without -b flag
+    execSync(`git worktree add "${worktreePath}" "${branch}"`, { cwd: workspacePath });
+    process.stderr.write(`Worktree created from existing branch: ${worktreePath} (${branch})\n`);
+  } else {
+    // Branch doesn't exist, create new branch and worktree
+    execSync(`git worktree add -b "${branch}" "${worktreePath}"`, { cwd: workspacePath });
+    process.stderr.write(`Worktree created: ${worktreePath} (${branch})\n`);
+  }
 
   return { branch, worktreePath };
 }
