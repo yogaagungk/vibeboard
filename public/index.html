@@ -402,12 +402,13 @@ body.mcp-banner-open #log-sidebar {
 
 
 .cards-list {
-  flex: 1; overflow-y: auto; padding: 0 8px 8px;
+  flex: 1; overflow-y: auto; padding: 0 6px 8px;
+  margin: 0 4px;
   display: flex; flex-direction: column; gap: 6px; min-height: 40px;
 }
 .cards-list::-webkit-scrollbar { width: 4px; }
 .cards-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.cards-list.drag-over { background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 6px; }
+.cards-list.drag-over { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 6px; }
 
 /* ── Cards ── */
 .card {
@@ -1718,8 +1719,8 @@ function buildColumn(col) {
     } else { tCol.cards.push(card); }
     draggingCard = null; draggingFromCol = null;
 
-    const movingToInProgress = tCol.title === 'In Progress' && card.agent;
-    if (movingToInProgress) {
+    const spawnsAgent = card.agent && (tCol.title === 'In Progress' || tCol.title === 'Review');
+    if (spawnsAgent) {
       const agentStatus = mcpStatusCache?.agents?.[card.agent];
       if (agentStatus?.installed && !agentStatus?.configured) {
         renderBoard(board); postBoard();
@@ -1730,7 +1731,7 @@ function buildColumn(col) {
     }
     renderBoard(board);
     await postBoard();
-    if (movingToInProgress) {
+    if (spawnsAgent) {
       fetch(`/api/cards/${card.id}/run`, { method: 'POST' }).catch(() => {});
     }
   });
@@ -2397,7 +2398,8 @@ function updateMoveButtons(card, currentColTitle) {
       renderBoard(board);
       closeCardModal();
       await postBoard();
-      if (targetCol.title === 'In Progress' && card.agent) {
+      const spawnsAgent = card.agent && (targetCol.title === 'In Progress' || targetCol.title === 'Review');
+      if (spawnsAgent) {
         showToast(`⚡ Starting ${AGENT_LABELS[card.agent] || card.agent} on "${card.title || card.text}"`, 4000);
         try { await fetch(`/api/cards/${card.id}/run`, { method: 'POST' }); }
         catch (err) { showToast('Failed to start agent: ' + err.message); }
@@ -2484,7 +2486,8 @@ function showChangesSection(card) {
 
   document.getElementById('card-activity-divider').style.display = '';
   section.style.display = 'block';
-  actions.style.display = 'flex';
+  const inDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
+  actions.style.display = inDone ? 'flex' : 'none';
   badge.textContent = card.branch;
   meta.textContent = 'Loading…';
   diffView.style.display = 'none';
