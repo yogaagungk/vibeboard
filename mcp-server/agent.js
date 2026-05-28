@@ -8,6 +8,7 @@ const wt = require('./worktree');
 const activeAgents = new Map();
 
 const PORT = process.env.PORT || 7341;
+const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60 * 1000;
 
 // Build a shell command string for each agent that reads the prompt from a temp file.
 // Using a shell command string (not arg array) avoids quoting issues with multiline prompts.
@@ -185,9 +186,12 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
         spawnDir = wtResult.worktreePath;
         updateCard(cardId, { branch, worktreePath });
         emitSSE('board_update', require('./db').getBoard(workspaceId));
+      } else {
+        addCardNote(cardId, 'Worktree skipped: repo has no commits yet. Agent will run in the workspace directory directly.');
       }
     } catch (err) {
       process.stderr.write(`Worktree creation failed (running in workspace dir): ${err.message}\n`);
+      addCardNote(cardId, `Worktree creation failed: ${err.message}. Agent running in workspace directory.`);
     }
   }
 
@@ -199,10 +203,19 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId);
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE);
 
+    const timeoutId = setTimeout(() => {
+      if (!activeAgents.has(cardId)) return;
+      process.stderr.write(`Agent timeout (${AGENT_TIMEOUT_MS / 60000}min) for card ${cardId}\n`);
+      addCardNote(cardId, `Agent timed out after ${AGENT_TIMEOUT_MS / 60000} minutes and was stopped.`);
+      addAgentLog(workspaceId, agentType, 'agent_timeout', `Timed out for card ${cardId}`);
+      try { child?.kill(); } catch (_) {}
+      agentDone(cardId, 1, emitSSE);
+    }, AGENT_TIMEOUT_MS);
+
     activeAgents.set(cardId, {
       cardId, workspaceId, agentType, child,
       startTime: new Date().toISOString(),
-      outputFile, watchInterval,
+      outputFile, watchInterval, timeoutId,
     });
 
     addAgentLog(workspaceId, agentType, 'agent_started', `Started ${agentType} for: ${card.title}`);
@@ -222,8 +235,18 @@ function agentDone(cardId, code, emitSSE) {
   activeAgents.delete(cardId);
 
   if (info.watchInterval) clearInterval(info.watchInterval);
+  if (info.timeoutId) clearTimeout(info.timeoutId);
 
   if (info.outputFile) {
+    try {
+      const raw = fs.readFileSync(info.outputFile, 'utf8');
+      const text = stripAnsi(raw).trim();
+      if (text) {
+        const MAX = 3000;
+        const snippet = text.length > MAX ? '[…output truncated, showing last 3000 chars]\n' + text.slice(-MAX) : text;
+        addCardNote(cardId, `Agent session output (exit ${code}):\n\`\`\`\n${snippet}\n\`\`\``);
+      }
+    } catch (_) {}
     try { fs.unlinkSync(info.outputFile); } catch (_) {}
   }
 
@@ -238,6 +261,7 @@ function stopAgent(cardId) {
   const info = activeAgents.get(cardId);
   if (!info) return false;
   if (info.watchInterval) clearInterval(info.watchInterval);
+  if (info.timeoutId) clearTimeout(info.timeoutId);
   try { info.child?.kill(); } catch (_) {}
   activeAgents.delete(cardId);
   addAgentLog(info.workspaceId, info.agentType, 'agent_stopped', `Stopped agent for card ${cardId}`);

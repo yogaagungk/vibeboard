@@ -356,9 +356,36 @@ body.mcp-banner-open #log-sidebar {
 
 #board-wrap {
   flex: 1; overflow-x: auto; overflow-y: hidden;
-  padding: 20px 0 20px 20px;
+  padding: 0;
   transition: margin-right 0.25s;
   display: flex; flex-direction: column;
+}
+#board-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px 0 20px; flex-shrink: 0;
+}
+#board-search {
+  height: 28px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  width: 200px; outline: none;
+  transition: border-color 0.15s, width 0.2s;
+}
+#board-search:focus { border-color: var(--border-strong); width: 260px; }
+#board-search::placeholder { color: var(--text-muted); }
+#board-search-clear {
+  height: 28px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif; font-size: 11px;
+  cursor: pointer; display: none;
+}
+#board-search-clear:hover { background: var(--bg); color: var(--text); }
+#board-search-count { font-size: 11px; color: var(--text-muted); display: none; }
+#board-inner {
+  flex: 1; overflow-x: auto; overflow-y: hidden;
+  padding: 14px 0 20px 20px; min-height: 0;
 }
 #board { display: flex; gap: 12px; height: 100%; align-items: flex-start; }
 
@@ -996,7 +1023,8 @@ body.mcp-banner-open #log-sidebar {
   #header h1 { font-size: 13px; }
   .header-btn { font-size: 11px; height: 26px; padding: 0 8px; }
 
-  #board-wrap { padding: 12px 0 12px 12px; }
+  #board-toolbar { padding: 8px 12px 0 12px; }
+  #board-inner { padding: 10px 0 12px 12px; }
   #board { gap: 10px; }
   .column { min-width: 260px; max-width: 260px; }
 
@@ -1083,7 +1111,14 @@ body.mcp-banner-open #log-sidebar {
 <!-- Main -->
 <div id="app">
   <div id="board-wrap">
-    <div id="board"></div>
+    <div id="board-toolbar">
+      <input type="text" id="board-search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
+      <button id="board-search-clear">Clear</button>
+      <span id="board-search-count"></span>
+    </div>
+    <div id="board-inner">
+      <div id="board"></div>
+    </div>
     <div id="empty-state">
       <div class="empty-icon">📋</div>
       <div class="empty-title">No workspace yet</div>
@@ -1747,7 +1782,37 @@ function renderBoard(b) {
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
   renderLog(board.agentLog || []);
+  applySearch();
 }
+
+// ── Card search ─────────────────────────────────────────────────────────────
+const searchInput = document.getElementById('board-search');
+const searchClear = document.getElementById('board-search-clear');
+const searchCount = document.getElementById('board-search-count');
+
+function applySearch() {
+  const q = searchInput.value.trim().toLowerCase();
+  const cards = boardEl.querySelectorAll('.card');
+  if (!q) {
+    cards.forEach(c => c.style.display = '');
+    searchClear.style.display = 'none';
+    searchCount.style.display = 'none';
+    return;
+  }
+  let total = 0, visible = 0;
+  cards.forEach(c => {
+    total++;
+    const match = (c.dataset.searchTitle || '').includes(q);
+    c.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  searchClear.style.display = '';
+  searchCount.style.display = '';
+  searchCount.textContent = `${visible} of ${total}`;
+}
+
+searchInput.addEventListener('input', applySearch);
+searchClear.addEventListener('click', () => { searchInput.value = ''; applySearch(); searchInput.focus(); });
 
 function buildColumn(col) {
   const colEl = document.createElement('div');
@@ -1813,6 +1878,7 @@ function buildColumn(col) {
 function buildCard(card, colId) {
   const el = document.createElement('div');
   el.className = 'card'; el.draggable = true; el.dataset.cardId = card.id;
+  el.dataset.searchTitle = (card.title || '').toLowerCase();
 
   el.addEventListener('dragstart', e => { draggingCard = card.id; draggingFromCol = colId; e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging'); });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
@@ -1994,7 +2060,18 @@ function connectSSE() {
   };
   es.onerror = () => {
     connDot.className = ''; connDot.title = 'SSE disconnected';
-    es.close(); es = null; setTimeout(connectSSE, 3000);
+    es.close(); es = null;
+    setTimeout(async () => {
+      connectSSE();
+      // Re-sync board state — may have changed while disconnected
+      try {
+        const resp = await fetch('/board');
+        if (resp.ok) {
+          const fresh = await resp.json();
+          if (fresh) { fresh.agentLog = fresh.agentLog || []; saveCache(fresh); renderBoard(fresh); applySearch(); }
+        }
+      } catch(_) {}
+    }, 3000);
   };
 }
 
@@ -2575,8 +2652,10 @@ function showChangesSection(card) {
   section.style.display = 'block';
   const inDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
   actions.style.display = inDone ? 'flex' : 'none';
-  document.getElementById('card-merge-btn').disabled = true;
-  document.getElementById('card-pr-btn').disabled = true;
+  const mergeBtn = document.getElementById('card-merge-btn');
+  const prBtn    = document.getElementById('card-pr-btn');
+  mergeBtn.disabled = true; mergeBtn.title = 'No commits on this branch yet';
+  prBtn.disabled    = true; prBtn.title    = 'No commits on this branch yet';
   badge.textContent = card.branch;
   meta.textContent = '';
   diffView.style.display = 'none';
@@ -2591,8 +2670,10 @@ function showChangesSection(card) {
       meta.textContent = count ? `${count} commit${count > 1 ? 's' : ''}` : 'no commits yet';
       toggleBtn._diffData = data;
       const hasCommits = count > 0;
-      document.getElementById('card-merge-btn').disabled = !hasCommits;
-      document.getElementById('card-pr-btn').disabled = !hasCommits;
+      const mb = document.getElementById('card-merge-btn');
+      const pb = document.getElementById('card-pr-btn');
+      mb.disabled = !hasCommits; mb.title = hasCommits ? '' : 'No commits on this branch yet';
+      pb.disabled = !hasCommits; pb.title = hasCommits ? '' : 'No commits on this branch yet';
     })
     .catch(() => { meta.textContent = ''; });
 }

@@ -302,10 +302,17 @@ function getCardNotes(cardId) {
 function addAgentLog(workspaceId, agent, action, detail) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  
+
   db.prepare('INSERT INTO agent_log (id, workspace_id, timestamp, agent, action, detail) VALUES (?, ?, ?, ?, ?, ?)')
     .run(id, workspaceId, now, agent, action, detail);
-  
+
+  // Cap at 500 rows per workspace — delete oldest beyond the limit
+  db.prepare(`
+    DELETE FROM agent_log WHERE workspace_id = ? AND id NOT IN (
+      SELECT id FROM agent_log WHERE workspace_id = ? ORDER BY timestamp DESC LIMIT 500
+    )
+  `).run(workspaceId, workspaceId);
+
   return { id, timestamp: now, agent, action, detail };
 }
 
