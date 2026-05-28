@@ -700,23 +700,24 @@ body.mcp-banner-open #log-sidebar {
 .agent-btn.unavailable { opacity: 0.38; cursor: not-allowed; }
 
 .agent-run-btn {
-  height: 36px; padding: 0 16px; white-space: nowrap;
+  height: 34px; padding: 0 16px; white-space: nowrap;
   border: 1px solid var(--border-strong); border-radius: 7px;
-  background: var(--accent); color: var(--accent-fg);
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: opacity 0.15s;
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
 }
-.agent-run-btn:hover { opacity: 0.85; }
+.agent-run-btn:hover { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .agent-run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .card-move-btn {
-  height: 32px; padding: 0 14px; white-space: nowrap;
+  height: 30px; padding: 0 12px; white-space: nowrap;
   border: 1px solid var(--border); border-radius: 6px;
-  background: var(--surface); color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400;
-  cursor: pointer; transition: all 0.15s;
+  background: transparent; color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 400;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px;
 }
-.card-move-btn:hover { border-color: var(--border-strong); background: var(--bg); }
+.card-move-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg); }
+.card-move-btn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
 .output-toggle-btn {
   font-size: 11px; padding: 4px 10px; height: 26px;
@@ -2371,7 +2372,12 @@ function updateMoveButtons(card, currentColTitle) {
   targets.forEach(targetCol => {
     const btn = document.createElement('button');
     btn.className = 'card-move-btn';
-    btn.textContent = `→ ${targetCol.title}`;
+    const dot = document.createElement('span');
+    dot.className = 'card-move-btn-dot';
+    dot.style.background = targetCol.color || '#6b6860';
+    const arrow = document.createElement('span');
+    arrow.textContent = `→ ${targetCol.title}`;
+    btn.appendChild(dot); btn.appendChild(arrow);
     btn.onclick = async () => {
       const tc = board.columns.find(c => c.id === targetCol.id);
       if (!tc) return;
@@ -2382,12 +2388,15 @@ function updateMoveButtons(card, currentColTitle) {
       const [movedCard] = sourceCol.cards.splice(cardIdx, 1);
       tc.cards.push(movedCard);
       renderBoard(board);
+      closeCardModal();
       await postBoard();
       if (targetCol.title === 'In Progress' && card.agent) {
+        showToast(`⚡ Starting ${AGENT_LABELS[card.agent] || card.agent} on "${card.title || card.text}"`, 4000);
         try { await fetch(`/api/cards/${card.id}/run`, { method: 'POST' }); }
         catch (err) { showToast('Failed to start agent: ' + err.message); }
+      } else {
+        showToast(`Moved to ${targetCol.title}`);
       }
-      closeCardModal();
     };
     moveButtons.appendChild(btn);
   });
@@ -2407,28 +2416,34 @@ function updatePromptBox(card) {
     const colTitle = col?.title || '';
     if (colTitle === 'In Progress') {
       columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
+- Call get_board first to see the full board state
 - Plan and implement the feature/fix
-- Write code, make changes
-- Commit your work with clear commit messages
-- Use add_card_note to log your progress
-- When ready for review/testing, call move_card to move to Review`;
+- Write code and make changes in the project directory
+- Commit ALL changes with git before moving columns: run \`git add -A && git commit -m "...\"\`
+- Use add_card_note to log progress, decisions, and blockers
+- When implementation is complete and all changes are committed, call move_card to move to Review
+
+IMPORTANT: Do NOT call move_card until you have committed your changes with git commit.`;
     } else if (colTitle === 'Review') {
       columnContext = `\nYou are in the REVIEW phase. Your job is to:
-- Review the existing code changes
-- Run tests and verify functionality
-- Check for bugs or issues
-- Add notes about what you found
-- If issues found, call move_card to move back to In Progress
-- If everything looks good, call complete_card to mark as Done`;
+- Call get_board first to see the full board state
+- Review all code changes made in In Progress
+- Run tests and verify functionality works as expected
+- Check for bugs, edge cases, or issues
+- Add notes about what you found using add_card_note
+- If issues found: commit any fixes, then call move_card to move back to In Progress
+- If everything looks good: ensure all changes are committed, then call complete_card to mark as Done
+
+IMPORTANT: Always commit any fixes before moving columns.`;
     } else if (colTitle === 'Done') {
-      columnContext = `\nThis card is DONE. The work is complete but not yet merged.
-- Review what was accomplished
-- Ensure all changes are committed
-- The user will manually merge or create a PR`;
+      columnContext = `\nThis card is DONE. The work is complete.
+- All changes should already be committed
+- The user will manually merge or create a PR
+- You may add a final summary note with add_card_note if helpful`;
     } else {
       columnContext = `\nCurrent column: ${colTitle}`;
     }
-    
+
     promptText.value = `You have a task on VibeBoard.
 
 Card: "${card.title||card.text}"${desc}${tags}${columnContext}
@@ -2437,18 +2452,12 @@ Workspace ID: ${activeWsId||''}
 
 Column workflow:
 - Backlog → not started
-- In Progress → actively working on implementation
-- Review → testing and code review phase
+- In Progress → actively implementing (must commit before moving)
+- Review → testing and verification (must commit fixes before moving)
 - Done → complete, ready for manual merge/PR
 
-Use the vibeboard MCP tools:
-1. Call get_board to see the full board state
-2. Use add_card_note frequently to log your progress, decisions, and any issues found
-3. Commit your changes with git as you work
-4. Call move_card to move between columns based on your progress
-5. Call complete_card when fully finished and tested
-
-In the project directory, run git commands, edit files, and test as needed.`;
+Git rule: ALWAYS run \`git add -A && git commit\` before calling move_card or complete_card.
+This ensures your work is never lost when the card changes state.`;
     promptSection.style.display = 'block';
   }
 }
