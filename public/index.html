@@ -334,15 +334,38 @@ select.ws-input {
 /* ── Card sidebar header layout ── */
 #card-sidebar-title-group {
   flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 5px;
+  display: flex; flex-direction: column; gap: 6px;
 }
-#card-sidebar-title-row {
-  display: flex; align-items: center; gap: 7px;
+.card-header-chips {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
-#card-sidebar-meta-row {
-  display: flex; align-items: center; gap: 6px;
+
+/* ── New card modal layout ── */
+.nc-meta-row { display: flex; gap: 10px; }
+.nc-meta-col { flex: 1; min-width: 0; }
+.nc-agent-box {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; background: var(--bg);
+  display: flex; flex-direction: column; gap: 10px;
 }
-#card-sidebar-meta-row:empty { display: none; }
+.nc-agent-box-label {
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+
+/* ── Sidebar groups ── */
+.sidebar-group {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; background: var(--bg);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.sidebar-group-label {
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.sidebar-field-row { display: flex; gap: 10px; }
+.sidebar-field-col { flex: 1; min-width: 0; }
+.agent-last-run { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px; }
 
 /* ── Layout ── */
 #app {
@@ -1370,36 +1393,35 @@ kbd {
       <button class="modal-close-btn" id="nc-close">×</button>
     </div>
     <div class="modal-body">
-      <div>
-        <div class="field-label">Description</div>
-        <textarea class="modal-textarea" id="nc-desc" placeholder="Add context for the agent or yourself…"></textarea>
-      </div>
+      <textarea class="modal-textarea" id="nc-desc" placeholder="Describe the task for the agent…"></textarea>
       <div>
         <div class="field-label">Tags</div>
         <div class="modal-tag-picker" id="nc-tag-picker"></div>
       </div>
-      <div>
-        <div class="field-label">Priority</div>
-        <div class="priority-picker" id="nc-priority-picker">
-          <button class="priority-btn active" data-nc-priority="">None</button>
-          <button class="priority-btn" data-nc-priority="high">High</button>
-          <button class="priority-btn" data-nc-priority="medium">Medium</button>
-          <button class="priority-btn" data-nc-priority="low">Low</button>
+      <div class="nc-meta-row">
+        <div class="nc-meta-col">
+          <div class="field-label">Priority</div>
+          <div class="priority-picker" id="nc-priority-picker">
+            <button class="priority-btn active" data-nc-priority="">None</button>
+            <button class="priority-btn" data-nc-priority="high">High</button>
+            <button class="priority-btn" data-nc-priority="medium">Medium</button>
+            <button class="priority-btn" data-nc-priority="low">Low</button>
+          </div>
+        </div>
+        <div class="nc-meta-col">
+          <div class="field-label">Due date</div>
+          <input type="date" class="due-input" id="nc-due-date" style="width:100%">
         </div>
       </div>
-      <div>
-        <div class="field-label">Due date</div>
-        <input type="date" class="due-input" id="nc-due-date">
-      </div>
-      <div>
-        <div class="field-label">Assign agent</div>
+      <div class="nc-agent-box">
+        <div class="nc-agent-box-label">Agent</div>
         <div class="agent-options" id="nc-agent-opts">
           <button class="agent-btn active" data-nc-agent="">None</button>
           <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
           <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
-        <div id="nc-model-row" style="display:none;margin-top:10px">
+        <div id="nc-model-row" style="display:none">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
             <div class="field-label" style="margin:0;flex:1">Model</div>
             <button class="icon-btn" id="nc-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
@@ -1411,16 +1433,16 @@ kbd {
         <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
           <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
         </div>
-      </div>
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-row-label">Needs review</div>
-          <div class="toggle-row-hint">Agent moves to Review before Done</div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-row-label">Needs review</div>
+            <div class="toggle-row-hint">Agent moves to Review before Done</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="nc-needs-review">
+            <span class="toggle-track"></span>
+          </label>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="nc-needs-review">
-          <span class="toggle-track"></span>
-        </label>
       </div>
     </div>
     <div class="modal-footer">
@@ -1437,51 +1459,47 @@ kbd {
   <div id="card-sidebar-content">
     <div id="card-sidebar-header">
       <div id="card-sidebar-title-group">
-        <div id="card-sidebar-title-row">
-          <input id="card-modal-title-input" type="text" spellcheck="false" placeholder="Card title">
+        <input id="card-modal-title-input" type="text" spellcheck="false" placeholder="Card title">
+        <div class="card-header-chips" id="card-header-chips">
           <span id="card-modal-col-badge" class="modal-col-badge"></span>
-        </div>
-        <div id="card-sidebar-meta-row" style="display:none">
-          <span id="card-modal-branch-badge" class="branch-badge"></span>
+          <span id="card-modal-branch-badge" class="branch-badge" style="display:none"></span>
         </div>
       </div>
       <button class="modal-close-btn" id="card-modal-close">×</button>
     </div>
     <div id="card-sidebar-body">
-      <div id="card-move-actions" style="display:none">
-        <div class="field-label">Move to</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
-      </div>
-      <div>
-        <div class="field-label">Description</div>
-        <textarea id="card-modal-desc" placeholder="Add context for the agent or yourself…"></textarea>
-      </div>
+      <textarea id="card-modal-desc" placeholder="Describe the task for the agent…"></textarea>
       <div>
         <div class="field-label">Tags</div>
         <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
       </div>
-      <div>
-        <div class="field-label">Priority</div>
-        <div class="priority-picker" id="card-priority-picker">
-          <button class="priority-btn active" data-priority="">None</button>
-          <button class="priority-btn" data-priority="high">High</button>
-          <button class="priority-btn" data-priority="medium">Medium</button>
-          <button class="priority-btn" data-priority="low">Low</button>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Details</div>
+        <div class="sidebar-field-row">
+          <div class="sidebar-field-col">
+            <div class="field-label">Priority</div>
+            <div class="priority-picker" id="card-priority-picker">
+              <button class="priority-btn active" data-priority="">None</button>
+              <button class="priority-btn" data-priority="high">High</button>
+              <button class="priority-btn" data-priority="medium">Medium</button>
+              <button class="priority-btn" data-priority="low">Low</button>
+            </div>
+          </div>
+          <div class="sidebar-field-col">
+            <div class="field-label">Due date</div>
+            <input type="date" class="due-input" id="card-due-date" style="width:100%">
+          </div>
         </div>
       </div>
-      <div>
-        <div class="field-label">Due date</div>
-        <input type="date" class="due-input" id="card-due-date">
-      </div>
-      <div>
-        <div class="field-label">Agent</div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Agent</div>
         <div class="agent-options">
           <button class="agent-btn active" data-agent="">None</button>
           <button class="agent-btn" data-agent="claude-code">Claude Code</button>
           <button class="agent-btn" data-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-agent="codex">Codex CLI</button>
         </div>
-        <div id="card-model-row" style="display:none;margin-top:10px">
+        <div id="card-model-row" style="display:none">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
             <div class="field-label" style="margin:0;flex:1">Model</div>
             <button class="icon-btn" id="card-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
@@ -1490,22 +1508,28 @@ kbd {
             <option value="">Default</option>
           </select>
         </div>
-        <button class="agent-run-btn" id="card-run-agent-btn" style="display:none;width:100%;margin-top:10px">Run agent</button>
-        <div id="card-agent-last-run" style="display:block;font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center"></div>
-      </div>
-      <div id="card-review-toggle-row" class="toggle-row" style="display:none">
-        <div>
-          <div class="toggle-row-label">Needs review</div>
-          <div class="toggle-row-hint">Agent moves to Review before Done</div>
+        <div id="card-agent-run-section" style="display:none">
+          <button class="agent-run-btn" id="card-run-agent-btn" style="width:100%">Run agent</button>
+          <div class="agent-last-run" id="card-agent-last-run"></div>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="card-needs-review-toggle" checked>
-          <span class="toggle-track"></span>
-        </label>
+        <div id="card-review-toggle-row" class="toggle-row" style="display:none">
+          <div>
+            <div class="toggle-row-label">Needs review</div>
+            <div class="toggle-row-hint">Agent moves to Review before Done</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="card-needs-review-toggle" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div id="card-custom-prompt-section" style="display:none">
+          <div class="field-label">Additional instructions</div>
+          <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
+        </div>
       </div>
-      <div id="card-custom-prompt-section" style="display:none">
-        <div class="field-label">Additional instructions</div>
-        <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
+      <div id="card-move-actions" style="display:none">
+        <div class="field-label">Move to</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
       </div>
       <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
       <div id="card-notes-section" style="display:none">
@@ -1540,7 +1564,6 @@ kbd {
     </div>
     <div id="card-sidebar-footer">
       <button class="btn-ghost" id="card-duplicate-btn" style="display:none">Duplicate</button>
-      <button class="btn-primary" id="card-modal-create-btn" style="display:none">Create Card</button>
     </div>
   </div>
 </aside>
@@ -2268,9 +2291,8 @@ function connectSSE() {
         const card = col?.cards.find(c => c.id === modalCardId);
         if (card) {
           const bb = document.getElementById('card-modal-branch-badge');
-          const mr = document.getElementById('card-sidebar-meta-row');
-          if (card.branch) { bb.textContent = card.branch; mr.style.display = ''; }
-          else { mr.style.display = 'none'; }
+          if (card.branch) { bb.textContent = card.branch; bb.style.display = ''; }
+          else { bb.style.display = 'none'; }
         }
       }
     }
@@ -2639,7 +2661,6 @@ const cardModalDesc      = document.getElementById('card-modal-desc');
 const cardModalTagPicker = document.getElementById('card-modal-tag-picker');
 const cardModalPromptTxt = document.getElementById('card-modal-prompt-text');
 const cardModalCopyBtn   = document.getElementById('card-modal-copy-btn');
-const cardModalCreateBtn = document.getElementById('card-modal-create-btn');
 
 let modalCardId = null, modalColId = null, newCardColId = null;
 
@@ -2735,9 +2756,8 @@ function openCardModal(cardId, colId) {
   cardModalTitleEl.value = card.title || card.text || '';
   cardModalColBadge.textContent = col.title; cardModalColBadge.style.background = col.color || '#6b6860';
   const branchBadge = document.getElementById('card-modal-branch-badge');
-  const metaRow = document.getElementById('card-sidebar-meta-row');
-  if (card.branch) { branchBadge.textContent = card.branch; metaRow.style.display = ''; }
-  else { metaRow.style.display = 'none'; }
+  if (card.branch) { branchBadge.textContent = card.branch; branchBadge.style.display = ''; }
+  else { branchBadge.style.display = 'none'; }
   cardModalDesc.value = card.description || '';
 
   cardModalTagPicker.innerHTML = '';
@@ -2821,7 +2841,6 @@ function openCardModal(cardId, colId) {
   };
 
   document.getElementById('card-sidebar-footer').classList.add('visible');
-  cardModalCreateBtn.style.display = 'none';
   updatePromptBox(card);
   showChangesSection(card);
   updateRunAgentBtn(card);
@@ -2931,32 +2950,19 @@ function getModalAgent() {
   return active?.dataset?.agent || undefined;
 }
 
-function syncFooterVisibility() {
-  const footer = document.getElementById('card-sidebar-footer');
-  const anyVisible = cardModalCreateBtn && cardModalCreateBtn.style.display !== 'none';
-  footer.classList.toggle('visible', anyVisible);
-}
 
 function updateRunAgentBtn(card) {
   const btn = document.getElementById('card-run-agent-btn');
+  const section = document.getElementById('card-agent-run-section');
   const lastRunEl = document.getElementById('card-agent-last-run');
-  if (!card || !card.agent) { 
-    if (btn) btn.style.display = 'none'; 
-    if (lastRunEl) lastRunEl.textContent = '';
-    return; 
+  if (!card || !card.agent) {
+    if (section) section.style.display = 'none';
+    return;
   }
+  if (section) section.style.display = '';
   const running = runningCards.has(card.id);
-  if (btn) {
-    btn.style.display = '';
-    btn.disabled = running;
-    btn.textContent = running ? 'Running…' : 'Run agent';
-  }
-  
-  if (lastRunEl && card.agent_ran_at) {
-    lastRunEl.textContent = 'Last run: ' + timeAgo(card.agent_ran_at);
-  } else if (lastRunEl) {
-    lastRunEl.textContent = '';
-  }
+  if (btn) { btn.disabled = running; btn.textContent = running ? 'Running…' : 'Run agent'; }
+  if (lastRunEl) lastRunEl.textContent = card.agent_ran_at ? 'Last run: ' + timeAgo(card.agent_ran_at) : '';
 }
 
 function updateMoveButtons(card, currentColTitle) {
@@ -3171,30 +3177,14 @@ document.addEventListener('mouseup', () => {
   }
 });
 
-cardModalCreateBtn.addEventListener('click', () => {
-  const title = cardModalTitleEl.value.trim();
-  if (!title) { cardModalTitleEl.focus(); return; }
-  const col = board.columns.find(c => c.id === newCardColId);
-  if (!col) return;
-  const tags = getModalTags();
-  const agent = getModalAgent();
-  const description = cardModalDesc.value.trim() || undefined;
-  col.cards.push({ id: uid(), title, tags, ...(description && { description }), ...(agent && { agent }) });
-  cardModalCreateBtn.style.display = 'none';
-  newCardColId = null;
-  cardSidebar.classList.remove('open');
-  renderBoard(board); postBoard();
-});
-
 function closeCardModal() {
-  cardModalCreateBtn.style.display = 'none';
   document.getElementById('card-prompt-section').style.display = 'none';
-  document.getElementById('card-run-agent-btn').style.display = 'none';
+  document.getElementById('card-agent-run-section').style.display = 'none';
   document.getElementById('card-review-toggle-row').style.display = 'none';
   document.getElementById('card-custom-prompt-section').style.display = 'none';
   document.getElementById('card-duplicate-btn').style.display = 'none';
   document.getElementById('card-move-actions').style.display = 'none';
-  document.getElementById('card-sidebar-meta-row').style.display = 'none';
+  document.getElementById('card-modal-branch-badge').style.display = 'none';
   document.getElementById('card-merge-actions').style.display = 'none';
   document.getElementById('card-changes-section').style.display = 'none';
   document.getElementById('card-activity-divider').style.display = 'none';

@@ -184,7 +184,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, position, created_at
+    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -210,6 +210,7 @@ function getBoard(workspaceId) {
         priority: c.priority || null,
         custom_prompt: c.custom_prompt || '',
         due_date: c.due_date || null,
+        agent_ran_at: c.agent_ran_at || null,
         model: c.model || null,
       }))
   }));
@@ -267,7 +268,8 @@ function updateCard(cardId, updates) {
   if (updates.priority !== undefined)        { fields.push('priority = ?');        values.push(updates.priority || null); }
   if (updates.custom_prompt !== undefined)   { fields.push('custom_prompt = ?');   values.push(updates.custom_prompt || null); }
   if (updates.due_date !== undefined)        { fields.push('due_date = ?');        values.push(updates.due_date || null); }
-  
+  if (updates.agent_ran_at !== undefined)   { fields.push('agent_ran_at = ?');   values.push(updates.agent_ran_at || null); }
+
   if (fields.length === 0) return;
   
   fields.push('updated_at = ?');
@@ -387,6 +389,7 @@ function getCard(cardId) {
     priority: card.priority || null,
     custom_prompt: card.custom_prompt || '',
     due_date: card.due_date || null,
+    agent_ran_at: card.agent_ran_at || null,
     model: card.model || null,
   };
 }
