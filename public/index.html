@@ -253,6 +253,74 @@ body {
 #settings-btn:hover { background: var(--bg); color: var(--text); }
 #settings-btn svg { flex-shrink: 0; opacity: 0.7; }
 
+/* ── Card Details Sidebar ── */
+#card-sidebar {
+  position: fixed;
+  top: var(--header-h);
+  right: 0;
+  width: 480px;
+  height: calc(100vh - var(--header-h));
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 60;
+}
+#card-sidebar.open { transform: translateX(0); }
+
+#card-sidebar-resize-handle {
+  width: 6px;
+  background: transparent;
+  cursor: ew-resize;
+  flex-shrink: 0;
+  position: relative;
+}
+#card-sidebar-resize-handle:hover { background: var(--border); }
+#card-sidebar-resize-handle::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 0;
+  bottom: 0;
+}
+
+#card-sidebar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#card-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#card-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+#card-sidebar-body::-webkit-scrollbar { width: 4px; }
+#card-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+#card-sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  flex-shrink: 0;
+  display: none;
+}
+#card-sidebar-footer.visible { display: block; }
+
 /* ── Layout ── */
 #app {
   display: flex;
@@ -270,7 +338,6 @@ body.mcp-banner-open #app {
   transition: margin-right 0.25s;
   display: flex; flex-direction: column;
 }
-#board-wrap.log-open { margin-right: var(--log-w); }
 #board { display: flex; gap: 12px; height: 100%; align-items: flex-start; }
 
 /* ── Empty state ── */
@@ -388,22 +455,7 @@ body.mcp-banner-open #app {
 
 
 
-/* ── Agent Log Sidebar ── */
-#log-sidebar {
-  position: fixed; top: var(--header-h); right: 0;
-  width: var(--log-w); height: calc(100vh - var(--header-h));
-  background: var(--surface); border-left: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  transform: translateX(100%); transition: transform 0.25s ease; z-index: 50;
-}
-#log-sidebar.open { transform: translateX(0); }
-#log-header {
-  padding: 14px 14px 10px; font-size: 12px; font-weight: 500; color: var(--text-muted);
-  border-bottom: 1px solid var(--border); letter-spacing: 0.3px; text-transform: uppercase; flex-shrink: 0;
-}
-#log-entries { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-#log-entries::-webkit-scrollbar { width: 4px; }
-#log-entries::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+/* ── Agent Log Modal ── */
 .log-entry { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
 .log-entry-time { font-size: 10px; color: var(--text-muted); font-weight: 300; margin-bottom: 3px; }
@@ -414,6 +466,7 @@ body.mcp-banner-open #app {
 }
 .log-entry-detail { font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.4; }
 .log-empty { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 30px; font-weight: 300; }
+#log-entries { display: flex; flex-direction: column; gap: 6px; }
 
 /* ── Shared modal overlay ── */
 .modal-overlay {
@@ -822,8 +875,13 @@ body.mcp-banner-open #app {
 <header id="header">
   <div id="conn-dot" title="SSE disconnected"></div>
   <h1>VibeBoard</h1>
-  <button class="header-btn" id="export-btn">Export</button>
-  <button class="header-btn" id="log-toggle-btn">Agent Log ▸</button>
+  <button class="header-btn" id="log-toggle-btn">Agent Log</button>
+  <button class="header-btn" id="mcp-btn">MCP Setup</button>
+  <div id="theme-switcher">
+    <button class="theme-opt" data-t="light">☀</button>
+    <button class="theme-opt" data-t="system">⚙</button>
+    <button class="theme-opt" data-t="dark">☾</button>
+  </div>
 </header>
 
 <div id="toast-container"></div>
@@ -882,11 +940,18 @@ body.mcp-banner-open #app {
   </div>
 </div>
 
-<!-- Agent Log -->
-<aside id="log-sidebar">
-  <div id="log-header">Activity Log</div>
-  <div id="log-entries"><p class="log-empty">No activity yet.</p></div>
-</aside>
+<!-- Agent Log Modal -->
+<div class="modal-overlay" id="log-modal-overlay">
+  <div class="modal-box" id="log-modal" style="width:600px;max-height:80vh">
+    <div class="modal-header">
+      <span class="modal-header-title">Activity Log</span>
+      <button class="modal-close-btn" id="log-modal-close">×</button>
+    </div>
+    <div class="modal-body" style="max-height:calc(80vh - 120px);overflow-y:auto">
+      <div id="log-entries"><p class="log-empty">No activity yet.</p></div>
+    </div>
+  </div>
+</div>
 
 <!-- Workspace Detail Modal -->
 <div class="modal-overlay" id="ws-modal-overlay">
@@ -974,16 +1039,17 @@ body.mcp-banner-open #app {
   </div>
 </div>
 
-<!-- Card Detail Modal -->
-<div class="modal-overlay" id="card-modal-overlay">
-  <div class="modal-box" id="card-modal">
-    <div class="modal-header">
+<!-- Card Detail Sidebar -->
+<aside id="card-sidebar">
+  <div id="card-sidebar-resize-handle"></div>
+  <div id="card-sidebar-content">
+    <div id="card-sidebar-header">
       <input id="card-modal-title-input" type="text" spellcheck="false" placeholder="Card title">
       <span id="card-modal-col-badge" class="modal-col-badge"></span>
       <span id="card-modal-branch-badge" class="branch-badge" style="display:none"></span>
       <button class="modal-close-btn" id="card-modal-close">×</button>
     </div>
-    <div class="modal-body" id="card-modal-body">
+    <div id="card-sidebar-body">
       <div>
         <div class="field-label">Description</div>
         <textarea id="card-modal-desc" placeholder="Add context for the agent or yourself…"></textarea>
@@ -1036,11 +1102,11 @@ body.mcp-banner-open #app {
         </div>
       </div>
     </div>
-    <div id="card-modal-footer">
+    <div id="card-sidebar-footer">
       <button class="btn-primary" id="card-modal-create-btn" style="display:none">Create Card</button>
     </div>
   </div>
-</div>
+</aside>
 
 <script>
 'use strict';
@@ -1063,7 +1129,6 @@ let activeWsId = null;
 let editingWsId = null;
 let draggingCard = null;
 let draggingFromCol = null;
-let logOpen = false;
 let es = null;
 
 const TAGS = ['feature','bug','design','infra','docs','api'];
@@ -1079,7 +1144,6 @@ const runningCards = new Set();
 const boardEl        = document.getElementById('board');
 const boardWrap      = document.getElementById('board-wrap');
 const emptyState     = document.getElementById('empty-state');
-const logSidebar     = document.getElementById('log-sidebar');
 const logEntries     = document.getElementById('log-entries');
 const logToggleBtn   = document.getElementById('log-toggle-btn');
 const connDot        = document.getElementById('conn-dot');
@@ -1562,10 +1626,21 @@ function prependLogEntry(entry) {
 }
 
 logToggleBtn.addEventListener('click', () => {
-  logOpen = !logOpen;
-  logSidebar.classList.toggle('open', logOpen);
-  boardWrap.classList.toggle('log-open', logOpen);
-  logToggleBtn.textContent = logOpen ? 'Agent Log ▾' : 'Agent Log ▸';
+  document.getElementById('log-modal-overlay').classList.add('open');
+});
+
+document.getElementById('log-modal-close').addEventListener('click', () => {
+  document.getElementById('log-modal-overlay').classList.remove('open');
+});
+
+document.getElementById('log-modal-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'log-modal-overlay') {
+    document.getElementById('log-modal-overlay').classList.remove('open');
+  }
+});
+
+document.getElementById('mcp-btn').addEventListener('click', () => {
+  openMcpModal();
 });
 
 // ── SSE ────────────────────────────────────────────────────────────────────
@@ -1729,7 +1804,7 @@ document.getElementById('mcp-banner-dismiss').addEventListener('click', () => {
 let _mcpReturnToCard = null; // { cardId, colId } or { newColId } to reopen after MCP setup
 
 async function openMcpModal() {
-  if (cardModalOverlay.classList.contains('open')) {
+  if (cardSidebar.classList.contains('open')) {
     _mcpReturnToCard = modalCardId
       ? { cardId: modalCardId, colId: modalColId }
       : newCardColId ? { newColId: newCardColId } : null;
@@ -1819,7 +1894,7 @@ async function installMcpForAgent(agentKey, btn) {
 }
 
 function refreshAgentBtnsInModal() {
-  if (!cardModalOverlay.classList.contains('open')) return;
+  if (!cardSidebar.classList.contains('open')) return;
   const currentAgent = getModalAgent();
   if (modalCardId) {
     const col = board.columns.find(c => c.id === modalColId);
@@ -1873,22 +1948,13 @@ document.getElementById('mcp-modal-close').addEventListener('click', closeMcpMod
 document.getElementById('mcp-modal-cancel').addEventListener('click', closeMcpModal);
 document.getElementById('mcp-modal-overlay').addEventListener('click', e => { if (e.target.id === 'mcp-modal-overlay') closeMcpModal(); });
 
-// ── Export ─────────────────────────────────────────────────────────────────
-document.getElementById('export-btn').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(board, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'vibeboard-export.json'; a.click();
-  URL.revokeObjectURL(url);
-});
-
-// ── Card Modal ─────────────────────────────────────────────────────────────
-const cardModalOverlay   = document.getElementById('card-modal-overlay');
+// ── Card Sidebar ──────────────────────────────────────────────────────────
+const cardSidebar        = document.getElementById('card-sidebar');
 const cardModalTitleEl   = document.getElementById('card-modal-title-input');
 const cardModalColBadge  = document.getElementById('card-modal-col-badge');
 const cardModalClose     = document.getElementById('card-modal-close');
 const cardModalDesc      = document.getElementById('card-modal-desc');
 const cardModalTagPicker = document.getElementById('card-modal-tag-picker');
-const cardModalPromptBox = document.getElementById('card-modal-prompt-box');
 const cardModalPromptTxt = document.getElementById('card-modal-prompt-text');
 const cardModalCopyBtn   = document.getElementById('card-modal-copy-btn');
 const cardModalCreateBtn = document.getElementById('card-modal-create-btn');
@@ -2041,7 +2107,7 @@ function openCardModal(cardId, colId) {
     }).catch(() => {});
   }
 
-  cardModalOverlay.classList.add('open');
+  cardSidebar.classList.add('open');
   cardModalTitleEl.focus();
 
   loadCardNotes(cardId).then(notes => renderCardNotes(notes));
@@ -2081,7 +2147,7 @@ function openNewCardModal(colId) {
   document.getElementById('card-output-content').textContent = '';
   document.getElementById('card-prompt-section').style.display = 'none';
   syncFooterVisibility();
-  cardModalOverlay.classList.add('open');
+  cardSidebar.classList.add('open');
   cardModalTitleEl.focus();
 }
 
@@ -2095,7 +2161,7 @@ function getModalAgent() {
 }
 
 function syncFooterVisibility() {
-  const footer = document.getElementById('card-modal-footer');
+  const footer = document.getElementById('card-sidebar-footer');
   const anyVisible = cardModalCreateBtn && cardModalCreateBtn.style.display !== 'none';
   footer.classList.toggle('visible', anyVisible);
 }
@@ -2276,7 +2342,50 @@ cardModalDesc.addEventListener('input', () => {
 cardModalDesc.addEventListener('change', () => saveModal(board.columns.find(c=>c.id===modalColId)?.cards.find(c=>c.id===modalCardId)));
 
 cardModalClose.addEventListener('click', closeCardModal);
-cardModalOverlay.addEventListener('click', e => { if (e.target === cardModalOverlay) closeCardModal(); });
+
+// Resize handle for card sidebar
+const resizeHandle = document.getElementById('card-sidebar-resize-handle');
+let isResizing = false;
+let startX = 0;
+let startWidth = 0;
+
+const CARD_SIDEBAR_MIN_WIDTH = 400;
+const CARD_SIDEBAR_MAX_WIDTH = 800;
+const CARD_SIDEBAR_DEFAULT_WIDTH = 480;
+
+// Load saved width from localStorage
+const savedWidth = localStorage.getItem('vb_card_sidebar_width');
+if (savedWidth) {
+  const width = parseInt(savedWidth, 10);
+  if (width >= CARD_SIDEBAR_MIN_WIDTH && width <= CARD_SIDEBAR_MAX_WIDTH) {
+    cardSidebar.style.width = width + 'px';
+  }
+}
+
+resizeHandle.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  startX = e.clientX;
+  startWidth = cardSidebar.offsetWidth;
+  document.body.style.cursor = 'ew-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  const deltaX = startX - e.clientX;
+  const newWidth = Math.max(CARD_SIDEBAR_MIN_WIDTH, Math.min(CARD_SIDEBAR_MAX_WIDTH, startWidth + deltaX));
+  cardSidebar.style.width = newWidth + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if (isResizing) {
+    isResizing = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    localStorage.setItem('vb_card_sidebar_width', cardSidebar.offsetWidth);
+  }
+});
 
 cardModalCreateBtn.addEventListener('click', () => {
   const title = cardModalTitleEl.value.trim();
@@ -2289,7 +2398,7 @@ cardModalCreateBtn.addEventListener('click', () => {
   col.cards.push({ id: uid(), title, tags, ...(description && { description }), ...(agent && { agent }) });
   cardModalCreateBtn.style.display = 'none';
   newCardColId = null;
-  cardModalOverlay.classList.remove('open');
+  cardSidebar.classList.remove('open');
   renderBoard(board); postBoard();
 });
 
@@ -2305,9 +2414,9 @@ function closeCardModal() {
   if (outToggle) { outToggle.style.display = 'none'; outToggle.textContent = 'Show full output'; }
   document.getElementById('card-output-section').style.display = 'none';
   document.getElementById('card-output-content').textContent = '';
-  document.getElementById('card-modal-footer').classList.remove('visible');
+  document.getElementById('card-sidebar-footer').classList.remove('visible');
   newCardColId = null;
-  cardModalOverlay.classList.remove('open');
+  cardSidebar.classList.remove('open');
   modalCardId = null;
   modalColId = null;
 }
