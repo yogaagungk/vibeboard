@@ -93,11 +93,17 @@ app.get('/api/folder-dialog', (_req, res) => {
       'powershell', '-NoProfile', '-STA', '-Command',
       'Add-Type -AssemblyName System.Windows.Forms;' +
       '$owner = New-Object System.Windows.Forms.Form;' +
-      '$owner.TopMost = $true; $owner.Opacity = 0; $owner.Show();' +
+      '$owner.TopMost = $true;' +
+      '$owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen;' +
+      '$owner.WindowState = [System.Windows.Forms.FormWindowState]::Minimized;' +
+      '$owner.Show();' +
+      '$owner.WindowState = [System.Windows.Forms.FormWindowState]::Normal;' +
+      '$owner.Activate();' +
       '$d = New-Object System.Windows.Forms.FolderBrowserDialog;' +
       '$d.Description = "Select project folder";' +
       '$d.ShowNewFolderButton = $true;' +
-      '$r = $d.ShowDialog($owner); $owner.Close();' +
+      '$r = $d.ShowDialog($owner);' +
+      '$owner.Close();' +
       'if ($r -eq [System.Windows.Forms.DialogResult]::OK) { $d.SelectedPath }',
     ];
   } else if (process.platform === 'darwin') {
