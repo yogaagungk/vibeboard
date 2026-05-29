@@ -10,7 +10,7 @@ const fs = require('fs');
 const TMP_DB = path.join(os.tmpdir(), `vb-agent-test-${Date.now()}.db`);
 process.env.VB_DB_PATH = TMP_DB;
 
-const { buildShellCmd, isSafeModel } = require('../mcp-server/agent');
+const { buildShellCmd, isSafeModel, parseUsage } = require('../mcp-server/agent');
 
 test.after?.(() => { try { fs.unlinkSync(TMP_DB); } catch (_) {} });
 
@@ -62,4 +62,23 @@ test('buildShellCmd omits --model when no model given', () => {
   const cmd = buildShellCmd('claude-code', '/tmp/prompt.txt');
   assert.ok(!cmd.includes('--model'));
   assert.ok(cmd.includes('--dangerously-skip-permissions'));
+});
+
+// ── parseUsage ────────────────────────────────────────────────────────────────
+
+test('parseUsage extracts a labelled cost and token count', () => {
+  const { cost, tokens } = parseUsage('Total cost: $0.0123\nUsed 4,500 tokens this session');
+  assert.equal(cost, 0.0123);
+  assert.equal(tokens, 4500);
+});
+
+test('parseUsage returns nulls when nothing recognizable is present', () => {
+  const { cost, tokens } = parseUsage('Implemented the feature and committed the changes.');
+  assert.equal(cost, null);
+  assert.equal(tokens, null);
+});
+
+test('parseUsage picks the largest token mention', () => {
+  const { tokens } = parseUsage('input 1200 tokens, output 800 tokens, total 2000 tokens');
+  assert.equal(tokens, 2000);
 });

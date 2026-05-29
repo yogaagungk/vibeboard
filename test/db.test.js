@@ -195,6 +195,54 @@ test('exportWorkspace/importWorkspace preserve wip_limit', () => {
   assert.equal(review.wip_limit, 5);
 });
 
+// ── Dependencies + run status ───────────────────────────────────────────────────
+
+test('createCard persists blocked_by and getBoard/getCard return it as an array', () => {
+  const ws = db.createWorkspace('Dep WS', '/tmp/dep');
+  const board = db.getBoard(ws.id);
+  const col = board.columns[0];
+  const blocker = db.createCard(ws.id, col.id, 'Blocker');
+  const dependent = db.createCard(ws.id, col.id, 'Dependent', { blocked_by: [blocker.id] });
+  const fetched = db.getCard(dependent.id);
+  assert.deepEqual(fetched.blocked_by, [blocker.id]);
+  const fresh = db.getBoard(ws.id);
+  const card = fresh.columns[0].cards.find(c => c.id === dependent.id);
+  assert.deepEqual(card.blocked_by, [blocker.id]);
+});
+
+test('updateCard records run status fields and they survive a UI sync', () => {
+  const ws = db.createWorkspace('Run WS', '/tmp/run');
+  const board = db.getBoard(ws.id);
+  const col = board.columns[0];
+  const card = db.createCard(ws.id, col.id, 'Ran');
+  db.updateCard(card.id, { last_exit_code: 0, last_duration: 42, last_cost: 0.0123, last_tokens: 4500 });
+  let fetched = db.getCard(card.id);
+  assert.equal(fetched.last_exit_code, 0);
+  assert.equal(fetched.last_duration, 42);
+  assert.equal(fetched.last_cost, 0.0123);
+  assert.equal(fetched.last_tokens, 4500);
+
+  // A full-board sync from the UI must not clobber agent-written run status.
+  const b2 = db.getBoard(ws.id);
+  db.syncBoard(ws.id, b2.columns);
+  fetched = db.getCard(card.id);
+  assert.equal(fetched.last_exit_code, 0);
+  assert.equal(fetched.last_tokens, 4500);
+});
+
+test('syncBoard persists blocked_by edited from the UI', () => {
+  const ws = db.createWorkspace('Dep Sync WS', '/tmp/depsync');
+  const board = db.getBoard(ws.id);
+  const col = board.columns[0];
+  const a = db.createCard(ws.id, col.id, 'A');
+  const b = db.createCard(ws.id, col.id, 'B');
+  const fresh = db.getBoard(ws.id);
+  const cardB = fresh.columns[0].cards.find(c => c.id === b.id);
+  cardB.blocked_by = [a.id];
+  db.syncBoard(ws.id, fresh.columns);
+  assert.deepEqual(db.getCard(b.id).blocked_by, [a.id]);
+});
+
 // ── Active workspace ──────────────────────────────────────────────────────────
 
 test('setActiveWorkspaceId and getActiveWorkspaceId work', () => {

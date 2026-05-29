@@ -116,6 +116,11 @@ db.exec(`
   if (!cardCols.includes('due_date'))        db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
   if (!cardCols.includes('agent_ran_at'))    db.exec('ALTER TABLE cards ADD COLUMN agent_ran_at TEXT');
   if (!cardCols.includes('model'))           db.exec('ALTER TABLE cards ADD COLUMN model TEXT');
+  if (!cardCols.includes('last_exit_code'))  db.exec('ALTER TABLE cards ADD COLUMN last_exit_code INTEGER');
+  if (!cardCols.includes('last_duration'))   db.exec('ALTER TABLE cards ADD COLUMN last_duration INTEGER');
+  if (!cardCols.includes('last_cost'))       db.exec('ALTER TABLE cards ADD COLUMN last_cost REAL');
+  if (!cardCols.includes('last_tokens'))     db.exec('ALTER TABLE cards ADD COLUMN last_tokens INTEGER');
+  if (!cardCols.includes('blocked_by'))      db.exec('ALTER TABLE cards ADD COLUMN blocked_by TEXT');
 
   const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
   if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
@@ -201,7 +206,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, position, created_at
+    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -229,6 +234,11 @@ function getBoard(workspaceId) {
         due_date: c.due_date || null,
         agent_ran_at: c.agent_ran_at || null,
         model: c.model || null,
+        last_exit_code: c.last_exit_code,
+        last_duration: c.last_duration,
+        last_cost: c.last_cost,
+        last_tokens: c.last_tokens,
+        blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
       }))
   }));
   
@@ -254,10 +264,11 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const customPrompt = options.custom_prompt || null;
   const dueDate = options.due_date || null;
   const model = options.model || null;
+  const blockedBy = Array.isArray(options.blocked_by) && options.blocked_by.length ? JSON.stringify(options.blocked_by) : null;
 
   db.prepare(`
-    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, blocked_by, position, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, columnId, workspaceId, title,
     options.description || null,
@@ -265,11 +276,11 @@ function createCard(workspaceId, columnId, title, options = {}) {
     options.agent || null,
     model,
     requiresReview,
-    priority, customPrompt, dueDate,
+    priority, customPrompt, dueDate, blockedBy,
     position, now, now
   );
 
-  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, model, createdAt: now, ...options };
+  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, model, blocked_by: options.blocked_by || [], createdAt: now, ...options };
 }
 
 function updateCard(cardId, updates) {
@@ -288,6 +299,11 @@ function updateCard(cardId, updates) {
   if (updates.custom_prompt !== undefined)   { fields.push('custom_prompt = ?');   values.push(updates.custom_prompt || null); }
   if (updates.due_date !== undefined)        { fields.push('due_date = ?');        values.push(updates.due_date || null); }
   if (updates.agent_ran_at !== undefined)   { fields.push('agent_ran_at = ?');   values.push(updates.agent_ran_at || null); }
+  if (updates.last_exit_code !== undefined) { fields.push('last_exit_code = ?'); values.push(updates.last_exit_code); }
+  if (updates.last_duration !== undefined)  { fields.push('last_duration = ?');  values.push(updates.last_duration); }
+  if (updates.last_cost !== undefined)      { fields.push('last_cost = ?');      values.push(updates.last_cost); }
+  if (updates.last_tokens !== undefined)    { fields.push('last_tokens = ?');    values.push(updates.last_tokens); }
+  if (updates.blocked_by !== undefined)     { fields.push('blocked_by = ?');     values.push(Array.isArray(updates.blocked_by) && updates.blocked_by.length ? JSON.stringify(updates.blocked_by) : null); }
 
   if (fields.length === 0) return;
   
@@ -384,12 +400,13 @@ function syncBoard(workspaceId, columns) {
         const customPrompt = card.custom_prompt || null;
         const dueDate = card.due_date || null;
         const model = card.model || null;
+        const blockedBy = Array.isArray(card.blocked_by) && card.blocked_by.length ? JSON.stringify(card.blocked_by) : null;
         if (existingCards.includes(card.id)) {
-          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, model=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, position=?, updated_at=? WHERE id=?')
-            .run(col.id, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, ki, now, card.id);
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, model=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, blocked_by=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, blockedBy, ki, now, card.id);
         } else {
-          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, ki, now, now);
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, blocked_by, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, blockedBy, ki, now, now);
         }
       }
     }
@@ -424,6 +441,11 @@ function getCard(cardId) {
     due_date: card.due_date || null,
     agent_ran_at: card.agent_ran_at || null,
     model: card.model || null,
+    last_exit_code: card.last_exit_code,
+    last_duration: card.last_duration,
+    last_cost: card.last_cost,
+    last_tokens: card.last_tokens,
+    blocked_by: card.blocked_by ? JSON.parse(card.blocked_by) : [],
   };
 }
 

@@ -53,8 +53,8 @@ list_workspaces    → list all workspaces
 create_workspace   → create a new workspace (params: name, path, description?)
 switch_workspace   → switch to a different workspace (params: workspaceId)
 set_workspace      → update workspace metadata (params: name?, path?, description?)
-create_card        → add a card (params: title, columnTitle?, tags?, description?, agent?)
-update_card        → update card fields (params: cardId, title?, description?, tags?, agent?)
+create_card        → add a card (params: title, columnTitle?, tags?, description?, agent?, model?, priority?, due_date?, blocked_by?)
+update_card        → update card fields (params: cardId, title?, description?, tags?, agent?, model?, priority?, due_date?, blocked_by?)
 move_card          → move a card between columns (params: cardId, toColumnTitle)
 complete_card      → move a card to Done (params: cardId)
 delete_card        → remove a card (params: cardId)
@@ -72,6 +72,18 @@ When a card is moved TO "In Progress" (via move_card or the UI):
 - UI shows a toast: "⚡ Agent triggered: [card title]"
 - Agent can call add_card_note to log progress
 - When agent exits, notes are saved and SSE emits "agent_completed"
+
+Constraints enforced on the move into "In Progress":
+- **WIP limit** — a column with a `wip_limit` rejects moves once full (UI + move_card).
+- **Dependencies** — a card with unfinished `blocked_by` cards (blockers not yet in
+  Done) cannot move to In Progress (UI buttons/drag disabled; move_card errors).
+- **Concurrency cap** — at most `VB_MAX_AGENTS` (default 3) agents run at once;
+  excess spawn requests are queued (SSE "agent_queued") and started automatically
+  as slots free up ("agent_dequeued").
+
+On exit, the card records `last_exit_code`, `last_duration`, and best-effort
+`last_cost`/`last_tokens` (scraped from session output), surfaced as a badge on the
+card. These are agent-written and are never overwritten by a UI board sync.
 
 ## Workspace system
 

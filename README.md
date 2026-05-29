@@ -114,6 +114,8 @@ Create a `.env` file (optional):
 PORT=7341
 VB_HOST=127.0.0.1
 VB_TOKEN=
+VB_MAX_AGENTS=3
+AGENT_TIMEOUT_MS=1800000
 ```
 
 - `PORT` — HTTP/UI port (default `7341`).
@@ -121,6 +123,10 @@ VB_TOKEN=
 - `VB_TOKEN` — shared access token required for **remote** clients when `VB_HOST`
   is non-loopback. If left blank in network mode, a random token is generated and
   printed at startup. Requests from the host machine (loopback) never need a token.
+- `VB_MAX_AGENTS` — max agents running at once (default `3`). Moves that would
+  spawn another agent beyond this cap are queued and start automatically as
+  running agents finish.
+- `AGENT_TIMEOUT_MS` — per-agent run timeout (default `1800000`, i.e. 30 min).
 
 > ⚠️ **Network exposure is opt-in.** When `VB_HOST` is non-loopback, VibeBoard
 > requires a token for any request coming from another machine — open the board

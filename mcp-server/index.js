@@ -10,7 +10,7 @@ const { z } = require('zod');
 
 const db = require('./db');
 const { migrateLegacyData } = require('./migrate');
-const { spawnAgent, agentDone, stopAgent, isAgentRunning, getRunningCardIds, getOutputFile } = require('./agent');
+const { spawnAgent, agentDone, stopAgent, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getOutputFile } = require('./agent');
 const wt = require('./worktree');
 const { refreshAvailableModels, getAvailableModels } = require('./models');
 
@@ -72,10 +72,24 @@ function routeSpawnAgent(cardId) {
 
 function routeStopAgent(cardId) {
   if (httpServerRunning) {
-    if (isAgentRunning(cardId)) stopAgent(cardId);
+    if (isAgentActive(cardId)) stopAgent(cardId);
   } else {
     fetch(`http://localhost:${PORT}/api/cards/${cardId}/stop`, { method: 'POST' }).catch(() => {});
   }
+}
+
+// Titles of a card's blocker dependencies that have NOT yet reached Done. A
+// blocker whose card was deleted (no longer on the board) is treated as cleared.
+function unfinishedBlockers(card, board) {
+  if (!Array.isArray(card.blocked_by) || !card.blocked_by.length) return [];
+  const colById = {};
+  const cardById = {};
+  for (const col of board.columns) {
+    for (const c of col.cards) { colById[c.id] = col.title; cardById[c.id] = c; }
+  }
+  return card.blocked_by
+    .filter(id => colById[id] && colById[id] !== 'Done')
+    .map(id => cardById[id]?.title || id);
 }
 
 const app = express();
@@ -267,17 +281,20 @@ app.post('/api/cards/:cardId/run', (req, res) => {
   const card = db.getCard(cardId);
   if (!card) return res.status(404).json({ error: 'Card not found' });
   if (!card.agent) return res.status(400).json({ error: 'Card has no assigned agent' });
-  if (isAgentRunning(cardId)) return res.status(409).json({ error: 'Agent already running' });
+  if (isAgentActive(cardId)) return res.status(409).json({ error: 'Agent already running or queued' });
   spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
   res.json({ ok: true });
 });
 
 app.post('/api/cards/:cardId/stop', (req, res) => {
   const { cardId } = req.params;
-  if (!isAgentRunning(cardId)) return res.status(409).json({ error: 'No agent running' });
+  if (!isAgentActive(cardId)) return res.status(409).json({ error: 'No agent running or queued' });
+  const wasRunning = isAgentRunning(cardId);
   stopAgent(cardId);
   const card = db.getCard(cardId);
-  if (card) emitSSE('agent_completed', { cardId, agentType: card.agent, code: 130, duration: 0 });
+  // Only running agents emit a completion; a purely-queued cancel just clears state.
+  if (card && wasRunning) emitSSE('agent_completed', { cardId, agentType: card.agent, code: 130, duration: 0 });
+  else emitSSE('agent_dequeued', { cardId });
   res.json({ ok: true });
 });
 
@@ -313,6 +330,7 @@ app.get('/board', (_req, res) => {
   if (!activeId) return res.json(null);
   const board = db.getBoard(activeId);
   board.runningCards = getRunningCardIds();
+  board.queuedCards = getQueuedCardIds();
   res.json(board);
 });
 
@@ -645,16 +663,16 @@ mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.st
   } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
 });
 
-mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
-  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional() },
-  async ({ title, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date }) => {
+mcp.tool('create_card', 'Create a new card in a column (default: Backlog). blocked_by takes card IDs that must reach Done before this card can move to In Progress.',
+  { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
+  async ({ title, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date, blocked_by }) => {
     try {
       const activeId = db.getActiveWorkspaceId();
       if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
       const board = db.getBoard(activeId);
       const column = board.columns.find(c => c.title === columnTitle);
       if (!column) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
-      const card = db.createCard(activeId, column.id, title, { description, tags, agent, model, priority, due_date });
+      const card = db.createCard(activeId, column.id, title, { description, tags, agent, model, priority, due_date, blocked_by });
       db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`);
       emitSSE('board_update', db.getBoard(activeId));
       return { content: [{ type: 'text', text: JSON.stringify(card) }] };
@@ -662,13 +680,13 @@ mcp.tool('create_card', 'Create a new card in a column (default: Backlog)',
   }
 );
 
-mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, or priority",
-  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional() },
-  async ({ cardId, title, description, tags, agent, model, priority, due_date }) => {
+mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, priority, or blocked_by dependencies",
+  { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
+  async ({ cardId, title, description, tags, agent, model, priority, due_date, blocked_by }) => {
     try {
       const card = db.getCard(cardId);
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
-      db.updateCard(cardId, { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined });
+      db.updateCard(cardId, { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined, blocked_by: blocked_by !== undefined ? blocked_by : undefined });
       db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Updated '${card.title}'`);
       emitSSE('board_update', db.getBoard(card.workspace_id));
       return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };
@@ -693,6 +711,15 @@ mcp.tool('move_card', 'Move a card to a different column',
       // at capacity (reordering / staying in place is always allowed).
       if (card.column_id !== toColumn.id && Number.isInteger(toColumn.wip_limit) && toColumn.wip_limit > 0 && toColumn.cards.length >= toColumn.wip_limit) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: `Column '${toColumnTitle}' is at its WIP limit (${toColumn.cards.length}/${toColumn.wip_limit})` }) }] };
+      }
+
+      // Enforce dependencies: a card can't start (move to In Progress) until all
+      // of its blockers have reached Done.
+      if (card.column_id !== toColumn.id && toColumnTitle === 'In Progress') {
+        const blockers = unfinishedBlockers(card, board);
+        if (blockers.length) {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: `Card is blocked by unfinished card(s): ${blockers.join(', ')}` }) }] };
+        }
       }
 
       const fromColumn = db.getColumn(card.column_id);

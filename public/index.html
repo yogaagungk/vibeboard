@@ -974,6 +974,59 @@ kbd {
 .card-agent-badge.opencode    { background: #7c3aed; color: #fff; }
 .card-agent-badge.codex       { background: #0ea5e9; color: #fff; }
 
+/* ── Run status / usage / queued / blocked badges ── */
+.run-status-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 4px;
+  flex-shrink: 0;
+}
+.run-status-badge.ok   { background: rgba(22,163,74,0.12);  color: #16a34a; }
+.run-status-badge.fail { background: rgba(220,38,38,0.12);  color: #dc2626; }
+:root[data-theme="dark"] .run-status-badge.ok   { background: rgba(22,163,74,0.18);  color: #4ade80; }
+:root[data-theme="dark"] .run-status-badge.fail { background: rgba(220,38,38,0.20);  color: #f87171; }
+
+.usage-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 400; color: var(--text-muted); flex-shrink: 0;
+}
+
+.card-queued-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
+  background: rgba(217,119,6,0.14); color: #d97706;
+  text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0;
+}
+.card-queued-pill::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #d97706; animation: running-pulse 1.4s ease-in-out infinite;
+}
+
+.blocked-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
+  background: var(--border); color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0;
+}
+
+/* ── Dependency (blocked-by) picker ── */
+#card-blocked-by-section { margin-top: 2px; }
+.dep-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; }
+.dep-list::-webkit-scrollbar { width: 4px; }
+.dep-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.dep-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); cursor: pointer; font-size: 12px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.dep-row:hover { border-color: var(--border-strong); }
+.dep-row.checked { border-color: var(--accent); background: var(--bg); }
+.dep-row input { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.dep-row-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.dep-row-col { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+.dep-row-col.done { color: var(--active-ws); }
+.dep-empty { font-size: 12px; color: var(--text-muted); font-weight: 300; padding: 2px; }
+
 /* ── Diff viewer ── */
 #card-changes-section { margin-top: 4px; }
 .changes-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
@@ -1514,6 +1567,10 @@ kbd {
             <input type="date" class="due-input" id="card-due-date" style="width:100%">
           </div>
         </div>
+        <div id="card-blocked-by-section">
+          <div class="field-label">Blocked by</div>
+          <div class="dep-list" id="card-dep-list"></div>
+        </div>
       </div>
       <div class="sidebar-group">
         <div class="sidebar-group-label">Agent</div>
@@ -1651,6 +1708,24 @@ let availableModels = { 'claude-code': [], 'opencode': [], 'codex': [] };
 fetch('/api/models').then(r => r.json()).then(data => { availableModels = data; }).catch(() => {});
 
 const runningCards = new Set();
+const queuedCards = new Set();
+
+// ── Dependency helpers ───────────────────────────────────────────────────────
+function findCardEntry(id) {
+  for (const col of (board?.columns || [])) {
+    const c = col.cards.find(x => x.id === id);
+    if (c) return { card: c, column: col };
+  }
+  return null;
+}
+// Blocker cards that haven't reached Done yet (a deleted blocker counts as cleared).
+function unfinishedBlockersUI(card) {
+  if (!Array.isArray(card.blocked_by) || !card.blocked_by.length) return [];
+  return card.blocked_by
+    .map(id => findCardEntry(id))
+    .filter(e => e && e.column.title !== 'Done')
+    .map(e => e.card);
+}
 
 // ── DOM ────────────────────────────────────────────────────────────────────
 const boardEl        = document.getElementById('board');
@@ -1685,6 +1760,23 @@ function timeAgo(isoString) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+function fmtDuration(seconds) {
+  if (seconds == null) return '';
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+function fmtTokens(n) {
+  if (n == null) return '';
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return (n / 1000).toFixed(n < 10_000 ? 1 : 0) + 'k';
+  return (n / 1_000_000).toFixed(1) + 'M';
 }
 
 function updateModelDropdown(prefix, agent, selectedModel) {
@@ -2097,6 +2189,10 @@ function renderBoard(b) {
     runningCards.clear();
     b.runningCards.forEach(id => runningCards.add(id));
   }
+  if (Array.isArray(b.queuedCards)) {
+    queuedCards.clear();
+    b.queuedCards.forEach(id => queuedCards.add(id));
+  }
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
   renderLog(board.agentLog || []);
@@ -2186,6 +2282,18 @@ function buildColumn(col) {
       return;
     }
 
+    // Enforce dependencies: can't start a card (move to In Progress) while it has
+    // unfinished blockers.
+    if (movingColumns && tCol.title === 'In Progress') {
+      const cardObj = sCol.cards[idx];
+      const blockers = unfinishedBlockersUI(cardObj);
+      if (blockers.length) {
+        showToast(`"${cardObj.title}" is blocked by: ${blockers.map(c => c.title).join(', ')}`, 4500);
+        draggingCard = null; draggingFromCol = null;
+        return;
+      }
+    }
+
     const [card] = sCol.cards.splice(idx, 1);
     const over = e.target.closest('.card');
     if (over?.dataset.cardId) {
@@ -2262,6 +2370,40 @@ function buildCard(card, colId) {
     dot.className = 'card-running-dot';
     dot.title = 'Agent running…';
     footer.appendChild(dot);
+  } else if (queuedCards.has(card.id)) {
+    const q = document.createElement('span');
+    q.className = 'card-queued-pill';
+    q.textContent = 'queued';
+    q.title = 'Agent queued — waiting for a free slot';
+    footer.appendChild(q);
+  } else if (card.last_exit_code !== null && card.last_exit_code !== undefined) {
+    const ok = card.last_exit_code === 0;
+    const rs = document.createElement('span');
+    rs.className = 'run-status-badge ' + (ok ? 'ok' : 'fail');
+    const durStr = card.last_duration != null ? fmtDuration(card.last_duration) : '';
+    rs.textContent = (ok ? '✓' : '✗') + (durStr ? ' ' + durStr : '');
+    rs.title = `Last agent run ${ok ? 'succeeded' : 'failed (exit ' + card.last_exit_code + ')'}` + (durStr ? ` in ${durStr}` : '');
+    footer.appendChild(rs);
+  }
+
+  if (card.last_cost != null || card.last_tokens != null) {
+    const u = document.createElement('span');
+    u.className = 'usage-badge';
+    const parts = [];
+    if (card.last_cost != null) parts.push('$' + Number(card.last_cost).toFixed(card.last_cost < 1 ? 3 : 2));
+    if (card.last_tokens != null) parts.push(fmtTokens(card.last_tokens) + ' tok');
+    u.textContent = parts.join(' · ');
+    u.title = 'Reported by the last agent run';
+    footer.appendChild(u);
+  }
+
+  const blockers = unfinishedBlockersUI(card);
+  if (blockers.length) {
+    const bl = document.createElement('span');
+    bl.className = 'blocked-badge';
+    bl.textContent = '🔒 blocked';
+    bl.title = 'Blocked by: ' + blockers.map(c => c.title).join(', ');
+    footer.appendChild(bl);
   }
 
   const delBtn = document.createElement('button'); delBtn.className = 'card-del-btn'; delBtn.textContent = '×';
@@ -2364,8 +2506,19 @@ function connectSSE() {
       }
     }
     if (type === 'trigger') showTriggerToast(data);
+    if (type === 'agent_queued') {
+      queuedCards.add(data.cardId);
+      const entry = findCardEntry(data.cardId);
+      if (entry) { showToast(`⏳ Queued: "${entry.card.title}" (waiting for a free agent slot)`, 4000); }
+      renderBoard(board);
+    }
+    if (type === 'agent_dequeued') {
+      queuedCards.delete(data.cardId);
+      renderBoard(board);
+    }
     if (type === 'agent_started') {
       runningCards.add(data.cardId);
+      queuedCards.delete(data.cardId);
       const el = document.querySelector(`[data-card-id="${data.cardId}"]`);
       if (el) { const footer = el.querySelector('.card-footer') || el.appendChild(document.createElement('div')); footer.className = 'card-footer'; if (!footer.querySelector('.card-running-dot')) { const dot = document.createElement('span'); dot.className = 'card-running-dot'; dot.title = 'Agent running…'; footer.appendChild(dot); } }
       if (modalCardId === data.cardId) {
@@ -2376,6 +2529,17 @@ function connectSSE() {
     }
     if (type === 'agent_completed' || type === 'agent_error') {
       runningCards.delete(data.cardId);
+      queuedCards.delete(data.cardId);
+      // Reflect the run outcome on the local card immediately (badge), without
+      // waiting for a full board reload.
+      const entry = findCardEntry(data.cardId);
+      if (entry && type === 'agent_completed') {
+        entry.card.last_exit_code = data.code;
+        if (data.duration != null) entry.card.last_duration = data.duration;
+        if (data.cost != null) entry.card.last_cost = data.cost;
+        if (data.tokens != null) entry.card.last_tokens = data.tokens;
+        renderBoard(board);
+      }
       const el = document.querySelector(`[data-card-id="${data.cardId}"]`);
       if (el) el.querySelectorAll('.card-running-dot').forEach(d => d.remove());
       if (modalCardId === data.cardId) {
@@ -2884,6 +3048,9 @@ function openCardModal(cardId, colId) {
     saveModal(card);
   };
 
+  // Blocked-by dependency picker
+  renderDepPicker(card);
+
   // Custom prompt textarea
   const customPromptSection = document.getElementById('card-custom-prompt-section');
   const customPromptEl = document.getElementById('card-custom-prompt');
@@ -2940,6 +3107,7 @@ function openCardModal(cardId, colId) {
 
   cardSidebar.classList.add('open');
   cardModalTitleEl.focus();
+  syncAriaPressed(cardSidebar);
 
   loadCardNotes(cardId).then(notes => {
     renderCardNotes(notes);
@@ -3006,6 +3174,7 @@ function openNewCardModal(colId) {
   document.getElementById('nc-agent-warning').style.display = 'none';
   document.getElementById('nc-modal-overlay').classList.add('open');
   document.getElementById('nc-title-input').focus();
+  syncAriaPressed(document.getElementById('nc-modal-overlay'));
 }
 
 function getModalTags() {
@@ -3017,6 +3186,43 @@ function getModalAgent() {
   return active?.dataset?.agent || undefined;
 }
 
+
+function renderDepPicker(card) {
+  const list = document.getElementById('card-dep-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const others = [];
+  for (const col of board.columns) {
+    for (const c of col.cards) {
+      if (c.id !== card.id) others.push({ card: c, column: col });
+    }
+  }
+  if (!others.length) {
+    list.innerHTML = '<div class="dep-empty">No other cards to depend on.</div>';
+    return;
+  }
+  const blocked = new Set(card.blocked_by || []);
+  others.forEach(({ card: c, column: col }) => {
+    const row = document.createElement('label');
+    row.className = 'dep-row' + (blocked.has(c.id) ? ' checked' : '');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = blocked.has(c.id);
+    const title = document.createElement('span');
+    title.className = 'dep-row-title'; title.textContent = c.title;
+    const colTag = document.createElement('span');
+    colTag.className = 'dep-row-col' + (col.title === 'Done' ? ' done' : '');
+    colTag.textContent = col.title;
+    cb.addEventListener('change', () => {
+      const set = new Set(card.blocked_by || []);
+      if (cb.checked) set.add(c.id); else set.delete(c.id);
+      card.blocked_by = [...set];
+      row.classList.toggle('checked', cb.checked);
+      saveModal(card);
+    });
+    row.appendChild(cb); row.appendChild(title); row.appendChild(colTag);
+    list.appendChild(row);
+  });
+}
 
 function updateRunAgentBtn(card) {
   const btn = document.getElementById('card-run-agent-btn');
@@ -3031,7 +3237,22 @@ function updateRunAgentBtn(card) {
   if (btn) { btn.disabled = running; btn.textContent = running ? 'Running…' : 'Run agent'; }
   const stopBtn = document.getElementById('card-stop-agent-btn');
   if (stopBtn) { stopBtn.style.display = running ? '' : 'none'; stopBtn.disabled = false; stopBtn.textContent = 'Stop agent'; }
-  if (lastRunEl) lastRunEl.textContent = card.agent_ran_at ? 'Last run: ' + timeAgo(card.agent_ran_at) : '';
+  if (lastRunEl) {
+    if (card.agent_ran_at) {
+      const bits = ['Last run: ' + timeAgo(card.agent_ran_at)];
+      if (card.last_exit_code !== null && card.last_exit_code !== undefined) {
+        bits.push(card.last_exit_code === 0 ? '✓ ok' : `✗ exit ${card.last_exit_code}`);
+      }
+      if (card.last_duration != null) bits.push(fmtDuration(card.last_duration));
+      const usage = [];
+      if (card.last_cost != null) usage.push('$' + Number(card.last_cost).toFixed(card.last_cost < 1 ? 3 : 2));
+      if (card.last_tokens != null) usage.push(fmtTokens(card.last_tokens) + ' tok');
+      if (usage.length) bits.push(usage.join(' · '));
+      lastRunEl.textContent = bits.join('  ·  ');
+    } else {
+      lastRunEl.textContent = '';
+    }
+  }
 }
 
 function updateMoveButtons(card, currentColTitle) {
@@ -3046,10 +3267,21 @@ function updateMoveButtons(card, currentColTitle) {
   moveSection.style.display = 'block';
   moveButtons.innerHTML = '';
 
+  const blockers = unfinishedBlockersUI(card);
+
   targets.forEach(targetCol => {
     const btn = document.createElement('button');
     btn.className = 'card-move-btn';
     btn.textContent = `→ ${targetCol.title}`;
+    // Block starting a card (move to In Progress) while it has unfinished blockers.
+    if (targetCol.title === 'In Progress' && blockers.length) {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.cursor = 'not-allowed';
+      btn.title = 'Blocked by: ' + blockers.map(c => c.title).join(', ');
+      moveButtons.appendChild(btn);
+      return;
+    }
     btn.onclick = async () => {
       const tc = board.columns.find(c => c.id === targetCol.id);
       if (!tc) return;
@@ -3392,8 +3624,71 @@ document.addEventListener('keydown', e => {
   closeCardModal();
 });
 
+// ── Accessibility ────────────────────────────────────────────────────────────
+// Reflect the .active state of toggle-style pickers to assistive tech.
+function syncAriaPressed(root) {
+  (root || document).querySelectorAll('.agent-btn, .priority-btn, .tag-pick-btn, .theme-opt')
+    .forEach(b => b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.agent-btn, .priority-btn, .tag-pick-btn, .theme-opt');
+  if (b) queueMicrotask(() => syncAriaPressed(b.closest('.agent-options, .priority-picker, .modal-tag-picker, #card-modal-tag-picker, .theme-picker') || document));
+}, true);
+
+// Mark modal containers as dialogs and trap focus within the topmost open one.
+function initModalA11y() {
+  const dialogs = [
+    ['ws-modal', 'Workspace settings'],
+    ['settings-modal', 'Settings'],
+    ['mcp-modal', 'MCP setup'],
+    ['nc-modal', 'New card'],
+    ['shortcuts-box', 'Keyboard shortcuts'],
+  ];
+  for (const [id, label] of dialogs) {
+    const el = document.getElementById(id);
+    if (el) { el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', label); }
+  }
+  const sidebar = document.getElementById('card-sidebar');
+  if (sidebar) { sidebar.setAttribute('role', 'dialog'); sidebar.setAttribute('aria-label', 'Card details'); }
+
+  const overlaySel = '.modal-overlay.open, #shortcuts-overlay.open';
+  const returnFocus = new WeakMap();
+  const focusables = c => [...c.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+
+  // Move focus into a modal when it opens; restore it when it closes.
+  document.querySelectorAll('.modal-overlay, #shortcuts-overlay').forEach(overlay => {
+    new MutationObserver(() => {
+      const open = overlay.classList.contains('open');
+      if (open && !overlay._a11yOpen) {
+        overlay._a11yOpen = true;
+        returnFocus.set(overlay, document.activeElement);
+        const f = focusables(overlay);
+        if (f.length) setTimeout(() => f[0].focus(), 30);
+      } else if (!open && overlay._a11yOpen) {
+        overlay._a11yOpen = false;
+        const prev = returnFocus.get(overlay);
+        if (prev && prev.focus) prev.focus();
+      }
+    }).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const open = [...document.querySelectorAll(overlaySel)].pop();
+    if (!open) return;
+    const f = focusables(open);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
+  initModalA11y();
+  syncAriaPressed();
   connectSSE();
   await loadWorkspaces();
   checkMcpStatus();

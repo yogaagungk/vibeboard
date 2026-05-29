@@ -6,6 +6,12 @@ const wt = require('./worktree');
 
 const activeAgents = new Map();
 
+// Cap on simultaneously running agents. Spawn requests beyond the cap are queued
+// (FIFO) and started automatically as running agents finish. In-memory like
+// activeAgents — both live in the single HTTP-server process that owns lifecycles.
+const MAX_CONCURRENT = parseInt(process.env.VB_MAX_AGENTS || '', 10) || 3;
+const agentQueue = []; // [{ cardId, workspaceId, agentType }]
+
 // Agent prompt/output files can contain source code and secrets from a session,
 // so keep them in the user-scoped data dir rather than world-readable os.tmpdir().
 const AGENT_IO_DIR = path.join(DATA_DIR, 'agent-io');
@@ -13,6 +19,23 @@ try { fs.mkdirSync(AGENT_IO_DIR, { recursive: true }); } catch (_) {}
 
 const PORT = process.env.PORT || 7341;
 const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60 * 1000;
+
+function isQueued(cardId) { return agentQueue.some(q => q.cardId === cardId); }
+function getQueuedCardIds() { return agentQueue.map(q => q.cardId); }
+function dequeueCard(cardId) {
+  const i = agentQueue.findIndex(q => q.cardId === cardId);
+  if (i !== -1) agentQueue.splice(i, 1);
+}
+
+// Start queued agents while there is free capacity. Called after each agentDone.
+function dequeueNext(emitSSE) {
+  while (agentQueue.length && activeAgents.size < MAX_CONCURRENT) {
+    const next = agentQueue.shift();
+    if (activeAgents.has(next.cardId)) continue; // already started elsewhere
+    emitSSE('agent_dequeued', { cardId: next.cardId });
+    spawnAgent(next.cardId, next.workspaceId, next.agentType, emitSSE);
+  }
+}
 
 // Build a shell command string for each agent that reads the prompt from a temp file.
 // Using a shell command string (not arg array) avoids quoting issues with multiline prompts.
@@ -193,6 +216,18 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     return;
   }
 
+  // At capacity: queue this request (FIFO) instead of spawning. dequeueNext()
+  // will start it when a running agent finishes.
+  if (activeAgents.size >= MAX_CONCURRENT) {
+    if (!isQueued(cardId)) {
+      agentQueue.push({ cardId, workspaceId, agentType });
+      addAgentLog(workspaceId, agentType, 'agent_queued', `Queued at capacity (${MAX_CONCURRENT} running) for card ${cardId}`);
+      addCardNote(cardId, `Agent queued — ${activeAgents.size} agent(s) already running (max ${MAX_CONCURRENT}). Starts automatically when a slot frees up.`);
+      emitSSE('agent_queued', { cardId, agentType, position: agentQueue.length });
+    }
+    return;
+  }
+
   const card = getCard(cardId);
   if (!card) { process.stderr.write(`Card ${cardId} not found\n`); return; }
 
@@ -254,6 +289,24 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   }
 }
 
+// Best-effort scrape of cost/token usage from an agent's session output. Agents
+// don't emit a stable machine-readable summary in text mode, so this looks for
+// common labelled patterns and stays null when nothing recognizable is present.
+function parseUsage(text) {
+  let cost = null, tokens = null;
+  const costLabeled = text.match(/(?:total\s*cost|cost|api\s*cost)[^\n$]*\$\s*([0-9]+(?:\.[0-9]+)?)/i);
+  const costAny = text.match(/\$\s*([0-9]+\.[0-9]{2,})/);
+  if (costLabeled) cost = parseFloat(costLabeled[1]);
+  else if (costAny) cost = parseFloat(costAny[1]);
+
+  const tokMatches = [...text.matchAll(/([0-9][0-9,]*)\s*tokens?/gi)]
+    .map(m => parseInt(m[1].replace(/,/g, ''), 10))
+    .filter(n => Number.isFinite(n));
+  if (tokMatches.length) tokens = Math.max(...tokMatches);
+
+  return { cost, tokens };
+}
+
 function agentDone(cardId, code, emitSSE) {
   const info = activeAgents.get(cardId);
   if (!info) return;
@@ -262,11 +315,13 @@ function agentDone(cardId, code, emitSSE) {
   if (info.watchInterval) clearInterval(info.watchInterval);
   if (info.timeoutId) clearTimeout(info.timeoutId);
 
+  let usage = { cost: null, tokens: null };
   if (info.outputFile) {
     try {
       const raw = fs.readFileSync(info.outputFile, 'utf8');
       const text = stripAnsi(raw).trim();
       if (text) {
+        usage = parseUsage(text);
         const MAX = 3000;
         const snippet = text.length > MAX ? '[…output truncated, showing last 3000 chars]\n' + text.slice(-MAX) : text;
         addCardNote(cardId, `Agent session output (exit ${code}):\n\`\`\`\n${snippet}\n\`\`\``);
@@ -276,13 +331,28 @@ function agentDone(cardId, code, emitSSE) {
   }
 
   const duration = Math.round((Date.now() - new Date(info.startTime).getTime()) / 1000);
+
+  // Persist the run outcome on the card so it survives refresh (shown as a badge).
+  updateCard(cardId, {
+    last_exit_code: code,
+    last_duration: duration,
+    last_cost: usage.cost,
+    last_tokens: usage.tokens,
+  });
+
   const status = code === 0 ? 'completed' : 'failed';
   addAgentLog(info.workspaceId, info.agentType, `agent_${status}`,
     `${info.agentType} ${status} for card ${cardId} (${duration}s, exit ${code})`);
-  emitSSE('agent_completed', { cardId, agentType: info.agentType, code, duration });
+  emitSSE('agent_completed', { cardId, agentType: info.agentType, code, duration, cost: usage.cost, tokens: usage.tokens });
+
+  // Free capacity may now let a queued agent start.
+  dequeueNext(emitSSE);
 }
 
 function stopAgent(cardId) {
+  // Drop it from the queue first, in case it was waiting rather than running.
+  if (isQueued(cardId)) dequeueCard(cardId);
+
   const info = activeAgents.get(cardId);
   if (!info) return false;
   if (info.watchInterval) clearInterval(info.watchInterval);
@@ -297,8 +367,12 @@ function isAgentRunning(cardId) {
   return activeAgents.has(cardId);
 }
 
+function isAgentActive(cardId) {
+  return activeAgents.has(cardId) || isQueued(cardId);
+}
+
 function getRunningCardIds() {
   return Array.from(activeAgents.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, isAgentRunning, getRunningCardIds, getOutputFile, buildShellCmd, isSafeModel };
+module.exports = { spawnAgent, agentDone, stopAgent, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getOutputFile, buildShellCmd, isSafeModel, parseUsage };
