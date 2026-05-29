@@ -29,7 +29,7 @@ migrateLegacyData();
 })();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 registerRoutes(app);
 
 const mcp = new McpServer({ name: 'vibeboard', version: VERSION });
