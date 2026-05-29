@@ -1167,6 +1167,21 @@ kbd {
 .diff-line.meta { color: var(--text-muted); }
 .diff-empty { padding: 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
 .card-merge-actions { display: flex; gap: 8px; margin-top: 8px; }
+.card-merged-info {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  font-size: 12px; color: var(--text-muted);
+}
+.merged-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: rgba(22,163,74,0.12); color: #16a34a;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+:root[data-theme="dark"] .merged-badge {
+  background: rgba(22,163,74,0.18);
+  color: #4ade80;
+}
 .card-merge-actions .btn-primary { flex: 1; }
 .card-merge-actions .btn-ghost   { flex: 1; }
 

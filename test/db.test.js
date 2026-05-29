@@ -257,6 +257,42 @@ test('syncBoard persists blocked_by edited from the UI', () => {
 
 // ── Active workspace ──────────────────────────────────────────────────────────
 
+// ── Merged at ──────────────────────────────────────────────────────────────────
+
+test('merged_at persists through getCard and getBoard and export/import', () => {
+  const ws = db.createWorkspace('Merged WS', tmpWs('merged'));
+  const board = db.getBoard(ws.id);
+  const col = board.columns[0];
+  const card = db.createCard(ws.id, col.id, 'Will be merged');
+  const ts = new Date().toISOString();
+  db.updateCard(card.id, { merged_at: ts });
+
+  const fetched = db.getCard(card.id);
+  assert.equal(fetched.merged_at, ts);
+
+  const fresh = db.getBoard(ws.id);
+  const bc = fresh.columns[0].cards.find(c => c.id === card.id);
+  assert.equal(bc.merged_at, ts);
+
+  // export/import round-trips merged_at
+  const data = db.exportWorkspace(ws.id);
+  const imported = db.importWorkspace(data);
+  const ib = db.getBoard(imported.id);
+  const ic = ib.columns[0].cards.find(c => c.title === 'Will be merged');
+  assert.equal(ic.merged_at, ts);
+});
+
+test('createCard with merged_at sets the field', () => {
+  const ws = db.createWorkspace('Create Merged WS', tmpWs('cmerged'));
+  const board = db.getBoard(ws.id);
+  const col = board.columns[0];
+  const ts = new Date().toISOString();
+  const card = db.createCard(ws.id, col.id, 'Pre-merged', { merged_at: ts });
+  assert.equal(card.merged_at, ts);
+  const fetched = db.getCard(card.id);
+  assert.equal(fetched.merged_at, ts);
+});
+
 test('setActiveWorkspaceId and getActiveWorkspaceId work', () => {
   const ws = db.createWorkspace('Active WS', tmpWs('active'));
   db.setActiveWorkspaceId(ws.id);

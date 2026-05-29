@@ -364,7 +364,7 @@ module.exports = function registerRoutes(app) {
     if (!workspace) return res.status(400).json({ error: 'No active workspace' });
     try {
       wt.mergeBranch(workspace.path, card.branch, card.worktree_path);
-      db.updateCard(card.id, { branch: null, worktreePath: null });
+      db.updateCard(card.id, { merged_at: new Date().toISOString(), worktreePath: null });
       const fresh = db.getBoard(wsId);
       emitSSE('board_update', fresh);
       res.json({ ok: true });
