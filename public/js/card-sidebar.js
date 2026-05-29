@@ -587,8 +587,8 @@ function showChangesSection(card) {
   toggleBtn.style.display = '';
   const mergeBtn = document.getElementById('card-merge-btn');
   const prBtn    = document.getElementById('card-pr-btn');
-  mergeBtn.disabled = true; mergeBtn.title = 'No commits on this branch yet';
-  prBtn.disabled    = true; prBtn.title    = 'No commits on this branch yet';
+  mergeBtn.disabled = true; mergeBtn.title = 'No commits on this branch yet'; mergeBtn.textContent = 'Merge';
+  prBtn.disabled    = true; prBtn.title    = 'No commits on this branch yet'; prBtn.textContent    = 'Create PR';
   badge.textContent = card.branch;
   meta.textContent = '';
   diffView.style.display = 'none';
@@ -796,6 +796,7 @@ document.getElementById('card-merge-btn').addEventListener('click', async functi
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Merge failed');
     showToast('Merged successfully', 3000, 'success');
+    this.disabled = false; this.textContent = 'Merge';
     closeCardModal();
   } catch(err) {
     showToast('Merge failed: ' + err.message, 3000, 'error');
