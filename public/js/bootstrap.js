@@ -126,39 +126,41 @@ function fmtTokens(n) {
   return (n / 1_000_000).toFixed(1) + 'M';
 }
 
+// vbSelect controllers for the model dropdowns, keyed by prefix ('nc' | 'card').
+const modelSelects = {};
+
 function updateModelDropdown(prefix, agent, selectedModel) {
   const modelRow = document.getElementById(`${prefix}-model-row`);
-  const modelSelect = document.getElementById(`${prefix}-model-select`);
-  
+  const mount = document.getElementById(`${prefix}-model-mount`);
+
   if (!agent || !availableModels[agent] || availableModels[agent].length === 0) {
     if (modelRow) modelRow.style.display = 'none';
     return;
   }
-  
-  if (!modelRow || !modelSelect) return;
-  
+  if (!modelRow || !mount) return;
+
   modelRow.style.display = '';
-  modelSelect.innerHTML = '<option value="">Default</option>';
-  
-  availableModels[agent].forEach(model => {
-    const opt = document.createElement('option');
-    opt.value = model.id;
-    opt.textContent = model.name;
-    if (model.description) opt.textContent += ` — ${model.description}`;
-    modelSelect.appendChild(opt);
-  });
-  
-  if (selectedModel) {
-    modelSelect.value = selectedModel;
+  const options = [{ value: '', label: 'Default' }].concat(
+    availableModels[agent].map(m => ({ value: m.id, label: m.name, hint: m.description || '' }))
+  );
+
+  let ctrl = modelSelects[prefix];
+  if (!ctrl) {
+    ctrl = vbSelect({
+      options, value: selectedModel || '', placeholder: 'Default', ariaLabel: 'Model',
+      onChange: v => {
+        // Only the card detail sidebar persists immediately; the new-card modal
+        // reads the value at submit time.
+        const card = board.columns.flatMap(c => c.cards).find(c => c.id === modalCardId);
+        if (card) { card.model = v || undefined; saveModal(card); }
+      },
+    });
+    mount.appendChild(ctrl.el);
+    modelSelects[prefix] = ctrl;
+  } else {
+    ctrl.setOptions(options);
+    ctrl.setValue(selectedModel || '');
   }
-  
-  modelSelect.onchange = () => {
-    const card = board.columns.flatMap(c => c.cards).find(c => c.id === modalCardId);
-    if (card) {
-      card.model = modelSelect.value || undefined;
-      saveModal(card);
-    }
-  };
 }
 
 async function refreshModels() {

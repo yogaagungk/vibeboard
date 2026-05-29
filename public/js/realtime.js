@@ -44,7 +44,15 @@ function connectSSE() {
       runningCards.add(data.cardId);
       queuedCards.delete(data.cardId);
       const el = document.querySelector(`[data-card-id="${data.cardId}"]`);
-      if (el) { const footer = el.querySelector('.card-footer') || el.appendChild(document.createElement('div')); footer.className = 'card-footer'; if (!footer.querySelector('.card-running-dot')) { const dot = document.createElement('span'); dot.className = 'card-running-dot'; dot.title = 'Agent running…'; footer.appendChild(dot); } }
+      if (el) {
+        let meta = el.querySelector('.card-meta');
+        if (!meta) {
+          let footer = el.querySelector('.card-footer');
+          if (!footer) { footer = document.createElement('div'); footer.className = 'card-footer'; el.appendChild(footer); }
+          meta = document.createElement('div'); meta.className = 'card-meta'; footer.appendChild(meta);
+        }
+        if (!meta.querySelector('.card-running-dot')) { const dot = document.createElement('span'); dot.className = 'card-running-dot'; dot.title = 'Agent running…'; meta.appendChild(dot); }
+      }
       if (modalCardId === data.cardId) {
         const col = board.columns.find(c => c.cards?.some(card => card.id === data.cardId));
         const card = col?.cards.find(c => c.id === data.cardId);

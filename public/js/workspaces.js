@@ -238,7 +238,7 @@ function submitNewCard() {
   const tags = Array.from(document.querySelectorAll('#nc-tag-picker .tag-pick-btn.active')).map(b => b.dataset.tag);
   const activeAgentBtn = document.querySelector('#nc-agent-opts .agent-btn.active');
   const agent = activeAgentBtn?.dataset.ncAgent || undefined;
-  const model = document.getElementById('nc-model-select')?.value || undefined;
+  const model = modelSelects['nc']?.getValue() || undefined;
   const description = document.getElementById('nc-desc').value.trim() || undefined;
   const requires_review = document.getElementById('nc-needs-review').checked;
   const activePriorityBtn = document.querySelector('#nc-priority-picker .priority-btn.active');

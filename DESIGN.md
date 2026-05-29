@@ -173,9 +173,13 @@ high/medium/low use their semantic color as the active fill instead.
   for "click the text to rename."
 - Toggles use `.toggle-switch` (a styled checkbox), **never** a raw checkbox.
   Pair with `.toggle-row` + `.toggle-row-label` + `.toggle-row-hint`.
-- `<select>`s use `.ws-input` (and `.dep-select`): the native OS arrow is removed
-  (`appearance:none`) and replaced with a themed chevron. Keep new selects on
-  these classes so they don't render platform-native chrome.
+- **Dropdowns: never use native `<select>`.** Its open option list is OS-rendered
+  and can't be themed (it breaks the dark UI). Use `vbSelect({ options, value,
+  placeholder, onChange, ariaLabel })` from `public/js/select.js` — a themed,
+  keyboard-operable combobox whose popup is body-mounted with fixed positioning
+  (never clipped by a scrolling sidebar). It returns a controller with
+  `setOptions`, `setValue`, `setPlaceholder`, `getValue`. Mount `ctrl.el` into a
+  container `<div>`. Used by the model pickers and the blocked-by picker.
 
 ### Containers
 - **`.sidebar-group` / `.nc-agent-box`**: a recessed (`--bg`) bordered card that

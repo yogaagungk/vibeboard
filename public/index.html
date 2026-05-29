@@ -13,6 +13,11 @@
 
 <header id="header">
   <div id="conn-dot" title="SSE disconnected"></div>
+  <button class="icon-btn" id="sidebar-toggle-btn" title="Collapse sidebar" aria-label="Toggle workspace sidebar" aria-expanded="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+      <rect x="2" y="3" width="12" height="10" rx="1.5"/><line x1="6.2" y1="3" x2="6.2" y2="13"/>
+    </svg>
+  </button>
   <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
   <h1>VibeBoard</h1>
   <button class="header-btn" id="log-toggle-btn">Agent Log</button>
@@ -266,9 +271,7 @@
             <div class="field-label" style="margin:0;flex:1">Model</div>
             <button class="icon-btn" id="nc-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
           </div>
-          <select class="ws-input" id="nc-model-select" style="width:100%;font-family:'DM Sans',sans-serif;font-size:12px">
-            <option value="">Default</option>
-          </select>
+          <div id="nc-model-mount"></div>
         </div>
         <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
           <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
@@ -348,9 +351,7 @@
             <div class="field-label" style="margin:0;flex:1">Model</div>
             <button class="icon-btn" id="card-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
           </div>
-          <select class="ws-input" id="card-model-select" style="width:100%;font-family:'DM Sans',sans-serif;font-size:12px">
-            <option value="">Default</option>
-          </select>
+          <div id="card-model-mount"></div>
         </div>
         <div id="card-agent-run-section" style="display:none">
           <button class="agent-run-btn" id="card-run-agent-btn" style="width:100%">Run agent</button>
@@ -415,6 +416,7 @@
 
 <script src="/js/bootstrap.js"></script>
 <script src="/js/dialogs.js"></script>
+<script src="/js/select.js"></script>
 <script src="/js/workspaces.js"></script>
 <script src="/js/board.js"></script>
 <script src="/js/realtime.js"></script>

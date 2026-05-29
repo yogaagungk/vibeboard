@@ -330,28 +330,31 @@ function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) 
     }
   }
 
-  const select = document.createElement('select');
-  select.className = 'ws-input dep-select';
   const chips = document.createElement('div');
   chips.className = 'dep-chips';
 
+  const ctrl = vbSelect({
+    options: [], value: '', placeholder: '+ Add a blocker…', ariaLabel: 'Add a blocker',
+    onChange: id => {
+      if (!id) return;
+      const cur = getBlocked();
+      if (!cur.includes(id)) setBlocked([...cur, id]);
+      ctrl.setValue('');
+      repaint();
+    },
+  });
+
   function repaint() {
     const blocked = getBlocked();
-    select.innerHTML = '';
-    const ph = document.createElement('option');
-    ph.value = '';
-    ph.textContent = !candidates.length ? 'No other cards available'
-      : (blocked.length >= candidates.length ? 'All cards selected' : '+ Add a blocker…');
-    select.appendChild(ph);
-    candidates
-      .filter(({ card }) => !blocked.includes(card.id))
-      .forEach(({ card, column }) => {
-        const o = document.createElement('option');
-        o.value = card.id;
-        o.textContent = `${card.title}  ·  ${column.title === 'Done' ? '✓ Done' : column.title}`;
-        select.appendChild(o);
-      });
-    select.disabled = !candidates.length || blocked.length >= candidates.length;
+    const available = candidates.filter(({ card }) => !blocked.includes(card.id));
+    ctrl.setOptions(available.map(({ card, column }) => ({
+      value: card.id,
+      label: card.title,
+      hint: column.title === 'Done' ? '✓ Done' : column.title,
+    })));
+    ctrl.setValue('');
+    ctrl.setPlaceholder(!candidates.length ? 'No other cards available'
+      : (!available.length ? 'All cards selected' : '+ Add a blocker…'));
 
     chips.innerHTML = '';
     blocked.forEach(id => {
@@ -372,15 +375,7 @@ function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) 
     });
   }
 
-  select.addEventListener('change', () => {
-    const id = select.value;
-    if (!id) return;
-    const cur = getBlocked();
-    if (!cur.includes(id)) setBlocked([...cur, id]);
-    repaint();
-  });
-
-  containerEl.appendChild(select);
+  containerEl.appendChild(ctrl.el);
   containerEl.appendChild(chips);
   repaint();
 }

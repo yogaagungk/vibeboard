@@ -147,7 +147,7 @@ function buildColumn(col) {
 
 function buildCard(card, colId) {
   const el = document.createElement('div');
-  el.className = 'card'; el.draggable = true; el.dataset.cardId = card.id;
+  el.className = 'card' + (card.priority ? ' pri-' + card.priority : ''); el.draggable = true; el.dataset.cardId = card.id;
   el.dataset.searchTitle = (card.title || '').toLowerCase();
   // Keyboard-accessible: a real button role, focusable, openable with Enter/Space.
   el.tabIndex = 0;
@@ -162,48 +162,54 @@ function buildCard(card, colId) {
   });
 
   const text = document.createElement('div'); text.className = 'card-text'; text.textContent = card.title || card.text;
+
+  // Footer is split into two tiers: a tags row (what kind of work) and a meta
+  // row (status, agent, priority, dates) so a busy card stays scannable.
   const footer = document.createElement('div'); footer.className = 'card-footer';
+  const tagsRow = document.createElement('div'); tagsRow.className = 'card-tags';
+  const metaRow = document.createElement('div'); metaRow.className = 'card-meta';
+
+  (card.tags || []).forEach(tag => {
+    const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag; tagsRow.appendChild(pill);
+  });
+
   if (card.priority) {
     const pb = document.createElement('span');
     pb.className = `priority-badge priority-${card.priority}`;
     pb.textContent = card.priority;
-    footer.appendChild(pb);
+    metaRow.appendChild(pb);
   }
   if (card.due_date) {
     const db = document.createElement('span');
     db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : '');
     db.textContent = '📅 ' + card.due_date;
-    footer.appendChild(db);
+    metaRow.appendChild(db);
   }
-
-  (card.tags || []).forEach(tag => {
-    const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag; footer.appendChild(pill);
-  });
   if (card.agent) {
     const badge = document.createElement('span');
     badge.className = `card-agent-badge ${card.agent}`;
     badge.textContent = { 'claude-code': 'CC', 'opencode': 'OC', 'codex': 'CX' }[card.agent] || card.agent.slice(0,2).toUpperCase();
     badge.title = AGENT_LABELS[card.agent] || card.agent;
-    footer.appendChild(badge);
+    metaRow.appendChild(badge);
   }
   if (card.branch) {
     const b = document.createElement('span');
     b.className = 'branch-badge card-branch-pill';
     b.textContent = card.branch.replace(/^vb\//, '');
     b.title = card.branch;
-    footer.appendChild(b);
+    metaRow.appendChild(b);
   }
   if (runningCards.has(card.id)) {
     const dot = document.createElement('span');
     dot.className = 'card-running-dot';
     dot.title = 'Agent running…';
-    footer.appendChild(dot);
+    metaRow.appendChild(dot);
   } else if (queuedCards.has(card.id)) {
     const q = document.createElement('span');
     q.className = 'card-queued-pill';
     q.textContent = 'queued';
     q.title = 'Agent queued — waiting for a free slot';
-    footer.appendChild(q);
+    metaRow.appendChild(q);
   } else if (card.last_exit_code !== null && card.last_exit_code !== undefined) {
     const ok = card.last_exit_code === 0;
     const rs = document.createElement('span');
@@ -211,7 +217,7 @@ function buildCard(card, colId) {
     const durStr = card.last_duration != null ? fmtDuration(card.last_duration) : '';
     rs.textContent = (ok ? '✓' : '✗') + (durStr ? ' ' + durStr : '');
     rs.title = `Last agent run ${ok ? 'succeeded' : 'failed (exit ' + card.last_exit_code + ')'}` + (durStr ? ` in ${durStr}` : '');
-    footer.appendChild(rs);
+    metaRow.appendChild(rs);
   }
 
   if (card.last_cost != null || card.last_tokens != null) {
@@ -222,7 +228,7 @@ function buildCard(card, colId) {
     if (card.last_tokens != null) parts.push(fmtTokens(card.last_tokens) + ' tok');
     u.textContent = parts.join(' · ');
     u.title = 'Reported by the last agent run';
-    footer.appendChild(u);
+    metaRow.appendChild(u);
   }
 
   const blockers = unfinishedBlockersUI(card);
@@ -231,10 +237,14 @@ function buildCard(card, colId) {
     bl.className = 'blocked-badge';
     bl.textContent = '🔒 blocked';
     bl.title = 'Blocked by: ' + blockers.map(c => c.title).join(', ');
-    footer.appendChild(bl);
+    metaRow.appendChild(bl);
   }
 
+  if (tagsRow.children.length) footer.appendChild(tagsRow);
+  if (metaRow.children.length) footer.appendChild(metaRow);
+
   const delBtn = document.createElement('button'); delBtn.className = 'card-del-btn'; delBtn.textContent = '×';
+  delBtn.setAttribute('aria-label', 'Delete card');
   delBtn.addEventListener('click', e => { e.stopPropagation(); deleteCard(card.id, colId); });
 
   el.appendChild(delBtn); el.appendChild(text);
@@ -266,10 +276,22 @@ function renderLog(entries) {
 }
 function buildLogEntry(entry) {
   const el = document.createElement('div'); el.className = 'log-entry';
-  const time = document.createElement('div'); time.className = 'log-entry-time'; time.textContent = fmtTime(entry.timestamp || new Date().toISOString());
-  const action = document.createElement('span'); action.className = 'log-entry-action'; action.textContent = entry.action || 'event';
+  const action = entry.action || 'event';
+  el.dataset.action = action.toLowerCase();
+
+  const top = document.createElement('div'); top.className = 'log-entry-top';
+  const chip = document.createElement('span'); chip.className = 'log-entry-action'; chip.textContent = action.replace(/_/g, ' ');
+  top.appendChild(chip);
+  if (entry.agent) {
+    const ag = document.createElement('span'); ag.className = 'log-entry-agent';
+    ag.textContent = AGENT_LABELS[entry.agent] || entry.agent;
+    top.appendChild(ag);
+  }
+  const time = document.createElement('span'); time.className = 'log-entry-time'; time.textContent = fmtTime(entry.timestamp || new Date().toISOString());
+  top.appendChild(time);
+
   const detail = document.createElement('div'); detail.className = 'log-entry-detail'; detail.textContent = entry.detail || '';
-  el.appendChild(time); el.appendChild(action); el.appendChild(detail);
+  el.appendChild(top); el.appendChild(detail);
   return el;
 }
 function prependLogEntry(entry) {
@@ -309,3 +331,21 @@ document.getElementById('mcp-btn').addEventListener('click', () => {
 document.getElementById('mobile-menu-btn').addEventListener('click', () => {
   document.getElementById('workspace-sidebar').classList.toggle('mobile-open');
 });
+
+// ── Collapsible workspace rail (desktop) ─────────────────────────────────────
+const SIDEBAR_COLLAPSE_KEY = 'vb_sidebar_collapsed';
+function applySidebarCollapsed(collapsed) {
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (btn) {
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    btn.title = collapsed ? 'Show sidebar' : 'Collapse sidebar';
+  }
+}
+document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
+  const next = !document.body.classList.contains('sidebar-collapsed');
+  applySidebarCollapsed(next);
+  try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, next ? '1' : '0'); } catch (_) {}
+});
+// Apply persisted state immediately (scripts run before first paint → no flash).
+applySidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1');

@@ -85,6 +85,9 @@ body {
 }
 .header-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
 
+#sidebar-toggle-btn { width: 30px; height: 30px; }
+#sidebar-toggle-btn svg { opacity: 0.8; }
+
 #conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; flex-shrink: 0; }
 #conn-dot.connected { background: #16a34a; animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -98,6 +101,7 @@ body {
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   z-index: 50;
+  transition: transform 0.25s ease;
 }
 
 #ws-sidebar-top {
@@ -356,6 +360,14 @@ select.ws-input {
   display: flex;
   height: calc(100vh - var(--header-h));
   margin-left: var(--sidebar-w);
+  transition: margin-left 0.25s ease;
+}
+
+/* Collapsible left rail (desktop only — on mobile it's an off-canvas drawer). */
+@media (min-width: 769px) {
+  body.sidebar-collapsed #workspace-sidebar { transform: translateX(-100%); }
+  body.sidebar-collapsed #app { margin-left: 0; }
+  body.sidebar-collapsed #mcp-banner { left: 0; }
 }
 body.mcp-banner-open #app {
   height: calc(100vh - var(--header-h) - 41px);
@@ -457,25 +469,36 @@ body.mcp-banner-open #log-sidebar {
 /* ── Cards ── */
 .card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-card); padding: 10px 10px 8px;
-  cursor: grab; position: relative;
+  border-radius: var(--radius-card); padding: 11px 11px 10px 13px;
+  cursor: grab; position: relative; overflow: hidden;
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; user-select: none;
 }
 .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-color: var(--border-strong); transform: translateY(-1px); }
 .card:active { transform: translateY(0); }
 .card.dragging { opacity: 0.4; transform: none; box-shadow: 0 6px 18px rgba(0,0,0,0.14); }
+
+/* Priority accent: a thin colored bar on the leading edge of the card. */
+.card.pri-high::before, .card.pri-medium::before, .card.pri-low::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+}
+.card.pri-high::before   { background: #dc2626; }
+.card.pri-medium::before { background: #d97706; }
+.card.pri-low::before    { background: #2563eb; }
+
 .card.agent-flash { border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59,130,246,0.25); animation: agent-flash 1.5s ease-out forwards; }
 @keyframes agent-flash {
   0% { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
   100% { border-color: var(--border); box-shadow: none; }
 }
-.card-text { font-size: 13px; font-weight: 300; line-height: 1.5; color: var(--text); word-break: break-word; }
+.card-text { font-size: 13px; font-weight: 400; line-height: 1.45; letter-spacing: -0.1px; color: var(--text); word-break: break-word; }
 .card-desc-preview {
-  font-size: 11px; font-weight: 300; color: var(--text-muted);
-  line-height: 1.45; margin-top: 5px;
+  font-size: 11.5px; font-weight: 300; color: var(--text-muted);
+  line-height: 1.5; margin-top: 5px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.card-footer { display: flex; align-items: center; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+.card-footer { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.card-tags { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .tag {
   font-size: 10px; font-weight: 500; padding: 1px 7px;
   border-radius: 20px; color: #fff; text-transform: lowercase; letter-spacing: 0.2px;
@@ -559,15 +582,31 @@ body.mcp-banner-open #log-sidebar {
 #log-sidebar-body::-webkit-scrollbar { width: 4px; }
 #log-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 #log-entries { display: flex; flex-direction: column; gap: 6px; }
-.log-entry { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
-.log-entry-time { font-size: 10px; color: var(--text-muted); font-weight: 300; margin-bottom: 3px; }
-.log-entry-action {
-  display: inline-block; font-size: 10px; font-weight: 500;
-  padding: 1px 6px; border-radius: 4px; background: var(--accent); color: var(--accent-fg);
-  margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
+.log-entry {
+  padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--bg); animation: fadeIn 0.3s ease;
+  transition: border-color 0.15s;
 }
-.log-entry-detail { font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.4; }
+.log-entry:hover { border-color: var(--border-strong); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
+.log-entry-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.log-entry-action {
+  font-size: 9px; font-weight: 600;
+  padding: 1px 6px; border-radius: 4px;
+  background: var(--border); color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+}
+/* Color the action chip by intent. */
+.log-entry[data-action="create_card"] .log-entry-action,
+.log-entry[data-action="add_column"] .log-entry-action,
+.log-entry[data-action="complete_card"] .log-entry-action { background: rgba(22,163,74,0.14); color: #16a34a; }
+.log-entry[data-action="move_card"] .log-entry-action,
+.log-entry[data-action="update_card"] .log-entry-action { background: rgba(37,99,235,0.14); color: #2563eb; }
+.log-entry[data-action="delete_card"] .log-entry-action { background: rgba(220,38,38,0.14); color: #dc2626; }
+.log-entry[data-action="add_card_note"] .log-entry-action { background: rgba(59,130,246,0.14); color: #3b82f6; }
+.log-entry-agent { font-size: 10px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+.log-entry-time { font-size: 10px; color: var(--text-muted); font-weight: 300; margin-left: auto; white-space: nowrap; }
+.log-entry-detail { font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.45; word-break: break-word; }
 .log-empty { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 30px; font-weight: 300; }
 
 /* ── Shared modal overlay ── */
@@ -900,15 +939,20 @@ kbd {
 }
 #log-clear-btn:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
+/* Run is the primary action of the card sidebar — give it a filled treatment. */
 .agent-run-btn {
-  height: 32px; padding: 0 14px; white-space: nowrap;
-  border: 1px solid var(--border); border-radius: 6px;
-  background: transparent; color: var(--text-muted);
-  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400;
-  cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+  height: 34px; padding: 0 14px; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--accent); border-radius: 6px;
+  background: var(--accent); color: var(--accent-fg);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s;
 }
-.agent-run-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
-.agent-run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.agent-run-btn::before { content: '▶'; font-size: 9px; }
+.agent-run-btn:hover { opacity: 0.88; }
+.agent-run-btn:active { transform: translateY(1px); }
+.agent-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.agent-run-btn:disabled::before { content: ''; }
 
 /* Stop button keeps its danger styling on hover — no background change. */
 #card-stop-agent-btn:hover { background: transparent; color: var(--danger); border-color: var(--danger); opacity: 0.8; }
@@ -999,10 +1043,6 @@ kbd {
 /* ── Dependency (blocked-by) picker ── */
 #card-blocked-by-section { margin-top: 2px; }
 .dep-list { display: flex; flex-direction: column; gap: 0; }
-.dep-select {
-  width: 100%; font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
-}
-.dep-select:disabled { cursor: default; opacity: 0.6; }
 .dep-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .dep-chips:not(:empty) { margin-top: 7px; }
 .dep-chip {
@@ -1066,13 +1106,16 @@ kbd {
   padding: 10px 12px;
   background: var(--bg); border-radius: 7px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--border-strong);
+  border-left: 3px solid #3b82f6;
   font-size: 12px; line-height: 1.6; color: var(--text);
-  transition: border-left-color 0.15s;
 }
 .card-note-time {
   font-size: 10px; color: var(--text-muted); margin-bottom: 4px;
   font-weight: 400; display: flex; align-items: center; gap: 5px;
+}
+.card-note-time::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: #3b82f6; flex-shrink: 0;
 }
 .card-note-content {
   white-space: pre-wrap; word-break: break-word; font-weight: 300;
@@ -1264,29 +1307,6 @@ select:focus-visible,
 }
 .card:focus-visible { outline-offset: 0; }
 
-/* ── De-nativised <select> ── */
-/* Replace the OS dropdown arrow with a themed chevron so selects match the
-   rest of the controls instead of rendering platform-native chrome. */
-select.ws-input,
-.dep-select {
-  -webkit-appearance: none; -moz-appearance: none; appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888680' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 9px center;
-  padding-right: 28px;
-}
-select.ws-input::-ms-expand { display: none; }
-:root[data-theme="dark"] select.ws-input,
-:root[data-theme="dark"] .dep-select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888680' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-theme="dark"]) select.ws-input,
-  :root:not([data-theme="light"]):not([data-theme="dark"]) .dep-select {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888680' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
-  }
-}
-
 /* ── Firefox / standards scrollbars (Webkit handled per-element above) ── */
 #ws-list, .cards-list, #card-sidebar-body, #log-sidebar-body,
 .modal-body, #card-output-content, #card-diff-view, #board-wrap, #board-inner {
@@ -1308,6 +1328,54 @@ select.ws-input::-ms-expand { display: none; }
 .toast { border-left: 3px solid var(--border-strong); }
 .toast.success { border-left-color: var(--active-ws); }
 .toast.error   { border-left-color: var(--danger); }
+
+/* ── vbSelect (custom dropdown) ── */
+.vb-select { position: relative; width: 100%; }
+.vb-select-trigger {
+  width: 100%; height: 34px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  background: var(--surface); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
+  text-align: left; transition: border-color 0.15s, background 0.15s;
+}
+.vb-select-trigger:hover { border-color: var(--text-muted); }
+.vb-select.open .vb-select-trigger { border-color: var(--accent); }
+.vb-select-trigger:disabled { opacity: 0.5; cursor: default; }
+.vb-select-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-select-label.placeholder { color: var(--text-muted); }
+.vb-select-chevron {
+  display: flex; color: var(--text-muted); flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+.vb-select.open .vb-select-chevron { transform: rotate(180deg); }
+
+.vb-select-pop {
+  position: fixed; z-index: 700;
+  max-height: 264px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 4px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent;
+  animation: vbSelectPop 0.12s ease;
+}
+@keyframes vbSelectPop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+.vb-select-pop::-webkit-scrollbar { width: 5px; }
+.vb-select-pop::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.vb-select-opt {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 5px;
+  font-size: 12px; color: var(--text); cursor: pointer;
+  line-height: 1.3;
+}
+.vb-select-opt.active { background: var(--bg); }
+.vb-select-opt.selected { color: var(--text); font-weight: 500; }
+.vb-select-opt.disabled { opacity: 0.4; cursor: default; }
+.vb-select-opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-select-opt-hint { font-size: 11px; color: var(--text-muted); font-weight: 400; flex-shrink: 0; }
+.vb-select-opt-check { color: var(--active-ws); font-size: 11px; flex-shrink: 0; }
+.vb-select-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── Styled dialog (vbConfirm / vbPrompt) ── */
 .vb-dialog-overlay {
