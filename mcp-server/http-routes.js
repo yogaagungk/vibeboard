@@ -13,7 +13,7 @@ const { refreshAvailableModels, getAvailableModels } = require('./models');
 const {
   agentDone, spawnAgent, stopAgent,
   isAgentRunning, isAgentActive,
-  getRunningCardIds, getQueuedCardIds, getOutputFile,
+  getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, getOutputFile,
 } = require('./agent');
 
 // Register every HTTP/REST + SSE endpoint on the given Express app. /health is
@@ -266,6 +266,7 @@ module.exports = function registerRoutes(app) {
     const board = db.getBoard(activeId);
     board.runningCards = getRunningCardIds();
     board.queuedCards = getQueuedCardIds();
+    board.pendingRespawnCards = getPendingRespawnCardIds();
     res.json(board);
   });
 

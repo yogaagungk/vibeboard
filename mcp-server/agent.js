@@ -8,6 +8,11 @@ const { sanitizeForPrompt, wrapCardData } = require('./prompt-sanitize');
 
 const activeAgents = new Map();
 
+// Cards whose agent was moved (via move_card) to a new spawnable column while
+// the agent was still running. When the current agent exits, agentDone checks
+// this map and re-spawns for the new phase.
+const pendingRespawn = new Map(); // cardId -> { workspaceId, agentType }
+
 // Cap on simultaneously running agents. Spawn requests beyond the cap are queued
 // (FIFO) and started automatically as running agents finish. In-memory like
 // activeAgents — both live in the single HTTP-server process that owns lifecycles.
@@ -192,7 +197,18 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
 
 function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   if (activeAgents.has(cardId)) {
-    process.stderr.write(`Agent already running for card ${cardId}\n`);
+    // Card was moved to a new column while the agent was still running.
+    // If the target column is one we auto-spawn for, schedule a respawn
+    // that fires once the current agent exits.
+    const card = getCard(cardId);
+    if (card) {
+      const col = getColumn(card.column_id);
+      if (col && (col.title === 'In Progress' || col.title === 'Review')) {
+        pendingRespawn.set(cardId, { workspaceId, agentType });
+        addAgentLog(workspaceId, agentType, 'agent_pending_respawn', `Will respawn after current agent exits for card ${cardId}`);
+        emitSSE('agent_pending_respawn', { cardId, agentType });
+      }
+    }
     return;
   }
 
@@ -340,11 +356,22 @@ function agentDone(cardId, code, emitSSE) {
 
   // Free capacity may now let a queued agent start.
   dequeueNext(emitSSE);
+
+  // If this card was marked for respawn (e.g. agent moved itself to Review),
+  // start the next phase now.
+  if (pendingRespawn.has(cardId)) {
+    const pending = pendingRespawn.get(cardId);
+    pendingRespawn.delete(cardId);
+    spawnAgent(cardId, pending.workspaceId, pending.agentType, emitSSE);
+  }
 }
 
 function stopAgent(cardId) {
   // Drop it from the queue first, in case it was waiting rather than running.
   if (isQueued(cardId)) dequeueCard(cardId);
+
+  // Clear any pending respawn — the user explicitly stopped this card.
+  pendingRespawn.delete(cardId);
 
   const info = activeAgents.get(cardId);
   if (!info) return false;
@@ -368,6 +395,7 @@ function killAllAgents() {
   }
   activeAgents.clear();
   agentQueue.length = 0;
+  pendingRespawn.clear();
 }
 
 function isAgentRunning(cardId) {
@@ -382,4 +410,12 @@ function getRunningCardIds() {
   return Array.from(activeAgents.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getOutputFile, buildShellCmd, isSafeModel, parseUsage };
+function isPendingRespawn(cardId) {
+  return pendingRespawn.has(cardId);
+}
+
+function getPendingRespawnCardIds() {
+  return Array.from(pendingRespawn.keys());
+}
+
+module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage };
