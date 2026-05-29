@@ -10,7 +10,7 @@ const fs = require('fs');
 const TMP_DB = path.join(os.tmpdir(), `vb-agent-test-${Date.now()}.db`);
 process.env.VB_DB_PATH = TMP_DB;
 
-const { buildShellCmd, isSafeModel, parseUsage } = require('../mcp-server/agent');
+const { buildShellCmd, isSafeModel, parseUsage, buildPrompt } = require('../mcp-server/agent');
 
 test.after?.(() => { try { fs.unlinkSync(TMP_DB); } catch (_) {} });
 
@@ -81,4 +81,44 @@ test('parseUsage returns nulls when nothing recognizable is present', () => {
 test('parseUsage picks the largest token mention', () => {
   const { tokens } = parseUsage('input 1200 tokens, output 800 tokens, total 2000 tokens');
   assert.equal(tokens, 2000);
+});
+
+// ── buildPrompt ───────────────────────────────────────────────────────────────
+
+const fakeCard = { id: 'card-123', title: 'Test', description: '', tags: [], priority: null, due_date: null, custom_prompt: '', requires_review: false };
+const fakeColumn = { title: 'In Progress' };
+const fakeWorkspace = { id: 'ws-456', path: '/home/user/project' };
+
+test('buildPrompt uses workspace path when no worktree path given', () => {
+  const prompt = buildPrompt(fakeCard, fakeColumn, fakeWorkspace, null, null);
+  assert.ok(prompt.includes('Work in: /home/user/project'), 'should reference workspace path');
+  assert.ok(!prompt.includes('NOT to the workspace root'), 'should not include worktree warning');
+});
+
+test('buildPrompt uses worktree path when worktree path is set', () => {
+  const prompt = buildPrompt(fakeCard, fakeColumn, fakeWorkspace, 'vb/my-task-a1b2c3d4', '/home/user/project/.vb-worktrees/my-task-a1b2c3d4');
+  assert.ok(prompt.includes('Work in: /home/user/project/.vb-worktrees/my-task-a1b2c3d4'), 'should reference worktree path');
+  assert.ok(!prompt.includes('Work in: /home/user/project$'), 'should not reference bare workspace path');
+});
+
+test('buildPrompt adds worktree isolation warning when worktree path is set', () => {
+  const prompt = buildPrompt(fakeCard, fakeColumn, fakeWorkspace, 'vb/my-task-a1b2c3d4', '/home/user/project/.vb-worktrees/my-task-a1b2c3d4');
+  assert.ok(prompt.includes('NOT to the workspace root at /home/user/project'), 'should warn against writing to workspace root');
+  assert.ok(prompt.includes('git worktree'), 'should mention worktree in warning');
+});
+
+test('buildPrompt includes git branch line when branch is set', () => {
+  const prompt = buildPrompt(fakeCard, fakeColumn, fakeWorkspace, 'vb/my-task-a1b2c3d4', null);
+  assert.ok(prompt.includes('Git branch: vb/my-task-a1b2c3d4'), 'should include branch line');
+});
+
+test('buildPrompt omits git branch line when branch is null', () => {
+  const prompt = buildPrompt(fakeCard, fakeColumn, fakeWorkspace, null, null);
+  assert.ok(!prompt.includes('Git branch:'), 'should not include branch line');
+});
+
+test('buildPrompt mentions card ID and workspace ID', () => {
+  const prompt = buildPrompt(fakeCard, fakeColumn, fakeWorkspace, null, null);
+  assert.ok(prompt.includes('Card ID: card-123'));
+  assert.ok(prompt.includes('Workspace ID: ws-456'));
 });
