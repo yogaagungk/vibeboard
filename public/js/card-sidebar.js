@@ -102,6 +102,12 @@ function openCardModal(cardId, colId) {
   if (!card) return;
   modalCardId = cardId; modalColId = colId;
 
+  // Reset merge/PR buttons in case stale state leaked from previous card
+  document.getElementById('card-merge-btn').disabled = false;
+  document.getElementById('card-merge-btn').textContent = 'Merge';
+  document.getElementById('card-pr-btn').disabled = false;
+  document.getElementById('card-pr-btn').textContent = 'Create PR';
+
   cardModalTitleEl.value = card.title || card.text || '';
   cardModalColBadge.textContent = col.title; cardModalColBadge.style.background = col.color || '#6b6860';
   const branchBadge = document.getElementById('card-modal-branch-badge');
