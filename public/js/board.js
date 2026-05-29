@@ -279,7 +279,7 @@ function deleteCard(cardId, colId) {
 function renderLog(entries) {
   if (!entries?.length) { logEntries.innerHTML = '<p class="log-empty">No activity yet.</p>'; return; }
   logEntries.innerHTML = '';
-  [...entries].reverse().forEach(e => logEntries.appendChild(buildLogEntry(e)));
+  entries.forEach(e => logEntries.appendChild(buildLogEntry(e)));
 }
 function buildLogEntry(entry) {
   const el = document.createElement('div'); el.className = 'log-entry';
