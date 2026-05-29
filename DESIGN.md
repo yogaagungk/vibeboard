@@ -1,31 +1,31 @@
-# VibeBoard — Design System & UI Guide
+# VibeBoard - Design System & UI Guide
 
 Context for anyone (human or agent) building UI in this repo. Read this before
 touching `public/`. The goal is that new UI is **indistinguishable** from what's
 already there.
 
 > **Two pages:**
-> - `/` → `public/landing.html` — a **self-contained** marketing page (its own
+> - `/` → `public/landing.html` - a **self-contained** marketing page (its own
 >   inline `<style>`, no external JS). It mirrors the app's tokens and dark theme
 >   but is intentionally standalone so it loads instantly with zero dependencies.
-> - `/app` → `public/index.html` — the kanban app: markup in `index.html`, styles
+> - `/app` → `public/index.html` - the kanban app: markup in `index.html`, styles
 >   in `public/styles.css`, behavior in ordered `public/js/*.js` classic scripts.
 >
 > The app obeys: no bundler, no build step, no ES modules, no inline
 > `<script>`/`<style>`. (The landing page's inline `<style>` is the one sanctioned
-> exception — it's a single static file with no shared scope.) See `CLAUDE.md`.
+> exception - it's a single static file with no shared scope.) See `CLAUDE.md`.
 
 ---
 
 ## 1. Design principles
 
-VibeBoard's look is **quiet, dense, and functional** — a developer tool, not a
+VibeBoard's look is **quiet, dense, and functional** - a developer tool, not a
 consumer app. The palette is adapted from **Linear's design system** (same
 product class: a developer issue/kanban tracker): a cool-neutral surface ladder
 with a single **lavender-blue accent** (`#5e6ad2`).
 
 1. **Calm base, one accent.** The base UI is a cool neutral ramp (near-white /
-   near-black). The lavender-blue accent (`--accent`) is the *only* brand hue —
+   near-black). The lavender-blue accent (`--accent`) is the *only* brand hue -
    reserved for the primary action, the active/selected state, focus rings, and
    the connection of agent activity. Everything else earns its color from
    meaning (priority, tags, agent identity, run status, danger), never decoration.
@@ -59,43 +59,62 @@ add a token rather than a literal.
 | `--surface` | `#ffffff` | `#141516` | Raised panels (surface-1): header, columns, cards, modals, sidebars |
 | `--surface-2` | `#eef0f4` | `#1b1c1e` | One step up: card/feature hover, featured |
 | `--surface-3` | `#ffffff` | `#202123` | Popovers / dropdown menus (the `vbSelect` list) |
+| `--surface-4` | `#f5f6f6` | `#232427` | Deepest lifted surface (reserve for nested elevation; rare) |
 | `--edge` | `0 0 0 0 transparent` | `inset 0 1px 0 rgba(255,255,255,.045)` | Top edge-highlight on lifted dark panels (list-safe, layer it before float shadows) |
 | `--border` | `#e7e8ec` | `#23252a` | Default hairline |
 | `--border-strong` | `#d3d5dc` | `#34343a` | Hover/focus borders, toggle track |
 | `--text` | `#08090a` | `#f7f8f8` | Primary text |
-| `--text-muted` | `#6b7079` | `#8a8f98` | Secondary text, labels, placeholders, icons |
-| `--accent` | `#5e6ad2` | `#5e6ad2` | Primary buttons, active/selected state, focus ring, log chip |
+| `--text-strong` | `#2b2f36` | `#d0d6e0` | Secondary copy on hero / large panels (between `--text` and `--text-muted`) |
+| `--text-muted` | `#6b7079` | `#8a8f98` | Tertiary text, labels, placeholders, icons |
+| `--accent` | `#5e6ad2` | `#5e6ad2` | Primary buttons, active/selected state, log chip |
 | `--accent-hover` | `#5058c9` | `#828fff` | Accent hover (Linear's lighter-on-dark / deeper-on-light) |
+| `--accent-focus` | `#5e69d1` | `#5e69d1` | Focus ring tint (slightly cooler than `--accent`) |
 | `--accent-fg` | `#ffffff` | `#ffffff` | Text on `--accent` |
 | `--danger` / `--danger-bg` | `#dc2626` / `#fee2e2` | `#f87171` / `#3b1515` | Destructive actions, overdue, errors |
 
 > **Note:** `--accent` is the single brand hue (Linear's lavender-blue) and is
-> the same in both themes — only the neutral ramp flips. Use it sparingly; if a
+> the same in both themes - only the neutral ramp flips. Use it sparingly; if a
 > screen looks "too purple," something non-primary is borrowing the accent.
+>
+> **Light theme is a VibeBoard addition.** Linear's marketing canvas ships dark
+> only; the light ramp here mirrors the structure but isn't directly derived
+> from Linear. Keep new tokens working in both, but treat dark as the canonical
+> reference when there's any visual disagreement.
 
-### Semantic color (used by badges/pills; currently hardcoded — prefer tokenizing new ones)
+### Semantic color (used by badges/pills; currently hardcoded - prefer tokenizing new ones)
 - **Priority:** high `#dc2626`, medium `#d97706`, low `#2563eb` (badges use a tinted bg + colored text; pickers use solid fill when active).
 - **Tags:** feature `#7c3aed`, bug `#dc2626`, design `#db2777`, infra `#16a34a`, docs `#d97706`, api `#2563eb` (tokenized as `--tag-*`).
 - **Agents:** claude-code `#d97706`, opencode `#7c3aed`, codex `#0ea5e9` (badge labels CC / OC / CX).
 - **Status:** success/connected `#16a34a` (`--active-ws`), running/agent `#3b82f6`.
 
 ### Geometry / scale
+
+**Radius scale** (Linear: `xs 4 / sm 6 / md 8 / lg 12 / xl 16 / pill`):
+
+| Token | Value | Use |
+|---|---|---|
+| `--radius-xs` | `4px` | Status badges, small chips |
+| `--radius-sm` | `6px` | Inline tags |
+| `--radius-md` | `8px` | Buttons, inputs, cards (alias `--radius-card`) |
+| `--radius-lg` | `12px` | Columns, modal boxes (alias `--radius-col`) |
+| `--radius-xl` | `16px` | Oversized panels (rare) |
+| `--radius-pill` | `9999px` | Tag pills, queued chip, status pills |
+
+**Layout sizes:**
+
 | Token | Value | Notes |
 |---|---|---|
-| `--radius-card` | `8px` | Cards |
-| `--radius-col` | `12px` | Columns / large panels |
-| (controls) | `8px` | Buttons, inputs (Linear control radius) |
-| (modals) | `12px` | Modal boxes (literal, not yet a token) |
-| (badges/pills) | `4px` / `14–9999px` | Status badges 4px; tabs/pills fully round |
-| `--col-width` | `280px` | Column width (mobile drops to 220–260) |
+| `--col-width` | `280px` | Column width (mobile drops to 220-260) |
 | `--header-h` | `52px` | Sticky header height |
 | `--sidebar-w` | `220px` | Left workspace rail |
 | (right sidebars) | `480px` | Card-detail + log (literal; resizable for card) |
 
-**Spacing rhythm:** 4 / 6 / 8 / 10 / 12 / 14 / 16 / 20px. Component padding is
-typically 10–16px; gaps between controls 5–10px. Stick to these steps.
+**Spacing rhythm:** 4 / 8 / 12 / 16 / 24 / 32px (Linear's 4px base, doubled
+through 32). 6/10/14/20px steps still appear in older code but new code should
+snap to the scale above. Component padding is typically 12-16px; gaps between
+controls 8-12px.
 
-**Transitions:** `0.15s` for hover/focus on controls; `0.2–0.3s` for theme and
+**Transitions:** `0.15s` for hover/focus on controls; `0.2-0.3s` for theme and
 panel slide. Easing is default/`ease`. Keep new transitions in this range.
 
 ---
@@ -106,21 +125,38 @@ panel slide. Easing is default/`ease`. Keep new transitions in this range.
   proprietary; Inter is its documented open substitute), with **`'JetBrains
   Mono'`** for paths, branch names, diffs, agent output, prompt text, version
   badge, and config snippets. `body` sets `letter-spacing:-0.01em` +
-  `-webkit-font-smoothing:antialiased` — Inter wants both.
+  `-webkit-font-smoothing:antialiased` - Inter wants both.
 - **Weights:** 300 (descriptions, hints), 400 (default UI text/body), 500
-  (labels, active/emphasis), **600 (headings — Linear caps display at 600, not
+  (labels, active/emphasis), **600 (headings - Linear caps display at 600, not
   700)**.
-- **Negative tracking on display.** Headings tighten as they grow: header title
-  -0.3px, empty-state -0.5px, landing section titles -0.8px, hero -1.8px. Body
-  stays at the -0.01em set on `body`. This aggressive negative tracking is the
-  Linear signature — keep new large headings on weight 600 + negative tracking.
-- **Sizes:** 9–10px (badges, pills, timestamps), 11px (hints, secondary), 12px
-  (default control/body), 13px (card text, section body), 14–18px (titles).
+- **Negative tracking on display.** Headings tighten as they grow. Linear's
+  reference scale is roughly:
+
+  | Size | Tracking | Weight | Use |
+  |---|---|---|---|
+  | 80px | -3.0px | 600 | Hero (landing only) |
+  | 56px | -1.8px | 600 | Section opener |
+  | 40px | -1.0px | 600 | Sub-section |
+  | 28px | -0.6px | 600 | Headline / CTA banner |
+  | 22px | -0.4px | 500 | Card title |
+  | 20px | -0.2px | 400 | Subhead, lead |
+  | 18px | -0.1px | 400 | Hero subhead |
+  | 16px | -0.05px | 400 | Body |
+  | 14px | 0 | 400 | Body-sm |
+  | 12px | 0 | 400 | Caption |
+
+  In the app today: header title -0.3px, empty-state -0.5px. The landing page
+  uses larger steps (-0.8px on section titles, -1.8px on hero). Keep new large
+  headings on weight 600 + tracking proportional to size (~ -3.5% of px).
+- **Sizes used in the app:** 9-10px (badges, pills, timestamps), 11px (hints,
+  secondary), 12px (default control/body), 13px (card text, section body),
+  14-18px (titles).
 - **Uppercase micro-labels (eyebrows):** field/group labels use
   `font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.4px;
-  color:var(--text-muted)` — see `.field-label`, `.sidebar-group-label`,
-  `.nc-agent-box-label`. Linear eyebrows use *positive* tracking; keep these sans
-  (not mono). Reuse the classes; don't reinvent.
+  color:var(--text-muted)` - see `.field-label`, `.sidebar-group-label`,
+  `.nc-agent-box-label`. Linear eyebrows use *positive* tracking (+0.4px); the
+  contrast against negative-tracked display marks them as taxonomy. Keep these
+  sans (not mono). Reuse the classes; don't reinvent.
 
 ---
 
@@ -128,7 +164,7 @@ panel slide. Easing is default/`ease`. Keep new transitions in this range.
 
 - Three modes: **System / Light / Dark**, set via `data-theme` on `:root`
   (`light`/`dark`) or absent (system).
-- **Every dark override must be written twice** — once under
+- **Every dark override must be written twice** - once under
   `:root[data-theme="dark"]` and once under
   `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="dark"]) … }`.
   This is forced by the no-build constraint. When you add a dark-specific rule
@@ -168,18 +204,18 @@ panel slide. Easing is default/`ease`. Keep new transitions in this range.
 
 ## 6. Component patterns
 
-### Buttons (pick the right one — don't invent variants)
+### Buttons (pick the right one - don't invent variants)
 | Class | Look | Use |
 |---|---|---|
 | `.btn-primary` / `.btn-save` / `.empty-cta` | Solid `--accent`, white text, hover = `opacity .85` | The one primary action in a context |
 | `.btn-ghost` / `.header-btn` / `.browse-btn` / `.card-move-btn` / `.output-toggle-btn` | Transparent, `--border`, muted text; hover fills `--bg` + `--text` + `--border-strong` | Secondary/neutral actions |
 | `.btn-danger` | Transparent, `--danger` text; hover = `--danger-bg` | Destructive (Delete) |
-| `.icon-btn` | 24px square, bordered, muted glyph | Icon-only (`+`, `↻`) — add a `title` |
+| `.icon-btn` | 24px square, bordered, muted glyph | Icon-only (`+`, `↻`) - add a `title` |
 
 **The universal ghost-hover recipe** (memorize it): `background→var(--bg);
 color→var(--text); border-color→var(--border-strong)`. Almost every neutral
 control uses exactly this. Exception: the **stop-agent** button keeps its danger
-border on hover (no fill) — see `#card-stop-agent-btn:hover`.
+border on hover (no fill) - see `#card-stop-agent-btn:hover`.
 
 **Active/selected state** (theme picker, agent picker, priority "None"):
 `border-color + background: var(--accent); color: var(--accent-fg)`. Priority
@@ -196,7 +232,7 @@ high/medium/low use their semantic color as the active fill instead.
   Pair with `.toggle-row` + `.toggle-row-label` + `.toggle-row-hint`.
 - **Dropdowns: never use native `<select>`.** Its open option list is OS-rendered
   and can't be themed (it breaks the dark UI). Use `vbSelect({ options, value,
-  placeholder, onChange, ariaLabel })` from `public/js/select.js` — a themed,
+  placeholder, onChange, ariaLabel })` from `public/js/select.js` - a themed,
   keyboard-operable combobox whose popup is body-mounted with fixed positioning
   (never clipped by a scrolling sidebar). It returns a controller with
   `setOptions`, `setValue`, `setPlaceholder`, `getValue`. Mount `ctrl.el` into a
@@ -223,11 +259,11 @@ it a badge in this family and append it to `.card-footer` in `buildCard()`.
 - **Toasts** (`showToast(msg, dur, type)`) bottom-right for transient
   confirmations/errors. `type` is `''` (neutral), `'success'` (green left bar),
   or `'error'` (red left bar). Auto-dismiss; pointer-events only on the toast.
-- **Dialogs** — **never use native `confirm()`/`prompt()`/`alert()`.** Use the
+- **Dialogs** - **never use native `confirm()`/`prompt()`/`alert()`.** Use the
   promise-based `vbConfirm(message, opts)` / `vbPrompt(message, opts)` from
   `public/js/dialogs.js` instead. They render a themed `.vb-dialog`, trap focus,
   and support Esc/Enter. Pass `{ title, confirmText, danger }` (set `danger:true`
-  for destructive confirms — it gives a solid red confirm button).
+  for destructive confirms - it gives a solid red confirm button).
 - **Connection dot** in header reflects SSE state (gray → pulsing green).
 - **Agent-flash** outline on a card when an agent touches it.
 - Animations are subtle and short (`fadeIn`, `toastIn`, `pulse`,
@@ -247,19 +283,19 @@ Test any new layout at 768 and 480 before considering it done.
 
 ## 8. Accessibility
 
-**In place — keep it that way:**
+**In place - keep it that way:**
 - **Focus rings.** A `:focus-visible` outline (`2px solid var(--accent)`) covers
   buttons, cards, list items, selects and key inputs on both pages. New
-  interactive elements inherit it via the element/class selectors — don't set
+  interactive elements inherit it via the element/class selectors - don't set
   `outline:none` without providing a `:focus-visible` alternative.
-- **Cards are keyboard-operable** — `role="button"`, `tabindex="0"`, and
+- **Cards are keyboard-operable** - `role="button"`, `tabindex="0"`, and
   Enter/Space open them. Build new interactive elements as real `<button>`s, or
   replicate this trio. Don't ship click-only `<div>`s.
 - **Modals/sidebars** trap focus, set `role="dialog"`/`aria-modal`, restore focus
   on close, and reflect picker state via `aria-pressed` (see `app.js`
   `initModalA11y` / `syncAriaPressed`). New static modals should be added to the
   `dialogs` list in `initModalA11y`.
-- **No native dialogs** — `vbConfirm`/`vbPrompt` only (see §6).
+- **No native dialogs** - `vbConfirm`/`vbPrompt` only (see §6).
 
 **Still to improve when you're in the area:**
 - **Label icon-only controls** with `aria-label`, not just `title`.
@@ -274,14 +310,14 @@ Test any new layout at 768 and 480 before considering it done.
 
 - **No inline styles for *appearance*.** State toggles (`style="display:none"`)
   that JS flips are tolerated; styling (fonts, widths, colors) belongs in a class
-  in `styles.css`. Several legacy inline styles in `index.html` violate this —
+  in `styles.css`. Several legacy inline styles in `index.html` violate this -
   don't add more.
 - **Keep markup and behavior separated:** new DOM goes in `index.html` (static)
   or is built in a `public/js/*.js` file; element wiring/`addEventListener`
   lives in JS, never inline `onclick`.
 - **Token-first:** reach for an existing CSS variable before any literal; add a
   token if one is missing. New semantic colors (priority/tag/agent) should become
-  tokens rather than repeated hexes (current ones are partly hardcoded — a known
+  tokens rather than repeated hexes (current ones are partly hardcoded - a known
   debt).
 - **Dark mode = two blocks** (see §4). Forgetting the `prefers-color-scheme`
   twin is the most common visual regression here.
