@@ -345,6 +345,14 @@ function moveCard(cardId, toColumnId) {
   return { cardId, fromColumnId, toColumnId };
 }
 
+function createColumn(workspaceId, title, color = null) {
+  const id = 'col-' + crypto.randomUUID();
+  const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM columns WHERE workspace_id = ?').get(workspaceId).pos;
+  db.prepare('INSERT INTO columns (id, workspace_id, title, color, position) VALUES (?, ?, ?, ?, ?)')
+    .run(id, workspaceId, title, color || '#6b6860', position);
+  return { id, title, color: color || '#6b6860', position };
+}
+
 function deleteCard(cardId) {
   const card = db.prepare('SELECT column_id, position, worktree_path, workspace_id FROM cards WHERE id = ?').get(cardId);
   if (!card) return false;
@@ -539,6 +547,7 @@ module.exports = {
   updateCard,
   moveCard,
   deleteCard,
+  createColumn,
   addCardNote,
   getCardNotes,
   addAgentLog,

@@ -236,6 +236,13 @@ function buildCard(card, colId) {
     badge.title = AGENT_LABELS[card.agent] || card.agent;
     metaRow.appendChild(badge);
   }
+  if (card.requires_review) {
+    const rb = document.createElement('span');
+    rb.className = 'card-review-badge';
+    rb.textContent = '👁 Review';
+    rb.title = 'Human review required before this card can be closed';
+    metaRow.appendChild(rb);
+  }
   if (card.branch) {
     const b = document.createElement('span');
     b.className = 'branch-badge card-branch-pill';
