@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.1.0] - 2026-05-29
 
 ### Security
 - Server now binds to `127.0.0.1` by default; network exposure is opt-in via
-  `VB_HOST=0.0.0.0` and prints a no-auth warning. Closes unauthenticated LAN RCE.
+  `VB_HOST=0.0.0.0` and is gated by a shared token (`VB_TOKEN`), with a warning.
+  Closes unauthenticated LAN RCE.
 - Validate the `model` parameter and run `git`/`gh` via argument arrays (no shell)
   to close command-injection vectors via model values, card titles, and branches.
 
@@ -17,15 +18,17 @@ All notable changes to this project will be documented in this file.
 - `requires_review` now defaults consistently (ON) however a card is created.
 - `move_card` spawns the assigned agent on moves to In Progress **and** Review,
   matching the UI.
+- Orphaned git worktrees are cleaned up on card/workspace delete.
+- Search "Clear" button and result count now appear while filtering.
+- Card notes/checkpoints refresh live while an agent is running.
 
 ### Added
-- Per-column WIP limits — double-click a column count to set one (advisory).
+- Per-column WIP limits — double-click a column count to set one (enforced in UI + `move_card`).
+- Card dependencies (`blocked_by`) — dropdown picker; blocks moving to In Progress until blockers reach Done.
+- Concurrency cap with an automatic agent queue (`VB_MAX_AGENTS`).
+- Run visibility: per-card exit status, duration, and best-effort cost/token usage.
+- Per-card model selection; Codex CLI selectable; refreshed Claude model list.
 - Stop agent button in the card sidebar (`POST /api/cards/:id/stop`).
-- Codex CLI selectable in the new-card modal.
-
-## [0.1.0] - 2026-05-28
-
-### Added
 - Kanban board with Backlog, In Progress, Review, and Done columns
 - AI agent integration: auto-spawn Claude Code, OpenCode, or Codex when cards move to In Progress
 - Per-card agent assignment and "Needs review" toggle
@@ -49,4 +52,4 @@ All notable changes to this project will be documented in this file.
 ### Notes
 - Requires Node.js 18+
 - Windows and macOS supported
-- No build step required — single-file vanilla JS UI
+- No build step — plain HTML/CSS/JS UI served as static files

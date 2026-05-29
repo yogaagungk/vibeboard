@@ -4,7 +4,7 @@
 
 VibeBoard is a self-hostable open source kanban board built for developers who work with AI coding agents.
 
-**Core concept**: When you move a card with an assigned agent to "In Progress", VibeBoard automatically spawns that agent (Codex or OpenCode) in your project directory. The agent can then use MCP tools to add progress notes, move cards, and mark tasks complete.
+**Core concept**: When you move a card with an assigned agent to "In Progress", VibeBoard automatically spawns that agent (Claude Code, OpenCode, or Codex) in your project directory. The agent can then use MCP tools to add progress notes, move cards, and mark tasks complete.
 
 **Bidirectional MCP**: Both the human (via UI) and the agent (via MCP) can control the same board in real-time.
 
@@ -32,8 +32,8 @@ vibeboard/
 │   └── js/             ← UI logic as ordered classic scripts (no bundler)
 │       ├── bootstrap.js, workspaces.js, board.js, realtime.js,
 │       └── shortcuts-io.js, card-sidebar.js, app.js
-├── .Codex/
-│   └── mcp.json        ← MCP config for Codex
+├── .claude/
+│   └── mcp.json        ← MCP config for Claude Code
 ├── README.md           ← User documentation
 ├── CONTRIBUTING.md     ← Contributor guidelines
 └── AGENTS.md           ← This file (agent context)
@@ -84,7 +84,7 @@ add_column         → add a new column (params: title, color?)
 ## Agent spawning system
 
 When a card is moved TO "In Progress" (via move_card or the UI):
-- If the card has an assigned agent (Codex or opencode)
+- If the card has an assigned agent (claude-code, opencode, or codex)
 - VibeBoard spawns that agent as a child process in the workspace directory
 - The agent receives a prompt with the card context
 - SSE emits event type "agent_started" with the card context
@@ -123,11 +123,14 @@ npm install
 npm start
 # open http://localhost:7341
 
-## How to connect Codex to the MCP server
+## How to connect agents to the MCP server
 
-.Codex/mcp.json is already configured.
-Run: Codex mcp add vibeboard
-Or: the .Codex/mcp.json file is auto-detected by Codex.
+Use the in-app **MCP Setup** dialog to auto-configure Claude Code, OpenCode, or
+Codex, or wire them up manually:
+- **Claude Code**: `claude mcp add -s user vibeboard -- node <path>/mcp-server/index.js`
+  (the repo's `.claude/mcp.json` is also auto-detected)
+- **Codex**: add a `vibeboard` entry under `mcpServers` in `~/.codex/config.json`
+  (`command: node`, `args: [<path>/mcp-server/index.js]`)
 
 ## How to connect OpenCode
 

@@ -29,6 +29,13 @@ npm start
 
 Open http://localhost:7341 in your browser.
 
+> **Note:** VibeBoard uses [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3),
+> a native module. It ships prebuilt binaries for common platforms (Windows/macOS/Linux
+> on current Node LTS), so most installs need no compiler. On an unsupported
+> platform or Node version it builds from source — you'll need standard build tools
+> (e.g. Xcode CLT on macOS, build-essential + python3 on Linux, or the
+> windows-build-tools equivalent on Windows). Requires **Node.js 18+**.
+
 ## Usage
 
 ### Creating a Workspace
