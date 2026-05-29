@@ -93,13 +93,13 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
-  mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, priority, or blocked_by dependencies",
-    { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
-    async ({ cardId, title, description, tags, agent, model, priority, due_date, blocked_by }) => {
+  mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, priority, requires_review, custom_prompt, or blocked_by dependencies",
+    { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional(), requires_review: z.boolean().optional(), custom_prompt: z.string().optional() },
+    async ({ cardId, title, description, tags, agent, model, priority, due_date, blocked_by, requires_review, custom_prompt }) => {
       try {
         const card = db.getCard(cardId);
         if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
-        db.updateCard(cardId, { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined, blocked_by: blocked_by !== undefined ? blocked_by : undefined });
+        db.updateCard(cardId, { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined, blocked_by: blocked_by !== undefined ? blocked_by : undefined, requires_review: requires_review !== undefined ? requires_review : undefined, custom_prompt: custom_prompt !== undefined ? custom_prompt : undefined });
         db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Updated '${card.title}'`);
         emitSSE('board_update', db.getBoard(card.workspace_id));
         return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };
