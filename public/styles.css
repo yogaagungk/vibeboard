@@ -1,14 +1,19 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* ── Themes ── */
+/* Palette adapted from Linear's design system: a lavender-blue accent on a
+   cool-neutral surface ladder. Light theme below; dark theme + system-dark
+   mirror it further down. Only --accent/--accent-fg and the neutral ramp change
+   between themes — every control reads from these tokens. */
 :root {
-  --bg: #f6f5f2;
+  --bg: #f7f8f8;
   --surface: #ffffff;
-  --border: #e8e6e1;
-  --border-strong: #d4d1cb;
-  --text: #111110;
-  --text-muted: #888680;
-  --accent: #3a3835;
+  --border: #e7e8ec;
+  --border-strong: #d3d5dc;
+  --text: #08090a;
+  --text-muted: #6b7079;
+  --accent: #5e6ad2;
+  --accent-hover: #5058c9;
   --accent-fg: #ffffff;
   --danger: #dc2626;
   --danger-bg: #fee2e2;
@@ -23,32 +28,34 @@
   --tag-infra: #16a34a;
   --tag-docs: #d97706;
   --tag-api: #2563eb;
-  --active-ws: #16a34a;
+  --active-ws: #27a644;
 }
 
 :root[data-theme="dark"] {
-  --bg: #1c1c1a;
-  --surface: #242422;
-  --border: #333330;
-  --border-strong: #46463f;
-  --text: #e6e4df;
-  --text-muted: #666460;
-  --accent: #d4d1cb;
-  --accent-fg: #1c1c1a;
+  --bg: #08090a;
+  --surface: #141516;
+  --border: #23252a;
+  --border-strong: #34343a;
+  --text: #f7f8f8;
+  --text-muted: #8a8f98;
+  --accent: #5e6ad2;
+  --accent-hover: #828fff;
+  --accent-fg: #ffffff;
   --danger: #f87171;
   --danger-bg: #3b1515;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --bg: #1c1c1a;
-    --surface: #242422;
-    --border: #333330;
-    --border-strong: #46463f;
-    --text: #e6e4df;
-    --text-muted: #666460;
-    --accent: #d4d1cb;
-    --accent-fg: #1c1c1a;
+    --bg: #08090a;
+    --surface: #141516;
+    --border: #23252a;
+    --border-strong: #34343a;
+    --text: #f7f8f8;
+    --text-muted: #8a8f98;
+    --accent: #5e6ad2;
+    --accent-hover: #828fff;
+    --accent-fg: #ffffff;
     --danger: #f87171;
     --danger-bg: #3b1515;
   }
@@ -73,7 +80,29 @@ body {
   display: flex; align-items: center;
   padding: 0 20px; gap: 12px;
 }
-#header h1 { font-size: 15px; font-weight: 500; letter-spacing: -0.2px; flex: 1; }
+#header h1 { font-size: 15px; font-weight: 500; letter-spacing: -0.2px; display: flex; align-items: center; gap: 6px; }
+.brand-mark { color: var(--accent); font-size: 13px; line-height: 1; }
+.header-spacer { flex: 1; }
+
+.version-badge {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px; font-weight: 500; line-height: 1;
+  padding: 3px 7px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text-muted); cursor: default; white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.version-badge.update {
+  cursor: pointer; color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.version-badge.update::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulse 2s infinite;
+}
+.version-badge.update:hover { border-color: var(--accent); }
 
 .header-btn {
   height: 30px; padding: 0 12px;
@@ -717,9 +746,9 @@ body.mcp-banner-open #log-sidebar {
   box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
 .toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
-:root[data-theme="dark"] .toggle-switch input:checked + .toggle-track::after { background: var(--bg); }
+:root[data-theme="dark"] .toggle-switch input:checked + .toggle-track::after { background: #f7f8f8; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-theme="dark"]) .toggle-switch input:checked + .toggle-track::after { background: var(--bg); }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .toggle-switch input:checked + .toggle-track::after { background: #f7f8f8; }
 }
 
 .btn-danger {

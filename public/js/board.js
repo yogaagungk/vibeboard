@@ -349,3 +349,30 @@ document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
 });
 // Apply persisted state immediately (scripts run before first paint → no flash).
 applySidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1');
+
+// ── Version badge + update check ─────────────────────────────────────────────
+async function checkVersion() {
+  const badge = document.getElementById('version-badge');
+  if (!badge) return;
+  try {
+    const r = await fetch('/api/version');
+    if (!r.ok) return;
+    const v = await r.json();
+    badge.textContent = 'v' + v.current;
+    badge.title = `VibeBoard v${v.current}`;
+    if (v.updateAvailable && v.latest) {
+      badge.classList.add('update');
+      badge.title = `Update available: v${v.current} → v${v.latest} — click to copy the upgrade command`;
+      const cmd = `npm install -g ${v.package}@latest`;
+      badge.onclick = () => {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(cmd).then(
+            () => showToast(`Copied · ${cmd}`, 5000, 'success'),
+            () => showToast(`Upgrade with: ${cmd}`, 7000)
+          );
+        } else { showToast(`Upgrade with: ${cmd}`, 7000); }
+      };
+    }
+  } catch (_) {}
+}
+checkVersion();

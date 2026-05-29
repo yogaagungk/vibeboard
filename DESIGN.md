@@ -20,11 +20,15 @@ already there.
 ## 1. Design principles
 
 VibeBoard's look is **quiet, dense, and functional** — a developer tool, not a
-consumer app. The reference points are Linear / Height / Things.
+consumer app. The palette is adapted from **Linear's design system** (same
+product class: a developer issue/kanban tracker): a cool-neutral surface ladder
+with a single **lavender-blue accent** (`#5e6ad2`).
 
-1. **Calm by default, color on signal.** The base UI is grayscale (paper + ink).
-   Color appears only to carry meaning: priority, tags, agent identity, run
-   status, danger. Never decorate with color.
+1. **Calm base, one accent.** The base UI is a cool neutral ramp (near-white /
+   near-black). The lavender-blue accent (`--accent`) is the *only* brand hue —
+   reserved for the primary action, the active/selected state, focus rings, and
+   the connection of agent activity. Everything else earns its color from
+   meaning (priority, tags, agent identity, run status, danger), never decoration.
 2. **Hairline structure.** Separation comes from 1px borders and a two-level
    surface system (`--bg` behind, `--surface` on top), not shadows. Shadows are
    reserved for things that float (modals, toasts, card hover).
@@ -47,18 +51,20 @@ add a token rather than a literal.
 ### Color (light / dark)
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--bg` | `#f6f5f2` | `#1c1c1a` | App background, recessed wells (inputs, cards-in-group) |
-| `--surface` | `#ffffff` | `#242422` | Raised surfaces: header, columns, cards, modals, sidebars |
-| `--border` | `#e8e6e1` | `#333330` | Default hairline |
-| `--border-strong` | `#d4d1cb` | `#46463f` | Hover/focus borders, toggle track |
-| `--text` | `#111110` | `#e6e4df` | Primary text |
-| `--text-muted` | `#888680` | `#666460` | Secondary text, labels, placeholders, icons |
-| `--accent` | `#3a3835` | `#d4d1cb` | Primary buttons, active state, log action chip |
-| `--accent-fg` | `#ffffff` | `#1c1c1a` | Text on `--accent` |
+| `--bg` | `#f7f8f8` | `#08090a` | App background, recessed wells (inputs, cards-in-group) |
+| `--surface` | `#ffffff` | `#141516` | Raised surfaces: header, columns, cards, modals, sidebars |
+| `--border` | `#e7e8ec` | `#23252a` | Default hairline |
+| `--border-strong` | `#d3d5dc` | `#34343a` | Hover/focus borders, toggle track |
+| `--text` | `#08090a` | `#f7f8f8` | Primary text |
+| `--text-muted` | `#6b7079` | `#8a8f98` | Secondary text, labels, placeholders, icons |
+| `--accent` | `#5e6ad2` | `#5e6ad2` | Primary buttons, active/selected state, focus ring, log chip |
+| `--accent-hover` | `#5058c9` | `#828fff` | Accent hover (Linear's lighter-on-dark / deeper-on-light) |
+| `--accent-fg` | `#ffffff` | `#ffffff` | Text on `--accent` |
 | `--danger` / `--danger-bg` | `#dc2626` / `#fee2e2` | `#f87171` / `#3b1515` | Destructive actions, overdue, errors |
 
-> **Note:** `--accent` is intentionally a near-black ink, not a brand hue.
-> The product has no single accent color — identity comes from neutrality.
+> **Note:** `--accent` is the single brand hue (Linear's lavender-blue) and is
+> the same in both themes — only the neutral ramp flips. Use it sparingly; if a
+> screen looks "too purple," something non-primary is borrowing the accent.
 
 ### Semantic color (used by badges/pills; currently hardcoded — prefer tokenizing new ones)
 - **Priority:** high `#dc2626`, medium `#d97706`, low `#2563eb` (badges use a tinted bg + colored text; pickers use solid fill when active).

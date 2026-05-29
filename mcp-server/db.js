@@ -8,8 +8,11 @@ function getUserDataDir() {
   let base;
   if (process.platform === 'darwin') {
     base = path.join(os.homedir(), 'Library', 'Application Support');
-  } else {
+  } else if (process.platform === 'win32') {
     base = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+  } else {
+    // Linux / other: follow the XDG Base Directory spec.
+    base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
   }
   return path.join(base, 'vibeboard');
 }

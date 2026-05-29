@@ -229,6 +229,35 @@ module.exports = function registerRoutes(app) {
     });
   });
 
+  // Version + update check. The latest published version is looked up from the
+  // npm registry and cached in-memory for 6h so we never hammer it. Fails soft:
+  // if the registry is unreachable (offline / firewall), latest is null and the
+  // UI simply shows the current version with no update prompt.
+  let _latestVer = null, _latestAt = 0;
+  const semverGt = (a, b) => {
+    const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
+    const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < 3; i++) { if ((pa[i] || 0) > (pb[i] || 0)) return true; if ((pa[i] || 0) < (pb[i] || 0)) return false; }
+    return false;
+  };
+  app.get('/api/version', async (_req, res) => {
+    const now = Date.now();
+    if (!_latestVer || now - _latestAt > 6 * 3600 * 1000) {
+      try {
+        const r = await fetch('https://registry.npmjs.org/@zanuartri%2Fvibeboard/latest', {
+          headers: { accept: 'application/json' }, signal: AbortSignal.timeout(3000),
+        });
+        if (r.ok) { const j = await r.json(); if (j.version) { _latestVer = j.version; _latestAt = now; } }
+      } catch (_) { /* offline — leave _latestVer as-is */ }
+    }
+    res.json({
+      current: VERSION,
+      latest: _latestVer,
+      updateAvailable: _latestVer ? semverGt(_latestVer, VERSION) : false,
+      package: '@zanuartri/vibeboard',
+    });
+  });
+
   app.get('/board', (_req, res) => {
     const activeId = db.getActiveWorkspaceId();
     if (!activeId) return res.json(null);
