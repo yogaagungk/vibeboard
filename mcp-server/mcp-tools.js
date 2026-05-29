@@ -2,6 +2,7 @@ const { z } = require('zod');
 const db = require('./db');
 const { emitSSE } = require('./events');
 const { routeSpawnAgent, routeStopAgent, unfinishedBlockers } = require('./agent-routing');
+const models = require('./models');
 
 // Register all MCP tools on the given McpServer. Every tool returns a JSON text
 // payload and never throws — errors are serialized so the agent can react.
@@ -211,4 +212,31 @@ module.exports = function registerMcpTools(mcp) {
       return { content: [{ type: 'text', text: JSON.stringify({ cardId, notes }) }] };
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
+
+  mcp.tool('list_models', 'List available models for each agent type, optionally filtered by agent',
+    { agent: z.enum(['claude-code', 'opencode', 'codex']).optional() },
+    async ({ agent }) => {
+      try {
+        const all = models.getAvailableModels();
+        if (agent) {
+          if (!all[agent]) return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown agent: ${agent}` }) }] };
+          return { content: [{ type: 'text', text: JSON.stringify({ [agent]: all[agent] }) }] };
+        }
+        return { content: [{ type: 'text', text: JSON.stringify(all) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
+
+  mcp.tool('refresh_models', 'Refresh the model cache for all agent types', {},
+    async () => {
+      try {
+        const all = models.refreshAvailableModels();
+        const counts = {};
+        for (const agent of Object.keys(all)) {
+          counts[agent] = all[agent].length;
+        }
+        return { content: [{ type: 'text', text: JSON.stringify(counts) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
 };

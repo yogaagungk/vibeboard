@@ -80,6 +80,8 @@ delete_card        → remove a card (params: cardId)
 add_card_note      → add a note/checkpoint to a card (params: cardId, content)
 get_card_notes     → get all notes for a card (params: cardId)
 add_column         → add a new column (params: title, color?)
+list_models        → list available models per agent type (params: agent?)
+refresh_models     → refresh the model cache from each agent's CLI (no params)
 
 ## Agent spawning system
 
