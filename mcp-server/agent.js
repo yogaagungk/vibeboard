@@ -337,6 +337,20 @@ function stopAgent(cardId) {
   return true;
 }
 
+// Best-effort kill of every running agent's child process, used on server
+// shutdown so agents don't outlive the server. Synchronous (no SSE/requeue) —
+// the process is exiting. Note: with shell:true this kills the shell; a deeply
+// nested grandchild may survive on some platforms, but the common case is covered.
+function killAllAgents() {
+  for (const info of activeAgents.values()) {
+    if (info.watchInterval) clearInterval(info.watchInterval);
+    if (info.timeoutId) clearTimeout(info.timeoutId);
+    try { info.child?.kill(); } catch (_) {}
+  }
+  activeAgents.clear();
+  agentQueue.length = 0;
+}
+
 function isAgentRunning(cardId) {
   return activeAgents.has(cardId);
 }
@@ -349,4 +363,4 @@ function getRunningCardIds() {
   return Array.from(activeAgents.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getOutputFile, buildShellCmd, isSafeModel, parseUsage };
+module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getOutputFile, buildShellCmd, isSafeModel, parseUsage };

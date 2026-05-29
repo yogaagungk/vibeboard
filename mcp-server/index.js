@@ -8,6 +8,7 @@ const { migrateLegacyData } = require('./migrate');
 const { PORT, HOST, VERSION } = require('./config');
 const { sseClients, setHttpRunning, isHttpRunning } = require('./events');
 const { getAuthToken } = require('./auth');
+const { killAllAgents } = require('./agent');
 const registerRoutes = require('./http-routes');
 const registerMcpTools = require('./mcp-tools');
 
@@ -63,6 +64,7 @@ server.on('error', err => {
 });
 
 function shutdown() {
+  killAllAgents(); // don't leave spawned agents running after the server exits
   if (isHttpRunning()) {
     for (const res of sseClients) { try { res.end(); } catch(_) {} }
     sseClients.clear();
