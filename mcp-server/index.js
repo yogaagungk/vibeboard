@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
 
@@ -35,6 +37,9 @@ registerMcpTools(mcp);
 
 const server = app.listen(PORT, HOST, () => {
   setHttpRunning(true);
+  try {
+    fs.writeFileSync(path.join(db.DATA_DIR, 'port.lock'), String(PORT));
+  } catch (_) {}
   process.stderr.write(`HTTP server listening on http://localhost:${PORT}\n`);
   if (HOST !== '127.0.0.1' && HOST !== 'localhost') {
     const { networkInterfaces } = require('os');
@@ -66,6 +71,7 @@ server.on('error', err => {
 function shutdown() {
   killAllAgents(); // don't leave spawned agents running after the server exits
   if (isHttpRunning()) {
+    try { fs.unlinkSync(path.join(db.DATA_DIR, 'port.lock')); } catch (_) {}
     for (const res of sseClients) { try { res.end(); } catch(_) {} }
     sseClients.clear();
     server.close(() => process.exit(0));
