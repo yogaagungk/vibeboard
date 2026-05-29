@@ -140,8 +140,8 @@ function buildColumn(col) {
     }
   });
 
+  cardsList.appendChild(buildAddCardArea(col));
   colEl.appendChild(cardsList);
-  colEl.appendChild(buildAddCardArea(col));
   return colEl;
 }
 
