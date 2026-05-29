@@ -21,7 +21,12 @@ function connectSSE() {
       if (modalCardId) {
         const col = board.columns.find(c => c.cards?.some(c2 => c2.id === modalCardId));
         const card = col?.cards.find(c => c.id === modalCardId);
-        if (card) {
+        if (card && col) {
+          if (col.id !== modalColId) {
+            modalColId = col.id;
+            const badge = document.getElementById('card-modal-col-badge');
+            if (badge) { badge.textContent = col.title; badge.style.background = col.color || '#6b6860'; }
+          }
           const bb = document.getElementById('card-modal-branch-badge');
           if (card.branch) { bb.textContent = card.branch; bb.style.display = ''; }
           else { bb.style.display = 'none'; }
