@@ -109,64 +109,38 @@ function startOutputWatcher(cardId, outputFile, emitSSE) {
 }
 
 function buildPrompt(card, column, workspace, branch) {
-  const desc = card.description ? `\nDescription: ${card.description}` : '';
-  const tags = card.tags?.length ? `\nTags: ${card.tags.join(', ')}` : '';
-  const priority = card.priority ? `\nPriority: ${card.priority}` : '';
-  const dueDate = card.due_date ? `\nDue: ${card.due_date}` : '';
-  const branchLine = branch ? `\nGit branch: ${branch} (commit your changes here as you work)` : '';
-  
-  let columnContext = '';
+  const meta = [
+    card.description && `Description: ${card.description}`,
+    card.tags?.length && `Tags: ${card.tags.join(', ')}`,
+    card.priority && `Priority: ${card.priority}`,
+    card.due_date && `Due: ${card.due_date}`,
+    branch && `Git branch: ${branch} (commit here as you work)`,
+  ].filter(Boolean).join('\n');
+
   const colTitle = column?.title || '';
+  let phase;
   if (colTitle === 'In Progress') {
-    const nextStep = card.requires_review
-      ? '- When done implementing, commit all changes, then call move_card to move to Review'
-      : '- This card does NOT require review — when done implementing, commit all changes, then call complete_card to move directly to Done (skip Review)';
-    columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
-- Plan and implement the feature/fix
-- Write code, make changes
-- IMPORTANT: Commit all changes before moving the card (one logical unit per commit)
-- Use add_card_note to log your progress
-${nextStep}`;
+    const next = card.requires_review
+      ? 'call move_card to "Review"'
+      : 'call complete_card (this card skips Review)';
+    phase = `Phase: IN PROGRESS — implement the task, then commit ALL changes with git and ${next}.`;
   } else if (colTitle === 'Review') {
-    columnContext = `\nYou are in the REVIEW phase. Your job is to:
-- Review the existing code changes
-- Run tests and verify functionality
-- Check for bugs or issues
-- Add notes about what you found
-- If issues found, call move_card to move back to In Progress
-- If everything looks good, call complete_card to mark as Done`;
+    phase = `Phase: REVIEW — verify the changes and run tests. If you find issues, commit fixes and move_card back to "In Progress"; if it's good, call complete_card.`;
   } else if (colTitle === 'Done') {
-    columnContext = `\nThis card is DONE. The work is complete but not yet merged.
-- Review what was accomplished
-- Ensure all changes are committed
-- The user will manually merge or create a PR`;
+    phase = `Phase: DONE — work is complete; ensure everything is committed. The user merges manually.`;
   } else {
-    columnContext = `\nCurrent column: ${colTitle}`;
+    phase = `Phase: ${colTitle}`;
   }
-  
-  const customInstructions = card.custom_prompt ? `\n\nAdditional instructions from the user:\n${card.custom_prompt}` : '';
 
-  return `You have a task on VibeBoard.
+  const custom = card.custom_prompt ? `\n\nUser instructions:\n${card.custom_prompt}` : '';
 
-Card: "${card.title}"${desc}${tags}${priority}${dueDate}${columnContext}
-Card ID: ${card.id}
-Workspace ID: ${workspace.id}${branchLine}
+  return `Task on VibeBoard: "${card.title}"
+${meta ? meta + '\n' : ''}Card ID: ${card.id} · Workspace ID: ${workspace.id}
+Work in: ${workspace.path}
 
-Column workflow:
-- Backlog → not started
-- In Progress → actively working on implementation
-- Review → testing and code review phase
-- Done → complete, ready for manual merge/PR
+${phase}
 
-Use the vibeboard MCP tools:
-1. Call get_board to see the full board state
-2. Use add_card_note frequently to log your progress, decisions, and any issues found
-3. Commit your changes with git as you work
-4. Call move_card to move between columns based on your progress
-5. Call complete_card when fully finished and tested
-
-In the project directory, run git commands, edit files, and test as needed.
-Work in: ${workspace.path}${customInstructions}`;
+Use the vibeboard MCP tools: get_board to read state, add_card_note often to log progress and findings, move_card / complete_card to change status. Commit your work with git as you go.${custom}`;
 }
 
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {

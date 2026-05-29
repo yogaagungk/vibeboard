@@ -15,7 +15,9 @@ function connectSSE() {
       board = data; board.agentLog = board.agentLog || [];
       saveCache(board); renderBoard(board);
       affected.forEach(id => flashCard(id));
-      // Refresh branch badge if the updated card's modal is open
+      // Refresh branch badge + notes if the updated card's sidebar is open, so
+      // agent checkpoints (add_card_note → board_update) appear live without
+      // needing to close and reopen the card.
       if (modalCardId) {
         const col = board.columns.find(c => c.cards?.some(c2 => c2.id === modalCardId));
         const card = col?.cards.find(c => c.id === modalCardId);
@@ -24,6 +26,7 @@ function connectSSE() {
           if (card.branch) { bb.textContent = card.branch; bb.style.display = ''; }
           else { bb.style.display = 'none'; }
         }
+        loadCardNotes(modalCardId).then(renderCardNotes);
       }
     }
     if (type === 'trigger') showTriggerToast(data);
