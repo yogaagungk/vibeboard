@@ -388,10 +388,10 @@ body.mcp-banner-open #log-sidebar {
   border: 1px solid var(--border); border-radius: 6px;
   background: var(--surface); color: var(--text);
   font-family: 'DM Sans', sans-serif; font-size: 12px;
-  width: 200px; outline: none;
-  transition: border-color 0.15s, width 0.2s;
+  width: 260px; outline: none;
+  transition: border-color 0.15s;
 }
-#board-search:focus { border-color: var(--border-strong); width: 260px; }
+#board-search:focus { border-color: var(--border-strong); }
 #board-search::placeholder { color: var(--text-muted); }
 #board-search-clear {
   height: 28px; padding: 0 8px;
