@@ -1042,8 +1042,8 @@ kbd {
 .agent-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .agent-run-btn:disabled::before { content: ''; }
 
-/* Stop button keeps its danger styling on hover - no background change. */
-#card-stop-agent-btn:hover { background: transparent; color: var(--danger); border-color: var(--danger); opacity: 0.8; }
+/* Stop button gets a light danger background tint on hover. */
+#card-stop-agent-btn:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); border-color: var(--danger); }
 
 .card-move-btn {
   height: 28px; padding: 0 12px; white-space: nowrap;
