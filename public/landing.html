@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeBoard — Kanban for AI-augmented development</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --border: #e8e6e1;
+  --text: #111110;
+  --text-muted: #888680;
+  --accent: #3a3835;
+  --accent-fg: #ffffff;
+  --radius: 10px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── Nav ── */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.logo span { color: var(--text-muted); font-weight: 300; }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.nav-links a:hover { color: var(--text); }
+
+/* ── Hero ── */
+.hero {
+  padding: 80px 32px 60px;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 44px;
+  font-weight: 500;
+  letter-spacing: -1.2px;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.hero h1 span { color: var(--text-muted); }
+
+.hero p {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin: 0 auto 32px;
+  line-height: 1.7;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 32px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.hero-cta:hover { opacity: 0.85; }
+
+.hero-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 28px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  margin-left: 10px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.hero-cta-ghost:hover { border-color: var(--text); color: var(--text); }
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 30px; }
+  .hero p { font-size: 15px; }
+  .hero { padding: 50px 20px 40px; }
+}
+
+/* ── Section ── */
+.section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 70px 32px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  margin-bottom: 12px;
+}
+
+.section-sub {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--text-muted);
+  max-width: 480px;
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+
+/* ── Features grid ── */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  transition: box-shadow 0.2s;
+}
+
+.feature-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.feature-card h3 {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.feature-card p {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* ── How it works ── */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.step-content h3 {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.step-content p {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* ── CTA section ── */
+.cta-section {
+  text-align: center;
+  padding: 60px 32px 80px;
+}
+
+.cta-section h2 {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  margin-bottom: 16px;
+}
+
+.cta-section p {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 32px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+footer a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+footer a:hover { text-decoration: underline; }
+
+/* ── Terminal mockup ── */
+.terminal-box {
+  background: #1c1c1a;
+  border: 1px solid #333330;
+  border-radius: var(--radius);
+  max-width: 620px;
+  margin: 40px auto 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow: hidden;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #242422;
+  border-bottom: 1px solid #333330;
+}
+
+.terminal-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+.terminal-dot.red { background: #ef4444; }
+.terminal-dot.yellow { background: #eab308; }
+.terminal-dot.green { background: #22c55e; }
+
+.terminal-content {
+  padding: 14px;
+  color: #a3a39f;
+}
+
+.terminal-content .prompt { color: #22c55e; }
+.terminal-content .cmd { color: #e6e4df; }
+.terminal-content .output { color: #888680; }
+.terminal-content .highlight { color: #60a5fa; }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Vibe<span>Board</span></a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="https://github.com/zanuartri/vibeboard" target="_blank">GitHub</a></li>
+    <li><a href="/app" style="font-weight:500;color:var(--text)">Open app →</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <h1>Kanban boards that <span>talk to your agents</span></h1>
+  <p>
+    VibeBoard is a self-hostable kanban board for developers working with AI coding agents.
+    Move a card to "In Progress" and VibeBoard spawns your agent automatically.
+  </p>
+  <div>
+    <a href="/app" class="hero-cta">Open the board</a>
+    <a href="https://github.com/zanuartri/vibeboard" target="_blank" class="hero-cta-ghost">View on GitHub</a>
+  </div>
+  <div class="terminal-box">
+    <div class="terminal-bar">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+    </div>
+    <div class="terminal-content">
+      <div><span class="prompt">$</span> <span class="cmd">npx @zanuartri/vibeboard</span></div>
+      <div><span class="output">HTTP server listening on http://localhost:7341</span></div>
+      <div><span class="output">MCP server connected via stdio</span></div>
+      <div>&nbsp;</div>
+      <div><span class="prompt">$</span> <span class="cmd"># Agent spawns automatically on card move</span></div>
+      <div><span class="prompt">$</span> <span class="cmd">open '<span class="highlight">http://localhost:7341</span>'</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <h2 class="section-title">Built for the agentic workflow</h2>
+  <p class="section-sub">VibeBoard bridges your kanban board and your AI coding agents so they work as a single system.</p>
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Auto-spawn agents</h3>
+      <p>Move a card to "In Progress" and VibeBoard launches Claude Code, OpenCode, or Codex CLI in your project directory — no manual setup needed.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3>Bidirectional MCP</h3>
+      <p>Both you (via UI) and your agent (via MCP tools) control the same board in real time. Agents log progress, move cards, and mark tasks complete.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3>Multiple workspaces</h3>
+      <p>Each workspace is an independent kanban board linked to a project directory. Switch between projects without losing context.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Self-hosted & private</h3>
+      <p>Your data stays on your machine. SQLite database stored locally, no cloud dependencies, no accounts, no tracking.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧵</div>
+      <h3>Git worktree isolation</h3>
+      <p>Each agent card runs in its own git worktree on an isolated branch. Merge or create a PR when the work is done.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Live agent log</h3>
+      <p>Every tool call is recorded in a collapsible sidebar. See what your agents are doing, in real time, with full history.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <h2 class="section-title">How it works</h2>
+  <p class="section-sub">A short walkthrough of the agent-driven kanban loop.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Create a workspace</h3>
+        <p>Link a project directory to a kanban board. VibeBoard detects your git repository and configures worktree support automatically.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Add cards with agents</h3>
+        <p>Create cards in any column, assign a title, tags, priority, and an AI agent (Claude Code, OpenCode, or Codex CLI).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Move to In Progress</h3>
+        <p>Drag or click to move a card to "In Progress". VibeBoard spawns the assigned agent in your project directory with full context.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Agent works autonomously</h3>
+        <p>The agent reads the board state, implements the feature, commits code, and logs progress — all via MCP tools. You can watch in real time.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Move to Done</h3>
+        <p>When finished, the agent (or you) moves the card to "Done". Metrics like exit code, duration, and cost are recorded on the card.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2>Ready to ship faster?</h2>
+  <p>Self-hosted, open source, and ready in one command.</p>
+  <a href="/app" class="hero-cta">Open VibeBoard</a>
+  <div style="margin-top:12px;font-size:12px;color:var(--text-muted)">
+    <code style="background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px">npx @zanuartri/vibeboard</code>
+    <span style="margin:0 8px">·</span>
+    <a href="https://github.com/zanuartri/vibeboard" style="color:var(--text-muted);text-decoration:underline">GitHub</a>
+    <span style="margin:0 8px">·</span>
+    MIT license
+  </div>
+</section>
+
+<footer>
+  <p><a href="https://github.com/zanuartri/vibeboard">VibeBoard</a> — MIT license · Built for developers who work with AI</p>
+</footer>
+
+</body>
+</html>

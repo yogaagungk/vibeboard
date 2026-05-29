@@ -423,5 +423,6 @@ module.exports = function registerRoutes(app) {
     req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
   });
 
-  app.get('/', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+  app.get('/', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'landing.html')));
+  app.get('/app', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 };
