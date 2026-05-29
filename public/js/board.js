@@ -110,6 +110,8 @@ function buildColumn(col) {
   const cardsList = document.createElement('div');
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
   
+  if (col.cards.length === 0) cardsList.dataset.empty = '';
+
   const reversedCards = [...col.cards].reverse();
   if (reversedCards.length >= VIRTUALIZE_THRESHOLD) {
     virtualizeColumn(colEl, reversedCards);

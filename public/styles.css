@@ -535,6 +535,7 @@ body.mcp-banner-open #log-sidebar {
   margin: 0 4px;
   display: flex; flex-direction: column; gap: 6px; min-height: 40px;
 }
+.cards-list[data-empty] { min-height: 80px; }
 .cards-list::-webkit-scrollbar { width: 8px; }
 .cards-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .cards-list:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
