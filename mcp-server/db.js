@@ -23,6 +23,17 @@ function ensureDir(dir) {
 const DATA_DIR = getUserDataDir();
 if (!process.env.VB_DB_PATH) ensureDir(DATA_DIR);
 
+// Lazy-required to avoid pulling child_process at module load and to keep the
+// db<->worktree boundary one-directional (worktree.js never requires db.js).
+let _wt = null;
+function cleanupWorktree(workspacePath, worktreePath) {
+  if (!workspacePath || !worktreePath) return;
+  try {
+    if (!_wt) _wt = require('./worktree');
+    _wt.removeWorktree(workspacePath, worktreePath);
+  } catch (_) { /* best-effort cleanup */ }
+}
+
 const DB_PATH = process.env.VB_DB_PATH || path.join(DATA_DIR, 'vibeboard.db');
 const db = new Database(DB_PATH);
 
@@ -173,7 +184,10 @@ function updateWorkspace(id, updates) {
 }
 
 function deleteWorkspace(id) {
+  const ws = db.prepare('SELECT path FROM workspaces WHERE id = ?').get(id);
+  const worktrees = db.prepare('SELECT worktree_path FROM cards WHERE workspace_id = ? AND worktree_path IS NOT NULL').all(id);
   db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
+  if (ws?.path) for (const row of worktrees) cleanupWorktree(ws.path, row.worktree_path);
 }
 
 function getBoard(workspaceId) {
@@ -301,12 +315,17 @@ function moveCard(cardId, toColumnId) {
 }
 
 function deleteCard(cardId) {
-  const card = db.prepare('SELECT column_id, position FROM cards WHERE id = ?').get(cardId);
+  const card = db.prepare('SELECT column_id, position, worktree_path, workspace_id FROM cards WHERE id = ?').get(cardId);
   if (!card) return false;
-  
+
   db.prepare('DELETE FROM cards WHERE id = ?').run(cardId);
   db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(card.column_id, card.position);
-  
+
+  if (card.worktree_path) {
+    const ws = getWorkspace(card.workspace_id);
+    cleanupWorktree(ws?.path, card.worktree_path);
+  }
+
   return true;
 }
 
@@ -343,8 +362,10 @@ function addAgentLog(workspaceId, agent, action, detail) {
 }
 
 function syncBoard(workspaceId, columns) {
-  const existingCards = db.prepare('SELECT id FROM cards WHERE workspace_id = ?').all(workspaceId).map(r => r.id);
+  const existingRows = db.prepare('SELECT id, worktree_path FROM cards WHERE workspace_id = ?').all(workspaceId);
+  const existingCards = existingRows.map(r => r.id);
   const incomingCardIds = columns.flatMap(c => (c.cards || []).map(card => card.id));
+  const removedWorktrees = existingRows.filter(r => r.worktree_path && !incomingCardIds.includes(r.id));
 
   const sync = db.transaction(() => {
     // Update existing columns only (no create/delete — columns are fixed)
@@ -381,6 +402,12 @@ function syncBoard(workspaceId, columns) {
   });
 
   sync();
+
+  // Remove orphaned git worktrees outside the transaction (git calls aren't db ops).
+  if (removedWorktrees.length) {
+    const ws = getWorkspace(workspaceId);
+    if (ws?.path) for (const row of removedWorktrees) cleanupWorktree(ws.path, row.worktree_path);
+  }
 }
 
 function getCard(cardId) {

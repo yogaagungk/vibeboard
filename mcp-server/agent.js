@@ -28,15 +28,13 @@ function buildShellCmd(agentType, promptFile, model) {
   let modelFlag = '';
 
   if (model && isSafeModel(model)) {
-    if (agentType === 'claude-code') {
-      modelFlag = ` --model ${model}`;
-    } else if (agentType === 'opencode') {
+    if (agentType === 'claude-code' || agentType === 'opencode' || agentType === 'codex') {
       modelFlag = ` --model ${model}`;
     }
   } else if (model) {
     process.stderr.write(`Ignoring unsafe model value: ${JSON.stringify(model)}\n`);
   }
-  
+
   switch (agentType) {
     case 'claude-code':
       return win
@@ -48,8 +46,8 @@ function buildShellCmd(agentType, promptFile, model) {
         : `opencode run --dangerously-skip-permissions${modelFlag} "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;
     case 'codex':
       return win
-        ? `type "${promptFile}" | codex --full-auto`
-        : `codex --full-auto < "${promptFile}"`;
+        ? `type "${promptFile}" | codex --full-auto${modelFlag}`
+        : `codex --full-auto${modelFlag} < "${promptFile}"`;
     default:
       return win
         ? `type "${promptFile}" | ${agentType}`
@@ -303,4 +301,4 @@ function getRunningCardIds() {
   return Array.from(activeAgents.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, isAgentRunning, getRunningCardIds, getOutputFile };
+module.exports = { spawnAgent, agentDone, stopAgent, isAgentRunning, getRunningCardIds, getOutputFile, buildShellCmd, isSafeModel };

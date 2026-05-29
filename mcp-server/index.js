@@ -1,4 +1,5 @@
-﻿const { spawn } = require('child_process');
+#!/usr/bin/env node
+const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const express = require('express');
@@ -80,7 +81,33 @@ function routeStopAgent(cardId) {
 const app = express();
 app.use(express.json());
 
+// ── Network-mode auth ────────────────────────────────────────────────────────
+// When the board is bound to a non-loopback address it has no auth and can spawn
+// agents with skipped permissions, so gate it with a shared token. Requests that
+// originate from the host machine (loopback) are always allowed — this keeps the
+// local UX and all inter-process calls (agent-done, sse-emit, spawn proxy, which
+// all hit http://localhost) working without a token. Only remote clients must
+// present the token via the `X-VB-Token` header or `?token=` query param.
+const NETWORK_MODE = HOST !== '127.0.0.1' && HOST !== 'localhost';
+let AUTH_TOKEN = process.env.VB_TOKEN || null;
+if (NETWORK_MODE && !AUTH_TOKEN) {
+  AUTH_TOKEN = require('crypto').randomBytes(18).toString('hex');
+}
+
+function isLoopbackReq(req) {
+  const ip = req.socket?.remoteAddress || req.ip || '';
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
 app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.1.0' }));
+
+app.use((req, res, next) => {
+  if (!NETWORK_MODE) return next();
+  if (isLoopbackReq(req)) return next();
+  const token = req.get('x-vb-token') || req.query.token;
+  if (AUTH_TOKEN && token === AUTH_TOKEN) return next();
+  res.status(401).json({ error: 'Unauthorized: missing or invalid token. Append ?token=… to the URL.' });
+});
 
 app.get('/workspaces', (_req, res) => {
   const active = db.getActiveWorkspaceId();
@@ -661,7 +688,13 @@ mcp.tool('move_card', 'Move a card to a different column',
       
       const toColumn = board.columns.find(c => c.title === toColumnTitle);
       if (!toColumn) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${toColumnTitle}` }) }] };
-      
+
+      // Enforce WIP limit: refuse to move a card into a different column already
+      // at capacity (reordering / staying in place is always allowed).
+      if (card.column_id !== toColumn.id && Number.isInteger(toColumn.wip_limit) && toColumn.wip_limit > 0 && toColumn.cards.length >= toColumn.wip_limit) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: `Column '${toColumnTitle}' is at its WIP limit (${toColumn.cards.length}/${toColumn.wip_limit})` }) }] };
+      }
+
       const fromColumn = db.getColumn(card.column_id);
       db.moveCard(cardId, toColumn.id);
       db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
@@ -754,8 +787,9 @@ const server = app.listen(PORT, HOST, () => {
         }
       }
     } catch (_) {}
-    process.stderr.write(`Network access ENABLED (no auth): http://${localIP}:${PORT}\n`);
-    process.stderr.write(`WARNING: anyone on this network can move cards and run agents in your project dirs.\n`);
+    process.stderr.write(`Network access ENABLED: http://${localIP}:${PORT}/?token=${AUTH_TOKEN}\n`);
+    process.stderr.write(`Remote clients must use the token above (or set VB_TOKEN). Local (loopback) access needs no token.\n`);
+    process.stderr.write(`WARNING: anyone with the token can move cards and run agents in your project dirs.\n`);
   }
 });
 

@@ -3,6 +3,7 @@ const { execSync } = require('child_process');
 let cachedModels = {
   'claude-code': [],
   'opencode': [],
+  'codex': [],
 };
 
 function isAgentInstalled(cmd) {
@@ -14,19 +15,23 @@ function isAgentInstalled(cmd) {
 
 function getClaudeModels() {
   if (!isAgentInstalled('claude')) return [];
-  
-  try {
-    const models = [
-      { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced performance' },
-      { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', description: 'Most capable' },
-      { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', description: 'Fastest, most affordable' },
-    ];
-    
-    return models;
-  } catch (err) {
-    process.stderr.write(`Failed to fetch Claude models: ${err.message}\n`);
-    return [];
-  }
+  return [
+    { id: 'claude-opus-4-8',   name: 'Claude Opus 4.8',   description: 'Most capable' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced performance' },
+    { id: 'claude-haiku-4-5',  name: 'Claude Haiku 4.5',  description: 'Fastest, most affordable' },
+  ];
+}
+
+// Codex (OpenAI) has no stable machine-readable model list command, so ship a
+// curated set of the model aliases the CLI accepts. "Default" (no flag) stays
+// the first option in the UI, so these are opt-in.
+function getCodexModels() {
+  if (!isAgentInstalled('codex')) return [];
+  return [
+    { id: 'gpt-5-codex', name: 'GPT-5 Codex', description: 'Codex-tuned' },
+    { id: 'gpt-5',       name: 'GPT-5',       description: 'General purpose' },
+    { id: 'o4-mini',     name: 'o4-mini',     description: 'Fast, affordable' },
+  ];
 }
 
 function getOpenCodeModels() {
@@ -78,9 +83,10 @@ function getOpenCodeModels() {
 function refreshAvailableModels() {
   cachedModels['claude-code'] = getClaudeModels();
   cachedModels['opencode'] = getOpenCodeModels();
-  
-  process.stderr.write(`Models refreshed: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length})\n`);
-  
+  cachedModels['codex'] = getCodexModels();
+
+  process.stderr.write(`Models refreshed: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length})\n`);
+
   return cachedModels;
 }
 

@@ -84,7 +84,7 @@ function createWorktree(workspacePath, cardId, cardTitle) {
   // Check if branch already exists
   const branchExists = (() => {
     try {
-      execSync(`git rev-parse --verify "${branch}"`, { cwd: workspacePath, stdio: 'ignore' });
+      execFileSync('git', ['rev-parse', '--verify', branch], { cwd: workspacePath, stdio: 'ignore' });
       return true;
     } catch (_) { return false; }
   })();
@@ -93,11 +93,11 @@ function createWorktree(workspacePath, cardId, cardTitle) {
 
   if (branchExists) {
     // Branch exists, create worktree without -b flag
-    execSync(`git worktree add "${worktreePath}" "${branch}"`, { cwd: workspacePath });
+    execFileSync('git', ['worktree', 'add', worktreePath, branch], { cwd: workspacePath });
     process.stderr.write(`Worktree created from existing branch: ${worktreePath} (${branch})\n`);
   } else {
     // Branch doesn't exist, create new branch and worktree
-    execSync(`git worktree add -b "${branch}" "${worktreePath}"`, { cwd: workspacePath });
+    execFileSync('git', ['worktree', 'add', '-b', branch, worktreePath], { cwd: workspacePath });
     process.stderr.write(`Worktree created: ${worktreePath} (${branch})\n`);
   }
 
@@ -106,16 +106,16 @@ function createWorktree(workspacePath, cardId, cardTitle) {
 
 function removeWorktree(workspacePath, worktreePath) {
   try {
-    execSync(`git worktree remove --force "${worktreePath}"`, { cwd: workspacePath, stdio: 'ignore' });
+    execFileSync('git', ['worktree', 'remove', '--force', worktreePath], { cwd: workspacePath, stdio: 'ignore' });
   } catch (_) {
     try { fs.rmSync(worktreePath, { recursive: true, force: true }); } catch (_) {}
   }
-  try { execSync('git worktree prune', { cwd: workspacePath, stdio: 'ignore' }); } catch (_) {}
+  try { execFileSync('git', ['worktree', 'prune'], { cwd: workspacePath, stdio: 'ignore' }); } catch (_) {}
 }
 
 function getDiff(worktreePath, baseBranch) {
   try {
-    return execSync(`git diff "${baseBranch}...HEAD"`, {
+    return execFileSync('git', ['diff', `${baseBranch}...HEAD`], {
       cwd: worktreePath, maxBuffer: 5 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'ignore'],
     }).toString();
@@ -124,7 +124,7 @@ function getDiff(worktreePath, baseBranch) {
 
 function getCommits(worktreePath, baseBranch) {
   try {
-    return execSync(`git log "${baseBranch}..HEAD" --oneline`, {
+    return execFileSync('git', ['log', `${baseBranch}..HEAD`, '--oneline'], {
       cwd: worktreePath, stdio: ['ignore', 'pipe', 'ignore'],
     }).toString().trim();
   } catch (_) { return ''; }

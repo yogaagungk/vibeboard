@@ -113,15 +113,21 @@ Create a `.env` file (optional):
 ```
 PORT=7341
 VB_HOST=127.0.0.1
+VB_TOKEN=
 ```
 
 - `PORT` — HTTP/UI port (default `7341`).
 - `VB_HOST` — interface to bind to. Defaults to `127.0.0.1` (loopback only).
+- `VB_TOKEN` — shared access token required for **remote** clients when `VB_HOST`
+  is non-loopback. If left blank in network mode, a random token is generated and
+  printed at startup. Requests from the host machine (loopback) never need a token.
 
-> ⚠️ **Network exposure is opt-in.** VibeBoard has no authentication and can
-> spawn coding agents with skipped permissions in your project directories.
-> Only set `VB_HOST=0.0.0.0` on a trusted network — anyone who can reach the
-> port can move cards and trigger agents on your machine.
+> ⚠️ **Network exposure is opt-in.** When `VB_HOST` is non-loopback, VibeBoard
+> requires a token for any request coming from another machine — open the board
+> via `http://<host>:7341/?token=<token>` (shown at startup or set via `VB_TOKEN`).
+> Loopback access on the host stays token-free. Anyone who has the token can move
+> cards and trigger agents with skipped permissions in your project directories,
+> so only expose it on a trusted network.
 
 ## WIP Limits
 

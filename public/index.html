@@ -972,7 +972,6 @@ kbd {
 }
 .card-agent-badge.claude-code { background: #d97706; color: #fff; }
 .card-agent-badge.opencode    { background: #7c3aed; color: #fff; }
-.card-agent-badge.codex       { background: #2563eb; color: #fff; }
 .card-agent-badge.codex       { background: #0ea5e9; color: #fff; }
 
 /* ── Diff viewer ── */
@@ -1445,7 +1444,6 @@ kbd {
           <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
           <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
-          <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
         <div id="nc-model-row" style="display:none">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -1598,6 +1596,25 @@ kbd {
 <script>
 'use strict';
 
+// ── Network-mode token ───────────────────────────────────────────────────────
+// When the server runs on a non-loopback host it requires a shared token. The
+// operator opens the board via http://host:7341/?token=… ; we capture it once and
+// attach it to every same-origin fetch + the SSE stream. In normal local use the
+// URL has no token, so this is a no-op and fetch is left untouched.
+const VB_TOKEN = new URLSearchParams(location.search).get('token') || '';
+if (VB_TOKEN) {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    init = { ...(init || {}) };
+    init.headers = { ...(init.headers || {}), 'X-VB-Token': VB_TOKEN };
+    return _fetch(input, init);
+  };
+}
+function vbUrl(pathAndQuery) {
+  if (!VB_TOKEN) return pathAndQuery;
+  return pathAndQuery + (pathAndQuery.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(VB_TOKEN);
+}
+
 // ── Theme ──────────────────────────────────────────────────────────────────
 const THEME_KEY = 'vb_theme';
 const THEME_CYCLE = ['light', 'dark'];
@@ -1630,7 +1647,7 @@ const AGENT_LABELS = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'co
 let agentsAvailable = { 'claude-code': true, 'opencode': true, 'codex': true };
 fetch('/api/agents/available').then(r => r.json()).then(data => { agentsAvailable = data; }).catch(() => {});
 
-let availableModels = { 'claude-code': [], 'opencode': [] };
+let availableModels = { 'claude-code': [], 'opencode': [], 'codex': [] };
 fetch('/api/models').then(r => r.json()).then(data => { availableModels = data; }).catch(() => {});
 
 const runningCards = new Set();
@@ -2158,6 +2175,17 @@ function buildColumn(col) {
     if (!tCol || !sCol) return;
     const idx = sCol.cards.findIndex(c => c.id === draggingCard);
     if (idx === -1) return;
+
+    // Enforce WIP limit: block moving a card into a different column that is
+    // already at capacity. Reordering within the same column is always allowed.
+    const movingColumns = sCol.id !== tCol.id;
+    const wip = Number.isInteger(tCol.wip_limit) && tCol.wip_limit > 0 ? tCol.wip_limit : null;
+    if (movingColumns && wip && tCol.cards.length >= wip) {
+      showToast(`"${tCol.title}" is at its WIP limit (${wip}) — move blocked`, 4000);
+      draggingCard = null; draggingFromCol = null;
+      return;
+    }
+
     const [card] = sCol.cards.splice(idx, 1);
     const over = e.target.closest('.card');
     if (over?.dataset.cardId) {
@@ -2165,10 +2193,6 @@ function buildColumn(col) {
       if (oi !== -1) tCol.cards.splice(oi, 0, card); else tCol.cards.push(card);
     } else { tCol.cards.push(card); }
     draggingCard = null; draggingFromCol = null;
-
-    if (sCol.id !== tCol.id && Number.isInteger(tCol.wip_limit) && tCol.wip_limit > 0 && tCol.cards.length > tCol.wip_limit) {
-      showToast(`"${tCol.title}" is over its WIP limit (${tCol.cards.length}/${tCol.wip_limit})`, 4000);
-    }
 
     const spawnsAgent = card.agent && sCol.id !== tCol.id && (tCol.title === 'In Progress' || tCol.title === 'Review');
     if (spawnsAgent) {
@@ -2316,7 +2340,7 @@ document.getElementById('mobile-menu-btn').addEventListener('click', () => {
 // ── SSE ────────────────────────────────────────────────────────────────────
 function connectSSE() {
   if (es) { es.close(); es = null; }
-  es = new EventSource('/events');
+  es = new EventSource(vbUrl('/events'));
   es.onopen = () => { connDot.className = 'connected'; connDot.title = 'SSE connected'; };
   es.onmessage = e => {
     let msg; try { msg = JSON.parse(e.data); } catch(_) { return; }
