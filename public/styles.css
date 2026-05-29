@@ -1092,6 +1092,14 @@ kbd {
 .card-agent-badge.opencode    { background: #7c3aed; color: #fff; }
 .card-agent-badge.codex       { background: #0ea5e9; color: #fff; }
 
+.card-review-badge {
+  font-size: 10px; font-weight: 600; padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--tag-docs) 15%, transparent);
+  color: var(--tag-docs);
+  white-space: nowrap;
+}
+
 /* ── Run status / usage / queued / blocked badges ── */
 .run-status-badge {
   display: inline-flex; align-items: center; gap: 3px;

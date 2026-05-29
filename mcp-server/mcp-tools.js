@@ -76,6 +76,23 @@ module.exports = function registerMcpTools(mcp) {
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
+  mcp.tool('add_column', 'Add a new column to the active workspace',
+    { title: z.string(), color: z.string().optional() },
+    async ({ title, color }) => {
+      try {
+        const activeId = db.getActiveWorkspaceId();
+        if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+        const board = db.getBoard(activeId);
+        const exists = board.columns.find(c => c.title === title);
+        if (exists) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column already exists: ${title}` }) }] };
+        const col = db.createColumn(activeId, title, color || null);
+        db.addAgentLog(activeId, 'system', 'add_column', `Added column '${title}'`);
+        emitSSE('board_update', db.getBoard(activeId));
+        return { content: [{ type: 'text', text: JSON.stringify(col) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
+
   mcp.tool('create_card', 'Create a new card in a column (default: Backlog). blocked_by takes card IDs that must reach Done before this card can move to In Progress.',
     { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
     async ({ title, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date, blocked_by }) => {
