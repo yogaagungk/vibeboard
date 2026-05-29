@@ -192,8 +192,6 @@ module.exports = function registerMcpTools(mcp) {
       emitSSE('board_update', db.getBoard(card.workspace_id));
       emitSSE('trigger', { card, toColumn: 'Done' });
 
-      routeStopAgent(cardId);
-
       return { content: [{ type: 'text', text: JSON.stringify({ card, fromColumn: fromColumn.title }) }] };
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
