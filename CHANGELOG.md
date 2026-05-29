@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2026-05-29
+
+### Added
+- **Card sidebar redesigned** — 3-tab layout (Details / Agent / Activity) replaces the single long scrolling panel; each concern gets focused space with a persistent tab selection stored in `localStorage`.
+- **Description preview toggle** — new setting (off by default) to show/hide the 2-line description on kanban card tiles; toggling applies instantly without reload.
+- **Delete confirmation for unmerged cards** — deleting a card with an active branch and uncommitted work shows a warning dialog with the branch name and worktree path; confirming cascades cleanup: removes local worktree and local branch.
+- **`workspaceId` param on MCP tools** — `get_board`, `get_column`, and `create_card` now accept an optional `workspaceId` to target a specific workspace without switching the active one.
+
+### Changed
+- **MERGED badge moved above the title** — joins priority and agent badges in the `.card-top` row for faster scanning.
+
+### Fixed
+- **Add card button clipped at viewport bottom** — column `max-height` increased from `-40px` to `-80px` headroom so the sticky footer is never hidden behind OS chrome or taskbar.
+- **Empty column drop zone** — `min-height: 0` on `.cards-list` was collapsing empty columns; restored to `40px`, plus a `data-empty` attribute expands them to `80px` for easier drag-and-drop.
+- **Stop agent button hover** — now shows a light red background tint; was `background: transparent`.
+
+### Docs
+- `README.md`, `AGENTS.md`, and `CLAUDE.md` synced: `add_column` removed, `workspaceId?` and `merged_at?` params documented.
+
+## [0.2.4] - 2026-05-29
+
+### Added
+- **`merged_at` in `update_card` MCP tool** — agents that merge their own branch can set `merged_at` directly; the board pill and sidebar label update immediately via SSE.
+- **`requires_review` badge on kanban card** — cards with human review required show an orange "👁 Review" pill on the tile.
+
+### Fixed
+- **Card reverts to Backlog after drag** — `POST /board` was hitting express's default 100kb body limit; raised to 10mb (`express.json({ limit: '10mb' })`).
+- **MCP subprocess starts its own dead HTTP server** — subprocess now checks `port.lock` via a health check before binding; if the HTTP server is already running it enters proxy mode instead.
+- **`complete_card` blocking `agentDone`** — removed `routeStopAgent` call from `complete_card`; agent now exits naturally so exit stats, card notes, and `agent_completed` SSE all fire correctly.
+- **Run agent enabled on Done card after agent completes** — `modalColId` now updates in real-time when a card moves columns while the sidebar is open.
+- **Add card button** — moved back outside the scroll container as a sticky column footer; `min-height: 0` flex fix applied to `.cards-list`.
+- **Priority + agent badges** — moved above the card title into a `.card-top` row for faster scanning.
+
+## [0.2.3] - 2026-05-29
+
+### Added
+- **Viewport virtualization for large columns** — columns with 100+ cards mount only visible cards in the DOM; drag-and-drop and search still work across the full list.
+- **`merged_at` field exposed** — DB column added; board and sidebar reflect merge status; Merge button stamps the timestamp.
+
+### Fixed
+- **`move_card` re-triggered agent spawn on same-column move** — added `card.column_id !== toColumn.id` guard matching the existing WIP and blocker checks.
+- **MCP SSE not delivered on custom PORT** — MCP subprocess reads `port.lock` written by the HTTP server at startup; no hardcoding needed.
+- **Stop agent button stuck in "Stopping…"** — success path now calls `updateRunAgentBtn`; `agent_dequeued` SSE handler also updates the sidebar.
+- **Merge button stuck in "Merging…" on other cards** — button state reset before `closeCardModal()` in the success path.
+- **Run agent button enabled in wrong columns** — switched from Done-only blocklist to an explicit `['In Progress', 'Review']` allowlist.
+- **Newest card on top** — cards render in reverse position order (newest first) in every column.
+- **Agent log live updates appended to bottom** — fixed `push` → `unshift` so newest entry always appears at the top.
+- **"Update available" label always shown** — CSS `display: inline-flex` was overriding the `hidden` attribute; fixed with `.version-update-label[hidden] { display: none }`.
+
 ## [0.2.2] - 2026-05-29
 
 ### Added
