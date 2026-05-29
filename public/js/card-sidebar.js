@@ -105,8 +105,10 @@ function openCardModal(cardId, colId) {
   cardModalTitleEl.value = card.title || card.text || '';
   cardModalColBadge.textContent = col.title; cardModalColBadge.style.background = col.color || '#6b6860';
   const branchBadge = document.getElementById('card-modal-branch-badge');
-  if (card.branch) { branchBadge.textContent = card.branch; branchBadge.style.display = ''; }
-  else { branchBadge.style.display = 'none'; }
+  if (card.branch) {
+    branchBadge.textContent = card.branch + (card.merged_at ? ' (merged ' + fmtTime(card.merged_at) + ')' : '');
+    branchBadge.style.display = '';
+  } else { branchBadge.style.display = 'none'; }
   cardModalDesc.value = card.description || '';
 
   cardModalTagPicker.innerHTML = '';
@@ -554,16 +556,33 @@ function showChangesSection(card) {
   const meta     = document.getElementById('card-changes-meta');
   const diffView = document.getElementById('card-diff-view');
   const toggleBtn = document.getElementById('card-diff-toggle');
+  const mergedInfo = document.getElementById('card-merged-info');
+  const mergedDate = document.getElementById('card-merged-date');
 
-  if (!card.branch) {
+  if (!card.branch && !card.merged_at) {
     section.style.display = 'none';
     return;
   }
 
   document.getElementById('card-activity-divider').style.display = '';
   section.style.display = 'block';
+
+  if (card.merged_at) {
+    actions.style.display = 'none';
+    mergedInfo.style.display = 'flex';
+    mergedDate.textContent = fmtTime(card.merged_at);
+    badge.textContent = card.branch || '(no branch)';
+    meta.textContent = '';
+    diffView.style.display = 'none';
+    diffView.innerHTML = '';
+    toggleBtn.style.display = 'none';
+    return;
+  }
+
+  mergedInfo.style.display = 'none';
   const inDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
   actions.style.display = inDone ? 'flex' : 'none';
+  toggleBtn.style.display = '';
   const mergeBtn = document.getElementById('card-merge-btn');
   const prBtn    = document.getElementById('card-pr-btn');
   mergeBtn.disabled = true; mergeBtn.title = 'No commits on this branch yet';
@@ -663,6 +682,7 @@ function closeCardModal() {
   document.getElementById('card-move-actions').style.display = 'none';
   document.getElementById('card-modal-branch-badge').style.display = 'none';
   document.getElementById('card-merge-actions').style.display = 'none';
+  document.getElementById('card-merged-info').style.display = 'none';
   document.getElementById('card-changes-section').style.display = 'none';
   document.getElementById('card-activity-divider').style.display = 'none';
   document.getElementById('card-notes-section').style.display = 'none';

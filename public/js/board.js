@@ -199,6 +199,13 @@ function buildCard(card, colId) {
     b.title = card.branch;
     metaRow.appendChild(b);
   }
+  if (card.merged_at) {
+    const m = document.createElement('span');
+    m.className = 'merged-badge';
+    m.textContent = 'merged';
+    m.title = 'Merged: ' + fmtTime(card.merged_at);
+    metaRow.appendChild(m);
+  }
   if (runningCards.has(card.id)) {
     const dot = document.createElement('span');
     dot.className = 'card-running-dot';
