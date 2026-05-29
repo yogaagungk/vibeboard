@@ -13,6 +13,7 @@
 function vbDialog({
   title = '',
   message = '',
+  messageHtml = '',
   input = false,
   value = '',
   placeholder = '',
@@ -38,10 +39,14 @@ function vbDialog({
       box.setAttribute('aria-label', title);
       box.appendChild(h);
     }
-    if (message) {
+    if (message || messageHtml) {
       const m = document.createElement('div');
       m.className = 'vb-dialog-message';
-      m.textContent = message;
+      if (messageHtml) {
+        m.innerHTML = messageHtml;
+      } else {
+        m.textContent = message;
+      }
       box.appendChild(m);
     }
 
@@ -116,7 +121,7 @@ function vbDialog({
 }
 
 function vbConfirm(message, opts = {}) {
-  return vbDialog({ message, input: false, confirmText: 'Confirm', ...opts });
+  return vbDialog({ message, messageHtml: opts.messageHtml || '', input: false, confirmText: 'Confirm', ...opts });
 }
 
 function vbPrompt(message, opts = {}) {

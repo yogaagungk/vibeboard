@@ -325,10 +325,46 @@ function buildAddCardArea(col) {
 }
 
 // ── Board mutations ────────────────────────────────────────────────────────
-function deleteCard(cardId, colId) {
+async function deleteCard(cardId, colId) {
   const col = board.columns.find(c => c.id === colId); if (!col) return;
+  const card = col.cards.find(c => c.id === cardId);
+  if (!card) return;
+
+  // Show confirmation for cards with unmerged branch changes
+  if (card.branch && !card.merged_at) {
+    const branchLabel = card.branch.replace(/^vb\//, '');
+    const worktreeLabel = card.worktree_path
+      ? card.worktree_path.split(/[\\/]/).pop()
+      : branchLabel;
+    const html = `
+      <p>This card has unmerged code changes on branch:</p>
+      <span class="vb-dialog-code-block">${escHtml(card.branch)}</span>
+      <p>Deleting it will:</p>
+      <ul>
+        <li>Permanently delete the git worktree at:<br><span class="vb-dialog-code-block">.vb-worktrees/${escHtml(worktreeLabel)}</span></li>
+        <li>Delete the local branch ${escHtml(card.branch)}</li>
+        <li>Remove the card from the board</li>
+      </ul>
+      <p><strong>This cannot be undone.</strong></p>
+    `.trim();
+    const ok = await vbConfirm('', {
+      title: `Delete Card "${card.title || 'Untitled'}"?`,
+      messageHtml: html,
+      confirmText: 'Delete anyway',
+      cancelText: 'Cancel',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+
   col.cards = col.cards.filter(c => c.id !== cardId);
   renderBoard(board); postBoard();
+}
+
+function escHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 // ── Agent Log ──────────────────────────────────────────────────────────────
