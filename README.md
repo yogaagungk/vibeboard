@@ -160,7 +160,7 @@ Add a `vibeboard` entry under `mcpServers` in `~/.codex/config.json`:
 `get_board` · `get_column` · `list_workspaces` · `create_workspace` ·
 `switch_workspace` · `set_workspace` · `create_card` · `update_card` ·
 `move_card` · `complete_card` · `delete_card` · `add_card_note` ·
-`get_card_notes` · `add_column`
+`get_card_notes` · `list_models` · `refresh_models`
 
 ## Configuration
 
