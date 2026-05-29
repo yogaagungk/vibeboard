@@ -401,11 +401,13 @@ function updateRunAgentBtn(card) {
   }
   if (section) section.style.display = '';
   const running = runningCards.has(card.id);
-  const isDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
+  const AGENT_RUNNABLE_COLUMNS = ['In Progress', 'Review'];
+  const col = board.columns.find(c => c.id === modalColId);
+  const canRunAgent = AGENT_RUNNABLE_COLUMNS.includes(col?.title);
   if (btn) {
-    if (isDone && !running) {
+    if (!canRunAgent && !running) {
       btn.disabled = true;
-      btn.title = 'Card is in Done \u2014 move it back to In Progress to run the agent';
+      btn.title = 'Move card to In Progress or Review to run the agent';
       btn.textContent = 'Run agent';
     } else {
       btn.disabled = running;
@@ -741,8 +743,8 @@ document.getElementById('card-diff-toggle').addEventListener('click', async func
 document.getElementById('card-run-agent-btn').addEventListener('click', async function() {
   if (!modalCardId) return;
   const col = board.columns.find(c => c.id === modalColId);
-  if (col?.title === 'Done') {
-    showToast('Card is in Done \u2014 move it back to In Progress to run the agent', 3000, 'error');
+  if (!['In Progress', 'Review'].includes(col?.title || '')) {
+    showToast('Move card to In Progress or Review to run the agent', 3000, 'error');
     updateRunAgentBtn(col.cards.find(c => c.id === modalCardId));
     return;
   }
