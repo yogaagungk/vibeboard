@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-05-29
+
+### Security
+- CSRF protection on board mutations (cross-site Origin / spoofed Host requests
+  return 403). Network mode also adds a kill-switch endpoint to stop running
+  agents.
+
+### Added
+- Linear-inspired design system: lavender-blue accent, four-step surface
+  ladder, hairline borders, negative-tracked display type. Documented in
+  `DESIGN.md`.
+- Radius scale tokens (`--radius-xs/sm/md/lg/xl/pill`), `--surface-4`,
+  `--text-strong`, and `--accent-focus` for tighter alignment with Linear.
+- In-app version badge that polls the npm registry and lights up when an
+  upgrade is available.
+- Collapsible left rail; refreshed dropdowns, card sidebar, agent log.
+- Single source of truth for the running version: `mcp-server/config.js` now
+  reads `version` from `package.json`, so future bumps only happen in one place.
+
+### Fixed
+- Themed dropdowns (`vbSelect`) no longer close when the user scrolls inside
+  the popup, so long agent / model lists are usable in the new-card dialog and
+  card sidebar.
+- Stripped stray glyphs and em dashes from the UI copy and README; brand mark
+  in the app header is plain text.
+
 ## [0.1.0] - 2026-05-29
 
 ### Security

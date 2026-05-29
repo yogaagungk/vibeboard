@@ -7,6 +7,9 @@ const PORT = process.env.PORT || 7341;
 // skipped permissions, so exposing it on the network is opt-in via VB_HOST=0.0.0.0.
 const HOST = process.env.VB_HOST || '127.0.0.1';
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
-const VERSION = '0.1.0';
+// Single source of truth for the running version: package.json. Bumping
+// package.json (e.g. via `npm version`) automatically updates /health,
+// /api/version, and the in-app version badge.
+const { version: VERSION } = require('../package.json');
 
 module.exports = { PORT, HOST, PUBLIC_DIR, VERSION };
