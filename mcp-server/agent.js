@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, DATA_DIR } = require('./db');
@@ -115,7 +115,7 @@ function startOutputWatcher(cardId, outputFile, emitSSE) {
   }, 500);
 }
 
-function buildPrompt(card, column, workspace, branch) {
+function buildPrompt(card, column, workspace, branch, worktreePath) {
   const dataBlock = wrapCardData([
     { label: 'Title',       value: card.title },
     { label: 'Description', value: card.description },
@@ -145,12 +145,17 @@ function buildPrompt(card, column, workspace, branch) {
     ? `\n\nUser instructions (also untrusted):\n<user-instructions>\n${sanitizeForPrompt(card.custom_prompt)}\n</user-instructions>`
     : '';
 
+  const workIn = worktreePath || workspace.path;
+  const worktreeWarning = worktreePath
+    ? `\nIMPORTANT: Your shell cwd is a git worktree at ${sanitizeForPrompt(worktreePath)}. Write ALL files there, NOT to the workspace root at ${sanitizeForPrompt(workspace.path)}. The workspace root must remain clean.`
+    : '';
+
   return `Task on VibeBoard.
 ${dataBlock ? dataBlock + '\n\n' : ''}Card ID: ${card.id} - Workspace ID: ${workspace.id}
-Work in: ${workspace.path}
+Work in: ${workIn}
 ${branchLine}
 ${phase}
-
+${worktreeWarning}
 Use the vibeboard MCP tools: get_board to read state, add_card_note often to log progress and findings, move_card / complete_card to change status. Commit your work with git as you go.${custom}`;
 }
 
@@ -263,7 +268,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     return;
   }
 
-  const prompt = buildPrompt(card, column, workspace, branch);
+  const prompt = buildPrompt(card, column, workspace, branch, worktreePath);
   const outputFile = getOutputFile(cardId);
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
@@ -284,6 +289,8 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     activeAgents.set(cardId, {
       cardId, workspaceId, agentType, child,
       startTime, outputFile, watchInterval, timeoutId,
+      workspacePath: workspace.path,
+      worktreePath,
     });
 
     updateCard(cardId, { agent_ran_at: startTime });
@@ -340,6 +347,26 @@ function agentDone(cardId, code, emitSSE) {
   }
 
   const duration = Math.round((Date.now() - new Date(info.startTime).getTime()) / 1000);
+
+  // Sanity check: if the workspace uses a worktree, verify the workspace root
+  // is clean. Agent writes leaking outside the worktree should be visible here.
+  if (info.worktreePath) {
+    try {
+      const status = execSync('git status --porcelain', {
+        cwd: info.workspacePath,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 5000,
+      }).toString().trim();
+      if (status) {
+        const msg = `Worktree leak detected: workspace root (${info.workspacePath}) has dirty files after agent completed:\n${status.slice(0, 2000)}`;
+        process.stderr.write(`[agent_warning] ${msg}\n`);
+        addAgentLog(info.workspaceId, info.agentType, 'agent_warning', msg);
+        addCardNote(cardId, `[WARN] ${msg}`);
+      }
+    } catch (_) {
+      // git not available or not a repo; skip check silently
+    }
+  }
 
   // Persist the run outcome on the card so it survives refresh (shown as a badge).
   updateCard(cardId, {
@@ -418,4 +445,4 @@ function getPendingRespawnCardIds() {
   return Array.from(pendingRespawn.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage };
+module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt };
