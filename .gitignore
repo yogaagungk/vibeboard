@@ -42,3 +42,4 @@ yarn-error.log*
 # Testing
 coverage/
 .nyc_output/
+.vb-worktrees/

@@ -353,6 +353,7 @@ applySidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1');
 // ── Version badge + update check ─────────────────────────────────────────────
 async function checkVersion() {
   const badge = document.getElementById('version-badge');
+  const label = document.getElementById('version-update-label');
   if (!badge) return;
   try {
     const r = await fetch('/api/version');
@@ -363,6 +364,7 @@ async function checkVersion() {
     if (v.updateAvailable && v.latest) {
       badge.classList.add('update');
       badge.title = `Update available: v${v.current} → v${v.latest} - click to copy the upgrade command`;
+      if (label) label.hidden = false;
       const cmd = `npm install -g ${v.package}@latest`;
       badge.onclick = () => {
         if (navigator.clipboard) {
@@ -372,6 +374,8 @@ async function checkVersion() {
           );
         } else { showToast(`Upgrade with: ${cmd}`, 7000); }
       };
+    } else {
+      if (label) label.hidden = true;
     }
   } catch (_) {}
 }

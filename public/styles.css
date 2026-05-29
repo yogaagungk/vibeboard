@@ -137,6 +137,13 @@ body {
 }
 .version-badge.update:hover { border-color: var(--accent); }
 
+.version-update-label {
+  font-family: 'Inter', ui-sans-serif, sans-serif;
+  font-size: 11px; font-weight: 500; line-height: 1;
+  color: var(--tag-docs); white-space: nowrap;
+  display: inline-flex; align-items: center;
+}
+
 .header-btn {
   height: 30px; padding: 0 12px;
   border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -565,14 +572,16 @@ body.mcp-banner-open #log-sidebar {
 .card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .tag {
   font-size: 10px; font-weight: 500; padding: 1px 7px;
-  border-radius: var(--radius-pill); color: #fff; text-transform: lowercase; letter-spacing: 0.2px;
+  border-radius: var(--radius-pill); color: var(--text-strong);
+  background: var(--surface-2);
+  text-transform: lowercase; letter-spacing: 0.2px;
 }
-.tag-feature { background: var(--tag-feature); }
-.tag-bug     { background: var(--tag-bug); }
-.tag-design  { background: var(--tag-design); }
-.tag-infra   { background: var(--tag-infra); }
-.tag-docs    { background: var(--tag-docs); }
-.tag-api     { background: var(--tag-api); }
+.tag-feature { background: var(--tag-feature); color: #fff; }
+.tag-bug     { background: var(--tag-bug);     color: #fff; }
+.tag-design  { background: var(--tag-design);  color: #fff; }
+.tag-infra   { background: var(--tag-infra);   color: #fff; }
+.tag-docs    { background: var(--tag-docs);    color: #fff; }
+.tag-api     { background: var(--tag-api);     color: #fff; }
 
 .card-del-btn {
   position: absolute; top: 6px; right: 6px;
