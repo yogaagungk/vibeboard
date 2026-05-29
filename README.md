@@ -72,7 +72,6 @@ Available tools for AI agents:
 - `delete_card` — Remove a card
 - `add_card_note` — Add progress note/checkpoint
 - `get_card_notes` — Get all notes for a card
-- `add_column` — Add a new column
 
 ## Configuration
 
@@ -156,11 +155,13 @@ npm run dev  # Start with auto-reload
 
 ## Architecture
 
-- **mcp-server/index.js** — MCP server + HTTP server + SSE
-- **mcp-server/db.js** — SQLite database layer
-- **mcp-server/agent.js** — Agent spawning and lifecycle
-- **mcp-server/migrate.js** — Legacy JSON to SQLite migration
-- **public/index.html** — Single-file UI (vanilla JS, no build step)
+No build step — plain Node.js (CommonJS) on the server, plain HTML/CSS/JS on the client.
+
+- **mcp-server/** — `index.js` bootstrap wiring `http-routes.js` (REST + SSE),
+  `mcp-tools.js` (MCP tools), `events.js`, `auth.js`, `agent.js` (spawn/queue),
+  `worktree.js`, `db.js` (SQLite), `migrate.js`, and supporting modules
+- **public/** — `index.html` markup + `styles.css` + ordered `js/*.js` classic
+  scripts (vanilla JS, no bundler), served as static files
 
 ## Contributing
 

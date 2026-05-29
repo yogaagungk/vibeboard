@@ -9,8 +9,14 @@
   "scripts": {
     "start": "node mcp-server/index.js",
     "dev": "node --watch mcp-server/index.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "prepublishOnly": "npm test"
   },
+  "files": [
+    "mcp-server/",
+    "public/",
+    "CHANGELOG.md"
+  ],
   "keywords": [
     "kanban",
     "mcp",
