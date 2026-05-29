@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-05-29
+
+### Added
+- **list_models / refresh_models MCP tools** - agents can now discover valid
+  model IDs without guessing. `list_models({ agent? })` returns the per-agent
+  model list; `refresh_models()` nudges the cache and returns counts.
+- **Persistent `merged_at` flag on cards** - pressing Merge now stamps a
+  timestamp on the card instead of clearing the branch name. Cards show a
+  green "merged" pill on the board; the sidebar hides Merge/PR/Diff buttons
+  and shows "Merged YYYY-MM-DD" instead.
+- **expose `requires_review` and `custom_prompt` in `update_card`** MCP tool
+  - boolean and string fields the data layer already supported but the MCP
+  schema omitted.
+- **Neutral tag fallback** - `.tag` now has a `--surface-2` background and
+  `--text-strong` text, so custom tags (`mcp`, `agent-experience`, etc.)
+  render legibly instead of invisible white-on-white.
+- **Textual "Update available" label** in the header next to the version
+  badge, in orange (`--tag-docs`), with `aria-live="polite"`. Only shown
+  when an upgrade is detected.
+
+### Fixed
+- **Card footer clipped** - removed `overflow: hidden` from `.card` so the
+  tags/priority/agent badges row is never cut off.
+- **Invisible column scrollbar** - scrollbar width bumped from 4px to 8px
+  across all scroll regions (cards-list, sidebar, log, workspace list), with
+  a hover-darken effect on the thumb. Scrollbar now grabbable on Windows.
+- **Auto-spawn on Review** - when an active agent calls `move_card` to
+  Review, VibeBoard queues a follow-up spawn that fires after the current
+  agent exits, so Review phase runs without manual re-trigger.
+- **Agent writes leaking outside worktree** - `buildPrompt` now includes the
+  worktree path (not the workspace root) in the "Work in:" line, and the
+  prompt explicitly tells the agent to work inside the worktree directory.
+  On agent exit, a sanity check compares `git status` between the worktree
+  and main; leaks are logged as `agent_warning` with a card note.
+- **Run agent button disabled for Done cards** - greyed with explanatory
+  tooltip; click handler early-returns with a toast.
+
 ## [0.2.1] - 2026-05-29
 
 ### Security
