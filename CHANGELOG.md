@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-05-29
+
+### Security
+- Workspace path validation: `create_workspace` and `set_workspace` reject
+  obvious foot-guns (filesystem root, the home directory itself, system dirs
+  like `/etc`, `C:\Windows`, `/System`) and non-existent paths. Cross-platform
+  via `os.homedir()` + per-OS denylist; case-insensitive on Windows/macOS.
+- Spawn-dir verification: right before `spawn()`, the agent's working
+  directory is re-checked. Symlinks are refused; worktree paths must resolve
+  inside the workspace root. Catches deleted workspaces, symlink swaps, and
+  worktrees that escaped their root.
+- Prompt-injection hardening: card title, description, tags, priority,
+  due date, branch, and custom prompt are sanitized (ANSI escapes, ASCII
+  control chars, zero-width and bidi-override characters stripped) and
+  wrapped in a clearly delimited `<card-data>` block. The system context
+  tells the agent to treat everything inside as untrusted task data, never
+  as instructions. Literal `</card-data>` strings inside user content are
+  HTML-encoded so they cannot close the wrapper.
+
+### Changed
+- MCP-created cards now default to `requires_review = false`, matching the
+  new-card UI dialog. Pass `requires_review: true` explicitly to opt in.
+
 ## [0.2.0] - 2026-05-29
 
 ### Security

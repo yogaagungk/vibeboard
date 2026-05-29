@@ -35,7 +35,9 @@ module.exports = function registerRoutes(app) {
 
   app.post('/workspaces', (req, res) => {
     const { name = '', path: wsPath = '', description = '', use_worktree = 0 } = req.body;
-    const ws = db.createWorkspace(name, wsPath, description, use_worktree);
+    let ws;
+    try { ws = db.createWorkspace(name, wsPath, description, use_worktree); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
     if (!db.getActiveWorkspaceId()) {
       db.setActiveWorkspaceId(ws.id);
       emitSSE('workspace_switch', { board: db.getBoard(ws.id), workspaceId: ws.id });
@@ -64,7 +66,7 @@ module.exports = function registerRoutes(app) {
       const active = db.getActiveWorkspaceId();
       emitSSE('workspace_list', db.listWorkspaces().map(w => ({ ...w, active: w.id === active })));
       res.json({ ok: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(400).json({ error: err.message }); }
   });
 
   app.delete('/workspaces/:id', (req, res) => {
@@ -284,7 +286,9 @@ module.exports = function registerRoutes(app) {
 
     const body = req.body;
     if (body.name !== undefined || body.path !== undefined || body.description !== undefined || body.use_worktree !== undefined) {
-      db.updateWorkspace(activeId, { name: body.name, path: body.path, description: body.description, use_worktree: body.use_worktree });
+      try {
+        db.updateWorkspace(activeId, { name: body.name, path: body.path, description: body.description, use_worktree: body.use_worktree });
+      } catch (err) { return res.status(400).json({ error: err.message }); }
     }
     if (Array.isArray(body.columns)) {
       db.syncBoard(activeId, body.columns);

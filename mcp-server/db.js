@@ -150,6 +150,8 @@ function getWorkspace(id) {
 }
 
 function createWorkspace(name, wsPath, description = '', useWorktree = 0) {
+  const { validateWorkspacePath } = require('./path-guard');
+  validateWorkspacePath(wsPath);
   const id = 'ws-' + crypto.randomUUID();
   const now = new Date().toISOString();
 
@@ -178,7 +180,11 @@ function updateWorkspace(id, updates) {
   const values = [];
 
   if (updates.name !== undefined)         { fields.push('name = ?');         values.push(updates.name); }
-  if (updates.path !== undefined)         { fields.push('path = ?');         values.push(updates.path); }
+  if (updates.path !== undefined) {
+    const { validateWorkspacePath } = require('./path-guard');
+    validateWorkspacePath(updates.path);
+    fields.push('path = ?'); values.push(updates.path);
+  }
   if (updates.description !== undefined)  { fields.push('description = ?');  values.push(updates.description); }
   if (updates.use_worktree !== undefined) { fields.push('use_worktree = ?'); values.push(updates.use_worktree ? 1 : 0); }
 
@@ -260,9 +266,11 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const id = 'card-' + crypto.randomUUID();
   const now = new Date().toISOString();
   const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(columnId).pos;
-  // Default review ON unless explicitly disabled, matching the UI sync path
-  // (db.syncBoard) so a card behaves the same however it was created.
-  const requiresReview = options.requires_review === false ? 0 : 1;
+  // Default review OFF unless explicitly enabled, matching the new-card UI
+  // (`#nc-needs-review` is unchecked by default). The card-sidebar toggle
+  // shows up checked for legacy cards but new cards now consistently start
+  // with requires_review = 0 across all entry points (UI, MCP, sync).
+  const requiresReview = options.requires_review === true ? 1 : 0;
   const priority = options.priority || null;
   const customPrompt = options.custom_prompt || null;
   const dueDate = options.due_date || null;

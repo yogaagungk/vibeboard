@@ -9,17 +9,29 @@ const fs = require('fs');
 const TMP_DB = path.join(os.tmpdir(), `vb-test-${Date.now()}.db`);
 process.env.VB_DB_PATH = TMP_DB;
 
+// Per-test workspace dirs need to actually exist on disk because
+// createWorkspace now validates the path. Create them on demand inside the
+// OS temp dir.
+const TMP_WS_ROOT = path.join(os.tmpdir(), `vb-test-ws-${Date.now()}`);
+fs.mkdirSync(TMP_WS_ROOT, { recursive: true });
+function tmpWs(name) {
+  const dir = path.join(TMP_WS_ROOT, name);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 // Require after setting the env var
 const db = require('../mcp-server/db');
 
 after(() => {
   try { fs.unlinkSync(TMP_DB); } catch (_) {}
+  try { fs.rmSync(TMP_WS_ROOT, { recursive: true, force: true }); } catch (_) {}
 });
 
 // ── Workspaces ───────────────────────────────────────────────────────────────
 
 test('createWorkspace creates workspace with default columns', () => {
-  const ws = db.createWorkspace('Test WS', '/tmp/test', 'desc', 0);
+  const ws = db.createWorkspace('Test WS', tmpWs('test'), 'desc', 0);
   assert.ok(ws.id.startsWith('ws-'));
   assert.equal(ws.name, 'Test WS');
   const board = db.getBoard(ws.id);
@@ -28,13 +40,13 @@ test('createWorkspace creates workspace with default columns', () => {
 });
 
 test('listWorkspaces returns created workspace', () => {
-  const ws = db.createWorkspace('Listed WS', '/tmp/listed');
+  const ws = db.createWorkspace('Listed WS', tmpWs('listed'));
   const list = db.listWorkspaces();
   assert.ok(list.some(w => w.id === ws.id));
 });
 
 test('updateWorkspace updates name and description', () => {
-  const ws = db.createWorkspace('Old Name', '/tmp/upd');
+  const ws = db.createWorkspace('Old Name', tmpWs('upd'));
   db.updateWorkspace(ws.id, { name: 'New Name', description: 'updated' });
   const updated = db.getWorkspace(ws.id);
   assert.equal(updated.name, 'New Name');
@@ -42,7 +54,7 @@ test('updateWorkspace updates name and description', () => {
 });
 
 test('deleteWorkspace removes it', () => {
-  const ws = db.createWorkspace('To Delete', '/tmp/del');
+  const ws = db.createWorkspace('To Delete', tmpWs('del'));
   db.deleteWorkspace(ws.id);
   assert.equal(db.getWorkspace(ws.id), undefined);
 });
@@ -50,7 +62,7 @@ test('deleteWorkspace removes it', () => {
 // ── Cards ────────────────────────────────────────────────────────────────────
 
 test('createCard adds card to column', () => {
-  const ws = db.createWorkspace('Card WS', '/tmp/cards');
+  const ws = db.createWorkspace('Card WS', tmpWs('cards'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0]; // Backlog
   const card = db.createCard(ws.id, col.id, 'My Task', { description: 'desc', tags: ['bug'], priority: 'high', due_date: '2026-12-01' });
@@ -62,7 +74,7 @@ test('createCard adds card to column', () => {
 });
 
 test('getCard returns card with all fields', () => {
-  const ws = db.createWorkspace('GetCard WS', '/tmp/gc');
+  const ws = db.createWorkspace('GetCard WS', tmpWs('gc'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const created = db.createCard(ws.id, col.id, 'Get Me', { priority: 'low', due_date: '2026-06-01', custom_prompt: 'be terse' });
@@ -74,7 +86,7 @@ test('getCard returns card with all fields', () => {
 });
 
 test('updateCard updates fields selectively', () => {
-  const ws = db.createWorkspace('Update WS', '/tmp/updc');
+  const ws = db.createWorkspace('Update WS', tmpWs('updc'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const card = db.createCard(ws.id, col.id, 'Original');
@@ -86,7 +98,7 @@ test('updateCard updates fields selectively', () => {
 });
 
 test('moveCard moves card to another column', () => {
-  const ws = db.createWorkspace('Move WS', '/tmp/mv');
+  const ws = db.createWorkspace('Move WS', tmpWs('mv'));
   const board = db.getBoard(ws.id);
   const [backlog, inProgress] = board.columns;
   const card = db.createCard(ws.id, backlog.id, 'Moveable');
@@ -96,7 +108,7 @@ test('moveCard moves card to another column', () => {
 });
 
 test('deleteCard removes card', () => {
-  const ws = db.createWorkspace('Del Card WS', '/tmp/dc');
+  const ws = db.createWorkspace('Del Card WS', tmpWs('dc'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const card = db.createCard(ws.id, col.id, 'Delete Me');
@@ -107,7 +119,7 @@ test('deleteCard removes card', () => {
 // ── Notes ────────────────────────────────────────────────────────────────────
 
 test('addCardNote and getCardNotes work', () => {
-  const ws = db.createWorkspace('Notes WS', '/tmp/notes');
+  const ws = db.createWorkspace('Notes WS', tmpWs('notes'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const card = db.createCard(ws.id, col.id, 'Noted Card');
@@ -122,7 +134,7 @@ test('addCardNote and getCardNotes work', () => {
 // ── Agent log ─────────────────────────────────────────────────────────────────
 
 test('addAgentLog inserts and caps at 500', () => {
-  const ws = db.createWorkspace('Log WS', '/tmp/log');
+  const ws = db.createWorkspace('Log WS', tmpWs('log'));
   // Insert 510 log entries
   for (let i = 0; i < 510; i++) {
     db.addAgentLog(ws.id, 'claude-code', 'test_action', `entry ${i}`);
@@ -134,7 +146,7 @@ test('addAgentLog inserts and caps at 500', () => {
 // ── Export / Import ───────────────────────────────────────────────────────────
 
 test('exportWorkspace returns correct structure', () => {
-  const ws = db.createWorkspace('Export WS', '/tmp/exp');
+  const ws = db.createWorkspace('Export WS', tmpWs('exp'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   db.createCard(ws.id, col.id, 'Exported Card', { priority: 'high', tags: ['feature'] });
@@ -151,7 +163,7 @@ test('exportWorkspace returns correct structure', () => {
 test('importWorkspace creates workspace with cards', () => {
   const exportData = {
     version: 1,
-    workspace: { name: 'Imported WS', path: '/tmp/imp', description: 'test' },
+    workspace: { name: 'Imported WS', path: tmpWs('imp'), description: 'test' },
     columns: [
       { title: 'Backlog',     color: '#888', position: 0, cards: [{ title: 'Card A', tags: ['bug'], priority: 'low', notes: [{ content: 'a note', created_at: new Date().toISOString() }] }] },
       { title: 'In Progress', color: '#00f', position: 1, cards: [] },
@@ -174,7 +186,7 @@ test('importWorkspace creates workspace with cards', () => {
 // ── WIP limits ────────────────────────────────────────────────────────────────
 
 test('syncBoard persists column wip_limit and getBoard returns it', () => {
-  const ws = db.createWorkspace('WIP WS', '/tmp/wip');
+  const ws = db.createWorkspace('WIP WS', tmpWs('wip'));
   const board = db.getBoard(ws.id);
   board.columns[1].wip_limit = 3; // In Progress
   db.syncBoard(ws.id, board.columns);
@@ -184,7 +196,7 @@ test('syncBoard persists column wip_limit and getBoard returns it', () => {
 });
 
 test('exportWorkspace/importWorkspace preserve wip_limit', () => {
-  const ws = db.createWorkspace('WIP Export', '/tmp/wipexp');
+  const ws = db.createWorkspace('WIP Export', tmpWs('wipexp'));
   const board = db.getBoard(ws.id);
   board.columns[2].wip_limit = 5; // Review
   db.syncBoard(ws.id, board.columns);
@@ -198,7 +210,7 @@ test('exportWorkspace/importWorkspace preserve wip_limit', () => {
 // ── Dependencies + run status ───────────────────────────────────────────────────
 
 test('createCard persists blocked_by and getBoard/getCard return it as an array', () => {
-  const ws = db.createWorkspace('Dep WS', '/tmp/dep');
+  const ws = db.createWorkspace('Dep WS', tmpWs('dep'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const blocker = db.createCard(ws.id, col.id, 'Blocker');
@@ -211,7 +223,7 @@ test('createCard persists blocked_by and getBoard/getCard return it as an array'
 });
 
 test('updateCard records run status fields and they survive a UI sync', () => {
-  const ws = db.createWorkspace('Run WS', '/tmp/run');
+  const ws = db.createWorkspace('Run WS', tmpWs('run'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const card = db.createCard(ws.id, col.id, 'Ran');
@@ -231,7 +243,7 @@ test('updateCard records run status fields and they survive a UI sync', () => {
 });
 
 test('syncBoard persists blocked_by edited from the UI', () => {
-  const ws = db.createWorkspace('Dep Sync WS', '/tmp/depsync');
+  const ws = db.createWorkspace('Dep Sync WS', tmpWs('depsync'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
   const a = db.createCard(ws.id, col.id, 'A');
@@ -246,7 +258,7 @@ test('syncBoard persists blocked_by edited from the UI', () => {
 // ── Active workspace ──────────────────────────────────────────────────────────
 
 test('setActiveWorkspaceId and getActiveWorkspaceId work', () => {
-  const ws = db.createWorkspace('Active WS', '/tmp/active');
+  const ws = db.createWorkspace('Active WS', tmpWs('active'));
   db.setActiveWorkspaceId(ws.id);
   assert.equal(db.getActiveWorkspaceId(), ws.id);
 });
