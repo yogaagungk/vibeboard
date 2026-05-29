@@ -38,8 +38,9 @@ function applySearch() {
     c.style.display = match ? '' : 'none';
     if (match) visible++;
   });
-  searchClear.style.display = '';
-  searchCount.style.display = '';
+  // Use an explicit value: '' would fall back to the CSS rule (display:none).
+  searchClear.style.display = 'inline-block';
+  searchCount.style.display = 'inline-block';
   searchCount.textContent = `${visible} of ${total}`;
 }
 
