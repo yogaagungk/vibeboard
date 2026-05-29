@@ -2,6 +2,12 @@
 
 // ── Render board ───────────────────────────────────────────────────────────
 function renderBoard(b) {
+  const scrollPositions = new Map();
+  boardEl.querySelectorAll('.cards-list').forEach(function(cl) {
+    var colId = cl.dataset.colId;
+    if (colId) scrollPositions.set(colId, cl.scrollTop);
+  });
+
   board = b;
   if (Array.isArray(b.runningCards)) {
     runningCards.clear();
@@ -13,6 +19,14 @@ function renderBoard(b) {
   }
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
+
+  requestAnimationFrame(function() {
+    scrollPositions.forEach(function(top, colId) {
+      var cl = boardEl.querySelector('.cards-list[data-col-id="' + colId + '"]');
+      if (cl && top > 0) cl.scrollTop = top;
+    });
+  });
+
   renderLog(board.agentLog || []);
   applySearch();
 }
@@ -97,8 +111,7 @@ function buildColumn(col) {
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
   
   const reversedCards = [...col.cards].reverse();
-  if (reversedCards.length >= 100) {
-    colEl.appendChild(cardsList);
+  if (reversedCards.length >= VIRTUALIZE_THRESHOLD) {
     virtualizeColumn(colEl, reversedCards);
   } else {
     reversedCards.forEach(card => cardsList.appendChild(buildCard(card, col.id)));
@@ -162,9 +175,7 @@ function buildColumn(col) {
     }
   });
 
-  if (col.cards.length < 100) {
-    colEl.appendChild(cardsList);
-  }
+  colEl.appendChild(cardsList);
   colEl.appendChild(buildAddCardArea(col));
   return colEl;
 }
