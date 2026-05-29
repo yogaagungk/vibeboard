@@ -24,13 +24,28 @@ const searchCount = document.getElementById('board-search-count');
 
 function applySearch() {
   const q = searchInput.value.trim().toLowerCase();
-  const cards = boardEl.querySelectorAll('.card');
+  
   if (!q) {
+    virtualizedColumns.forEach((state, colId) => {
+      if (state.searchActive) {
+        state.searchActive = false;
+        updateVisibleRange(state);
+      }
+    });
+    
+    const cards = boardEl.querySelectorAll('.card');
     cards.forEach(c => c.style.display = '');
     searchClear.style.display = 'none';
     searchCount.style.display = 'none';
     return;
   }
+  
+  virtualizedColumns.forEach((state, colId) => {
+    state.searchActive = true;
+    temporarilyRenderAllCards(colId);
+  });
+  
+  const cards = boardEl.querySelectorAll('.card');
   let total = 0, visible = 0;
   cards.forEach(c => {
     total++;
@@ -38,7 +53,7 @@ function applySearch() {
     c.style.display = match ? '' : 'none';
     if (match) visible++;
   });
-  // Use an explicit value: '' would fall back to the CSS rule (display:none).
+  
   searchClear.style.display = 'inline-block';
   searchCount.style.display = 'inline-block';
   searchCount.textContent = `${visible} of ${total}`;
@@ -163,8 +178,17 @@ function buildCard(card, colId) {
   el.setAttribute('role', 'button');
   el.setAttribute('aria-label', `Open card: ${card.title || card.text || 'Untitled'}`);
 
-  el.addEventListener('dragstart', e => { draggingCard = card.id; draggingFromCol = colId; e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging'); });
-  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  el.addEventListener('dragstart', e => { 
+    draggingCard = card.id; 
+    draggingFromCol = colId; 
+    e.dataTransfer.effectAllowed = 'move'; 
+    el.classList.add('dragging');
+    if (typeof notifyDragStart === 'function') notifyDragStart();
+  });
+  el.addEventListener('dragend', () => { 
+    el.classList.remove('dragging');
+    if (typeof notifyDragEnd === 'function') notifyDragEnd();
+  });
   el.addEventListener('click', () => openCardModal(card.id, colId));
   el.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); openCardModal(card.id, colId); }

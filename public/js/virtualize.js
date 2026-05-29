@@ -5,6 +5,7 @@ const ESTIMATED_CARD_HEIGHT = 120;
 const RENDER_BATCH_SIZE = 20;
 
 const virtualizedColumns = new Map();
+let dragInProgress = false;
 
 function virtualizeColumn(colEl, cards) {
   const colId = colEl.dataset.colId;
@@ -30,6 +31,7 @@ function virtualizeColumn(colEl, cards) {
       spacerBottom: null,
       renderedCards: new Map(),
       scrollListener: null,
+      searchActive: false,
     };
     virtualizedColumns.set(colId, state);
   }
@@ -59,6 +61,8 @@ function virtualizeColumn(colEl, cards) {
 }
 
 function updateVisibleRange(state) {
+  if (dragInProgress || state.searchActive) return;
+  
   const { cardsList, cards } = state;
   const scrollTop = cardsList.scrollTop;
   const viewportHeight = cardsList.clientHeight;
@@ -134,4 +138,49 @@ function isColumnVirtualized(colId) {
 
 function getVirtualizedState(colId) {
   return virtualizedColumns.get(colId);
+}
+
+function temporarilyRenderAllCards(colId) {
+  const state = virtualizedColumns.get(colId);
+  if (!state) return;
+
+  dragInProgress = true;
+  const { cardsList, cards, spacerTop, spacerBottom } = state;
+
+  spacerTop.style.height = '0px';
+  spacerBottom.style.height = '0px';
+
+  const fragment = document.createDocumentFragment();
+  cards.forEach(card => {
+    if (!state.renderedCards.has(card.id)) {
+      const cardEl = buildCard(card, colId);
+      fragment.appendChild(cardEl);
+    }
+  });
+
+  if (fragment.children.length > 0) {
+    cardsList.insertBefore(fragment, spacerBottom);
+  }
+
+  state.visibleRange = { start: 0, end: cards.length };
+}
+
+function restoreVirtualization(colId) {
+  dragInProgress = false;
+  const state = virtualizedColumns.get(colId);
+  if (!state) return;
+
+  updateVisibleRange(state);
+}
+
+function notifyDragStart() {
+  virtualizedColumns.forEach((state, colId) => {
+    temporarilyRenderAllCards(colId);
+  });
+}
+
+function notifyDragEnd() {
+  virtualizedColumns.forEach((state, colId) => {
+    restoreVirtualization(colId);
+  });
 }
