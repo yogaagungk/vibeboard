@@ -22,8 +22,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check server syntax
-        run: node --check mcp-server/index.js mcp-server/db.js mcp-server/agent.js mcp-server/worktree.js mcp-server/migrate.js
+      - name: Syntax-check server + UI modules
+        run: for f in mcp-server/*.js public/js/*.js; do node --check "$f"; done
 
       - name: Validate package.json
         run: node -e "require('./package.json')"
