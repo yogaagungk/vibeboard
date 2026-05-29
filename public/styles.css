@@ -143,6 +143,7 @@ body {
   color: var(--tag-docs); white-space: nowrap;
   display: inline-flex; align-items: center;
 }
+.version-update-label[hidden] { display: none; }
 
 .header-btn {
   height: 30px; padding: 0 12px;
