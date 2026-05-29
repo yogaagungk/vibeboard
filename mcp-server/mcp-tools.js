@@ -148,7 +148,7 @@ module.exports = function registerMcpTools(mcp) {
         db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
         emitSSE('board_update', db.getBoard(card.workspace_id));
 
-        if ((toColumnTitle === 'In Progress' || toColumnTitle === 'Review') && card.agent) {
+        if (card.column_id !== toColumn.id && (toColumnTitle === 'In Progress' || toColumnTitle === 'Review') && card.agent) {
           emitSSE('trigger', { card, toColumn: toColumnTitle, agent: card.agent });
           routeSpawnAgent(cardId);
         }
