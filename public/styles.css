@@ -265,8 +265,9 @@ select.ws-input {
   padding: 0 8px 4px;
   display: flex; flex-direction: column; gap: 1px;
 }
-#ws-list::-webkit-scrollbar { width: 4px; }
-#ws-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#ws-list::-webkit-scrollbar { width: 8px; }
+#ws-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+#ws-list:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 
 .ws-item {
   display: flex; align-items: center; gap: 8px;
@@ -383,8 +384,9 @@ select.ws-input {
   flex-direction: column;
   gap: 14px;
 }
-#card-sidebar-body::-webkit-scrollbar { width: 4px; }
-#card-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#card-sidebar-body::-webkit-scrollbar { width: 8px; }
+#card-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+#card-sidebar-body:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 
 /* (#card-sidebar-footer is defined once, lower in this file) */
 
@@ -532,15 +534,16 @@ body.mcp-banner-open #log-sidebar {
   margin: 0 4px;
   display: flex; flex-direction: column; gap: 6px; min-height: 40px;
 }
-.cards-list::-webkit-scrollbar { width: 4px; }
-.cards-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.cards-list::-webkit-scrollbar { width: 8px; }
+.cards-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.cards-list:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 .cards-list.drag-over { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: var(--radius-md); }
 
 /* ── Cards ── */
 .card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-card); padding: 11px 11px 10px 13px;
-  cursor: grab; position: relative; overflow: hidden;
+  cursor: grab; position: relative;
   transition: background 0.15s, border-color 0.15s, transform 0.15s; user-select: none;
 }
 /* Elevation via surface lift + hairline, not shadow (Linear surface ladder). */
@@ -652,8 +655,9 @@ body.mcp-banner-open #log-sidebar {
   overflow-y: auto;
   padding: 16px;
 }
-#log-sidebar-body::-webkit-scrollbar { width: 4px; }
-#log-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#log-sidebar-body::-webkit-scrollbar { width: 8px; }
+#log-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+#log-sidebar-body:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 #log-entries { display: flex; flex-direction: column; gap: 6px; }
 .log-entry {
   padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px;
@@ -716,8 +720,9 @@ body.mcp-banner-open #log-sidebar {
 .modal-close-btn:hover { background: var(--bg); color: var(--text); }
 
 .modal-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-.modal-body::-webkit-scrollbar { width: 4px; }
-.modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.modal-body::-webkit-scrollbar { width: 8px; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.modal-body:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 
 .modal-footer {
   display: flex; align-items: center; gap: 8px;
@@ -1310,8 +1315,9 @@ kbd {
   font-family: monospace; font-size: 11px; line-height: 1.55;
   color: var(--text-muted); white-space: pre-wrap; word-break: break-all;
 }
-#card-output-content::-webkit-scrollbar { width: 4px; }
-#card-output-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#card-output-content::-webkit-scrollbar { width: 8px; }
+#card-output-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+#card-output-content:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 
 /* ── Toast ── */
 #toast-container {
