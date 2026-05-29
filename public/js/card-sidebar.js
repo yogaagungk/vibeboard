@@ -365,7 +365,7 @@ function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) 
       const label = document.createElement('span');
       label.className = 'dep-chip-label';
       label.textContent = entry ? entry.card.title : '(deleted card)';
-      chip.title = done ? 'Satisfied — already in Done' : (entry ? entry.column.title : 'No longer on the board');
+      chip.title = done ? 'Satisfied - already in Done' : (entry ? entry.column.title : 'No longer on the board');
       const x = document.createElement('button');
       x.type = 'button'; x.className = 'dep-chip-x'; x.textContent = '×';
       x.setAttribute('aria-label', 'Remove blocker');
@@ -461,7 +461,7 @@ function updateMoveButtons(card, currentColTitle) {
       await postBoard();
       const spawnsAgent = card.agent && (targetCol.title === 'In Progress' || targetCol.title === 'Review');
       if (spawnsAgent) {
-        showToast(`⚡ Starting ${AGENT_LABELS[card.agent] || card.agent} on "${card.title || card.text}"`, 4000);
+        showToast(`Starting ${AGENT_LABELS[card.agent] || card.agent} on "${card.title || card.text}"`, 4000);
         try { await fetch(`/api/cards/${card.id}/run`, { method: 'POST' }); }
         catch (err) { showToast('Failed to start agent: ' + err.message, 3000, 'error'); }
       } else {
@@ -488,7 +488,7 @@ function updatePromptBox(card) {
     if (colTitle === 'In Progress') {
       const nextStep = needsReview
         ? '- When implementation is complete and all changes are committed, call move_card to move to Review'
-        : '- This card does NOT require review — when done, commit all changes, then call complete_card to move directly to Done (skip Review)';
+        : '- This card does NOT require review - when done, commit all changes, then call complete_card to move directly to Done (skip Review)';
       columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
 - Call get_board first to see the full board state
 - Plan and implement the feature/fix

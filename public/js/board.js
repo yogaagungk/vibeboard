@@ -98,7 +98,7 @@ function buildColumn(col) {
     const movingColumns = sCol.id !== tCol.id;
     const wip = Number.isInteger(tCol.wip_limit) && tCol.wip_limit > 0 ? tCol.wip_limit : null;
     if (movingColumns && wip && tCol.cards.length >= wip) {
-      showToast(`"${tCol.title}" is at its WIP limit (${wip}) — move blocked`, 4000);
+      showToast(`"${tCol.title}" is at its WIP limit (${wip}) - move blocked`, 4000);
       draggingCard = null; draggingFromCol = null;
       return;
     }
@@ -129,7 +129,7 @@ function buildColumn(col) {
       if (agentStatus?.installed && !agentStatus?.configured) {
         renderBoard(board); postBoard();
         openMcpModal();
-        showToast('Agent queued — set up MCP first for full board interaction', 5000);
+        showToast('Agent queued - set up MCP first for full board interaction', 5000);
         return;
       }
     }
@@ -208,7 +208,7 @@ function buildCard(card, colId) {
     const q = document.createElement('span');
     q.className = 'card-queued-pill';
     q.textContent = 'queued';
-    q.title = 'Agent queued — waiting for a free slot';
+    q.title = 'Agent queued - waiting for a free slot';
     metaRow.appendChild(q);
   } else if (card.last_exit_code !== null && card.last_exit_code !== undefined) {
     const ok = card.last_exit_code === 0;
@@ -362,7 +362,7 @@ async function checkVersion() {
     badge.title = `VibeBoard v${v.current}`;
     if (v.updateAvailable && v.latest) {
       badge.classList.add('update');
-      badge.title = `Update available: v${v.current} → v${v.latest} — click to copy the upgrade command`;
+      badge.title = `Update available: v${v.current} → v${v.latest} - click to copy the upgrade command`;
       const cmd = `npm install -g ${v.package}@latest`;
       badge.onclick = () => {
         if (navigator.clipboard) {

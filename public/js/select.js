@@ -2,7 +2,7 @@
 
 // ── vbSelect: themed custom dropdown ─────────────────────────────────────────
 // A replacement for native <select> so the OPEN option list is themed too (the
-// native popup is OS-rendered and can't be styled — that's the whole reason this
+// native popup is OS-rendered and can't be styled - that's the whole reason this
 // exists). The popup is mounted on <body> with fixed positioning so it's never
 // clipped by a scrolling sidebar, and flips above the trigger when there's no
 // room below. Fully keyboard-operable (Arrow/Enter/Esc/Home/End/type-ahead).
@@ -126,7 +126,12 @@ function vbSelect({ options = [], value = '', placeholder = 'Select…', onChang
     document.addEventListener('mousedown', onDocDown, true);
     document.addEventListener('keydown', onListKey, true);
     window.addEventListener('resize', close);
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', onOuterScroll, true);
+  }
+
+  function onOuterScroll(e) {
+    if (pop && pop.contains(e.target)) return;
+    close();
   }
 
   function close() {
@@ -138,7 +143,7 @@ function vbSelect({ options = [], value = '', placeholder = 'Select…', onChang
     document.removeEventListener('mousedown', onDocDown, true);
     document.removeEventListener('keydown', onListKey, true);
     window.removeEventListener('resize', close);
-    window.removeEventListener('scroll', close, true);
+    window.removeEventListener('scroll', onOuterScroll, true);
   }
 
   function choose(i) {

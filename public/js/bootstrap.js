@@ -216,7 +216,7 @@ async function browseFolder(inputEl, btnEl) {
         inputEl.dispatchEvent(new Event('input'));
       }
     }
-  } catch(_) { showToast('Folder dialog unavailable — type the path manually'); }
+  } catch(_) { showToast('Folder dialog unavailable - type the path manually'); }
   finally { btnEl.disabled = false; btnEl.textContent = orig; }
 }
 

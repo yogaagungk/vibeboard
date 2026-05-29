@@ -124,7 +124,7 @@ function connectSSE() {
     es.close(); es = null;
     setTimeout(async () => {
       connectSSE();
-      // Re-sync board state — may have changed while disconnected
+      // Re-sync board state - may have changed while disconnected
       try {
         const resp = await fetch('/board');
         if (resp.ok) {
@@ -157,7 +157,7 @@ function showToast(msg, dur = 3000, type = '') {
 }
 function showTriggerToast(data) {
   const lbl = data.agent ? ` (${AGENT_LABELS[data.agent] || data.agent})` : '';
-  showToast(`⚡ Agent triggered${lbl}: ${data.card?.title || data.card?.text || ''}`, 4000);
+  showToast(`Agent triggered${lbl}: ${data.card?.title || data.card?.text || ''}`, 4000);
 }
 
 // ── Due date helpers ────────────────────────────────────────────────────────

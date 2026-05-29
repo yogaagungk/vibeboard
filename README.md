@@ -6,8 +6,8 @@
 
 Move a card to **In Progress** → VibeBoard spawns Claude Code, OpenCode, or Codex
 in your repo, hands it the task, and streams its progress back to the board in
-real time. You and your agents drive the same board — through the UI and through
-MCP — at the same time.
+real time. You and your agents drive the same board - through the UI and through
+MCP - at the same time.
 
 [![npm](https://img.shields.io/npm/v/@zanuartri/vibeboard?color=5e6ad2&label=npm)](https://www.npmjs.com/package/@zanuartri/vibeboard)
 [![license](https://img.shields.io/badge/license-MIT-5e6ad2)](LICENSE)
@@ -24,16 +24,16 @@ npx @zanuartri/vibeboard
 
 ## Why VibeBoard
 
-AI coding agents are great at *doing the work* — but you still need somewhere to
+AI coding agents are great at *doing the work* - but you still need somewhere to
 **plan it, track it, and watch it happen.** Chat windows aren't that place.
 
 VibeBoard makes a kanban board the control surface for your agents:
 
-- **You** plan on the board like normal — columns, cards, priorities, tags, due dates.
+- **You** plan on the board like normal - columns, cards, priorities, tags, due dates.
 - **Move a card to "In Progress"** and the assigned agent launches *in your project
   directory* with the card as its brief.
-- **The agent** reports back through MCP tools — posting checkpoints, moving its
-  own card, opening a PR — so the board is always the source of truth.
+- **The agent** reports back through MCP tools - posting checkpoints, moving its
+  own card, opening a PR - so the board is always the source of truth.
 
 It's local-first, self-hosted, and dependency-free to run. One command, no account,
 no cloud.
@@ -75,7 +75,7 @@ cd vibeboard && npm install && npm start
 
 > **Requirements:** Node.js 18+. VibeBoard uses
 > [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3), which ships
-> prebuilt binaries for common platforms — most installs need no compiler. On an
+> prebuilt binaries for common platforms - most installs need no compiler. On an
 > unsupported platform/Node it builds from source (needs standard build tools).
 
 ## How it works
@@ -93,37 +93,37 @@ cd vibeboard && npm install && npm start
    └──────────────┘                                            └──────────────┘
 ```
 
-1. **Create a workspace** — link a project directory. VibeBoard detects the git
+1. **Create a workspace** - link a project directory. VibeBoard detects the git
    repo and can isolate each agent in its own **git worktree / branch**.
-2. **Add a card** — title, description, tags, priority, due date, and an agent
+2. **Add a card** - title, description, tags, priority, due date, and an agent
    (Claude Code, OpenCode, or Codex CLI).
-3. **Move it to In Progress** — the agent spawns in your repo with full card
+3. **Move it to In Progress** - the agent spawns in your repo with full card
    context and starts working autonomously.
-4. **Watch it live** — the agent posts checkpoints, you stream its output, and
+4. **Watch it live** - the agent posts checkpoints, you stream its output, and
    the card shows run status, duration, and cost when it finishes.
-5. **Ship it** — review the diff in the card, then **Merge** or **Create PR**
+5. **Ship it** - review the diff in the card, then **Merge** or **Create PR**
    right from the board.
 
 ## Features
 
-- ⚡ **Auto-spawn agents** — moving a card to In Progress launches its assigned
+- ⚡ **Auto-spawn agents** - moving a card to In Progress launches its assigned
   agent in your project directory. No copy-pasting prompts.
-- 🔄 **Bidirectional MCP** — you and the agent control the same board in real
+- 🔄 **Bidirectional MCP** - you and the agent control the same board in real
   time. Agents read state, post progress, move cards, and mark work done.
-- 🧵 **Git worktree isolation** — each agent works on its own branch; review the
+- 🧵 **Git worktree isolation** - each agent works on its own branch; review the
   diff and merge or open a PR from the card.
-- 📊 **Run visibility** — live output stream, agent checkpoints, plus exit code,
+- 📊 **Run visibility** - live output stream, agent checkpoints, plus exit code,
   duration, and token/cost per run.
-- 🚦 **Flow controls** — WIP limits per column, card dependencies (`blocked_by`),
+- 🚦 **Flow controls** - WIP limits per column, card dependencies (`blocked_by`),
   and a concurrency cap with an automatic agent queue.
-- 🗂️ **Multiple workspaces** — one board per project, switch instantly.
-- 🌑 **Light & dark** — a refined, Linear-inspired UI with keyboard support.
-- 🔒 **Local-first** — SQLite on your machine. No cloud, no account, no tracking.
+- 🗂️ **Multiple workspaces** - one board per project, switch instantly.
+- 🌑 **Light & dark** - a refined, Linear-inspired UI with keyboard support.
+- 🔒 **Local-first** - SQLite on your machine. No cloud, no account, no tracking.
 
 ## Connect your agents
 
 Open the in-app **MCP Setup** dialog to auto-configure each agent's global MCP
-config in one click — or wire them up manually:
+config in one click - or wire them up manually:
 
 <details>
 <summary><b>Claude Code</b></summary>
@@ -164,7 +164,7 @@ Add a `vibeboard` entry under `mcpServers` in `~/.codex/config.json`:
 
 ## Configuration
 
-All optional — set as environment variables (a `.env` file works too):
+All optional - set as environment variables (a `.env` file works too):
 
 | Variable | Default | Description |
 |---|---|---|
@@ -176,7 +176,7 @@ All optional — set as environment variables (a `.env` file works too):
 
 > ⚠️ **Network exposure is opt-in and powerful.** Agents run with elevated
 > permissions in your project directories. When `VB_HOST` is non-loopback,
-> VibeBoard requires a token for off-machine requests — open it via
+> VibeBoard requires a token for off-machine requests - open it via
 > `http://<host>:7341/?token=<token>`. Only expose it on a trusted network. See
 > the [security notes](#security) before exposing anything.
 
@@ -193,7 +193,7 @@ Export/import any workspace as JSON from its settings.
 ## Security
 
 VibeBoard spawns coding agents with permissions skipped so they can work
-unattended — so **only point it at projects you trust**, and keep it on
+unattended - so **only point it at projects you trust**, and keep it on
 loopback unless you've read the network notes above. Mutating requests are
 guarded against CSRF / DNS-rebinding, and agents are terminated on server
 shutdown. It's early software (pre-1.0); review before using on sensitive code.
@@ -203,7 +203,7 @@ shutdown. It's early software (pre-1.0); review before using on sensitive code.
 No build step. Plain Node.js (CommonJS) server, plain HTML/CSS/vanilla-JS client.
 
 ```
-mcp-server/   Node server — index.js wires http-routes.js (REST+SSE),
+mcp-server/   Node server - index.js wires http-routes.js (REST+SSE),
               mcp-tools.js (MCP), agent.js (spawn/queue), worktree.js,
               db.js (SQLite), auth.js, events.js, models.js, migrate.js
 public/       index.html + styles.css + ordered js/*.js classic scripts
@@ -215,7 +215,7 @@ See [`DESIGN.md`](DESIGN.md) for the UI design system and [`CLAUDE.md`](CLAUDE.m
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). In short:
+Contributions are welcome - see [`CONTRIBUTING.md`](CONTRIBUTING.md). In short:
 fork → branch → `npm test` → PR. Please keep Windows/macOS/Linux compatibility,
 don't break MCP tool signatures, and stay backward-compatible with existing
 workspaces.

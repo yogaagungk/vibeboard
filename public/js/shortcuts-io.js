@@ -109,7 +109,7 @@ function updateMcpBanner(data) {
       .filter(([, a]) => a.installed && !a.configured)
       .map(([k]) => AGENT_LABELS_MCP[k] || k);
     document.getElementById('mcp-banner-text').innerHTML =
-      `<strong>MCP not configured</strong> for ${unconfigured.join(', ')} — agents won't be able to interact with the board.`;
+      `<strong>MCP not configured</strong> for ${unconfigured.join(', ')} - agents won't be able to interact with the board.`;
   }
 }
 document.getElementById('mcp-banner-dismiss').addEventListener('click', () => {

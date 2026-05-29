@@ -4,7 +4,7 @@
 /* Palette adapted from Linear's design system: a lavender-blue accent on a
    cool-neutral surface ladder. Light theme below; dark theme + system-dark
    mirror it further down. Only --accent/--accent-fg and the neutral ramp change
-   between themes — every control reads from these tokens. */
+   between themes - every control reads from these tokens. */
 :root {
   --bg: #f7f8f8;
   --surface: #ffffff;
@@ -94,7 +94,6 @@ body {
   padding: 0 20px; gap: 12px;
 }
 #header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px; }
-.brand-mark { color: var(--accent); font-size: 13px; line-height: 1; }
 .header-spacer { flex: 1; }
 
 .version-badge {
@@ -405,7 +404,7 @@ select.ws-input {
   transition: margin-left 0.25s ease;
 }
 
-/* Collapsible left rail (desktop only — on mobile it's an off-canvas drawer). */
+/* Collapsible left rail (desktop only - on mobile it's an off-canvas drawer). */
 @media (min-width: 769px) {
   body.sidebar-collapsed #workspace-sidebar { transform: translateX(-100%); }
   body.sidebar-collapsed #app { margin-left: 0; }
@@ -983,7 +982,7 @@ kbd {
 }
 #log-clear-btn:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
-/* Run is the primary action of the card sidebar — give it a filled treatment. */
+/* Run is the primary action of the card sidebar - give it a filled treatment. */
 .agent-run-btn {
   height: 34px; padding: 0 14px; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -998,7 +997,7 @@ kbd {
 .agent-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .agent-run-btn:disabled::before { content: ''; }
 
-/* Stop button keeps its danger styling on hover — no background change. */
+/* Stop button keeps its danger styling on hover - no background change. */
 #card-stop-agent-btn:hover { background: transparent; color: var(--danger); border-color: var(--danger); opacity: 0.8; }
 
 .card-move-btn {
