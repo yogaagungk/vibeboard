@@ -326,105 +326,116 @@
       </div>
       <button class="modal-close-btn" id="card-modal-close">×</button>
     </div>
+    <div class="sidebar-tabs" role="tablist">
+      <button class="sidebar-tab active" data-tab="details" role="tab" aria-selected="true">Details</button>
+      <button class="sidebar-tab" data-tab="agent" role="tab" aria-selected="false">Agent</button>
+      <button class="sidebar-tab" data-tab="activity" role="tab" aria-selected="false">Activity</button>
+    </div>
     <div id="card-sidebar-body">
-      <textarea id="card-modal-desc" placeholder="Describe the task for the agent…"></textarea>
-      <div>
-        <div class="field-label">Tags</div>
-        <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
-      </div>
-      <div class="sidebar-group">
-        <div class="sidebar-group-label">Details</div>
-        <div class="sidebar-field-row">
-          <div class="sidebar-field-col">
-            <div class="field-label">Priority</div>
-            <div class="priority-picker" id="card-priority-picker">
-              <button class="priority-btn active" data-priority="">None</button>
-              <button class="priority-btn" data-priority="high">High</button>
-              <button class="priority-btn" data-priority="medium">Medium</button>
-              <button class="priority-btn" data-priority="low">Low</button>
+      <div class="sidebar-panel" data-panel="details">
+        <textarea id="card-modal-desc" placeholder="Describe the task for the agent…"></textarea>
+        <div>
+          <div class="field-label">Tags</div>
+          <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
+        </div>
+        <div class="sidebar-group">
+          <div class="sidebar-group-label">Details</div>
+          <div class="sidebar-field-row">
+            <div class="sidebar-field-col">
+              <div class="field-label">Priority</div>
+              <div class="priority-picker" id="card-priority-picker">
+                <button class="priority-btn active" data-priority="">None</button>
+                <button class="priority-btn" data-priority="high">High</button>
+                <button class="priority-btn" data-priority="medium">Medium</button>
+                <button class="priority-btn" data-priority="low">Low</button>
+              </div>
+            </div>
+            <div class="sidebar-field-col">
+              <div class="field-label">Due date</div>
+              <input type="date" class="due-input" id="card-due-date" style="width:100%">
             </div>
           </div>
-          <div class="sidebar-field-col">
-            <div class="field-label">Due date</div>
-            <input type="date" class="due-input" id="card-due-date" style="width:100%">
+          <div id="card-blocked-by-section">
+            <div class="field-label">Blocked by</div>
+            <div class="dep-list" id="card-dep-list"></div>
           </div>
         </div>
-        <div id="card-blocked-by-section">
-          <div class="field-label">Blocked by</div>
-          <div class="dep-list" id="card-dep-list"></div>
-        </div>
       </div>
-      <div class="sidebar-group">
-        <div class="sidebar-group-label">Agent</div>
-        <div class="agent-options">
-          <button class="agent-btn active" data-agent="">None</button>
-          <button class="agent-btn" data-agent="claude-code">Claude Code</button>
-          <button class="agent-btn" data-agent="opencode">OpenCode</button>
-          <button class="agent-btn" data-agent="codex">Codex CLI</button>
-        </div>
-        <div id="card-model-row" style="display:none">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div class="field-label" style="margin:0;flex:1">Model</div>
-            <button class="icon-btn" id="card-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
+      <div class="sidebar-panel" data-panel="agent" hidden>
+        <div class="sidebar-group">
+          <div class="sidebar-group-label">Agent</div>
+          <div class="agent-options">
+            <button class="agent-btn active" data-agent="">None</button>
+            <button class="agent-btn" data-agent="claude-code">Claude Code</button>
+            <button class="agent-btn" data-agent="opencode">OpenCode</button>
+            <button class="agent-btn" data-agent="codex">Codex CLI</button>
           </div>
-          <div id="card-model-mount"></div>
-        </div>
-        <div id="card-agent-run-section" style="display:none">
-          <button class="agent-run-btn" id="card-run-agent-btn" style="width:100%">Run agent</button>
-          <button class="btn-ghost" id="card-stop-agent-btn" style="width:100%;margin-top:6px;display:none;color:var(--danger);border-color:var(--danger)">Stop agent</button>
-          <div class="agent-last-run" id="card-agent-last-run"></div>
-        </div>
-        <div id="card-review-toggle-row" class="toggle-row" style="display:none">
-          <div>
-            <div class="toggle-row-label">Needs review</div>
-            <div class="toggle-row-hint">Agent moves to Review before Done</div>
+          <div id="card-model-row" style="display:none">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div class="field-label" style="margin:0;flex:1">Model</div>
+              <button class="icon-btn" id="card-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
+            </div>
+            <div id="card-model-mount"></div>
           </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="card-needs-review-toggle" checked>
-            <span class="toggle-track"></span>
-          </label>
+          <div id="card-agent-run-section" style="display:none">
+            <button class="agent-run-btn" id="card-run-agent-btn" style="width:100%">Run agent</button>
+            <button class="btn-ghost" id="card-stop-agent-btn" style="width:100%;margin-top:6px;display:none;color:var(--danger);border-color:var(--danger)">Stop agent</button>
+            <div class="agent-last-run" id="card-agent-last-run"></div>
+          </div>
+          <div id="card-review-toggle-row" class="toggle-row" style="display:none">
+            <div>
+              <div class="toggle-row-label">Needs review</div>
+              <div class="toggle-row-hint">Agent moves to Review before Done</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="card-needs-review-toggle" checked>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div id="card-custom-prompt-section" style="display:none">
+            <div class="field-label">Additional instructions</div>
+            <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
+          </div>
         </div>
-        <div id="card-custom-prompt-section" style="display:none">
-          <div class="field-label">Additional instructions</div>
-          <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
-        </div>
-      </div>
-      <div id="card-move-actions" style="display:none">
-        <div class="field-label">Move to</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
-      </div>
-      <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
-      <div id="card-notes-section" style="display:none">
-        <div class="field-label">Notes &amp; Checkpoints</div>
-        <div id="card-notes-list"></div>
-        <button class="output-toggle-btn" id="card-output-toggle" style="display:none;margin-top:8px">Show full output</button>
-      </div>
-      <div id="card-output-section" style="display:none">
-        <div class="field-label">Full output</div>
-        <pre id="card-output-content"></pre>
-      </div>
-      <div id="card-changes-section" style="display:none">
-        <div class="changes-header">
-          <div class="field-label">Changes</div>
-          <span class="branch-badge" id="card-branch-badge"></span>
-          <span class="changes-meta" id="card-changes-meta"></span>
-          <button class="diff-link-btn" id="card-diff-toggle">Show diff</button>
-        </div>
-        <div id="card-diff-view" style="display:none;margin-bottom:8px"></div>
-        <div class="card-merge-actions" id="card-merge-actions" style="display:none">
-          <button class="btn-primary" id="card-merge-btn">Merge</button>
-          <button class="btn-ghost" id="card-pr-btn">Create PR</button>
-        </div>
-        <div class="card-merged-info" id="card-merged-info" style="display:none">
-          <span class="merged-badge" id="card-merged-badge">merged</span>
-          <span class="merged-date" id="card-merged-date"></span>
+        <div id="card-prompt-section" style="display:none">
+          <div class="field-label">Agent prompt</div>
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <textarea id="card-modal-prompt-text" readonly style="flex:1;height:180px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);outline:none;line-height:1.5"></textarea>
+            <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
+          </div>
         </div>
       </div>
-      <div id="card-prompt-section" style="display:none">
-        <div class="field-label">Agent prompt</div>
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <textarea id="card-modal-prompt-text" readonly style="flex:1;height:180px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);outline:none;line-height:1.5"></textarea>
-          <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
+      <div class="sidebar-panel" data-panel="activity" hidden>
+        <div id="card-move-actions" style="display:none">
+          <div class="field-label">Move to</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
+        </div>
+        <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
+        <div id="card-changes-section" style="display:none">
+          <div class="changes-header">
+            <div class="field-label">Changes</div>
+            <span class="branch-badge" id="card-branch-badge"></span>
+            <span class="changes-meta" id="card-changes-meta"></span>
+            <button class="diff-link-btn" id="card-diff-toggle">Show diff</button>
+          </div>
+          <div id="card-diff-view" style="display:none;margin-bottom:8px"></div>
+          <div class="card-merge-actions" id="card-merge-actions" style="display:none">
+            <button class="btn-primary" id="card-merge-btn">Merge</button>
+            <button class="btn-ghost" id="card-pr-btn">Create PR</button>
+          </div>
+          <div class="card-merged-info" id="card-merged-info" style="display:none">
+            <span class="merged-badge" id="card-merged-badge">merged</span>
+            <span class="merged-date" id="card-merged-date"></span>
+          </div>
+        </div>
+        <div id="card-notes-section" style="display:none">
+          <div class="field-label">Notes &amp; Checkpoints</div>
+          <div id="card-notes-list"></div>
+          <button class="output-toggle-btn" id="card-output-toggle" style="display:none;margin-top:8px">Show full output</button>
+        </div>
+        <div id="card-output-section" style="display:none">
+          <div class="field-label">Full output</div>
+          <pre id="card-output-content"></pre>
         </div>
       </div>
     </div>

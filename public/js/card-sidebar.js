@@ -231,6 +231,9 @@ function openCardModal(cardId, colId) {
     }).catch(() => {});
   }
 
+  const savedTab = localStorage.getItem('vb_sidebar_tab');
+  switchSidebarTab(savedTab || 'details');
+
   cardSidebar.classList.add('open');
   cardModalTitleEl.focus();
   syncAriaPressed(cardSidebar);
@@ -679,6 +682,23 @@ document.addEventListener('mouseup', () => {
     document.body.style.userSelect = '';
     localStorage.setItem('vb_card_sidebar_width', cardSidebar.offsetWidth);
   }
+});
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchSidebarTab(tabId) {
+  document.querySelectorAll('.sidebar-tab').forEach(btn => {
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive);
+  });
+  document.querySelectorAll('.sidebar-panel').forEach(panel => {
+    panel.hidden = panel.dataset.panel !== tabId;
+  });
+  localStorage.setItem('vb_sidebar_tab', tabId);
+}
+
+document.querySelectorAll('.sidebar-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchSidebarTab(btn.dataset.tab));
 });
 
 function closeCardModal() {
