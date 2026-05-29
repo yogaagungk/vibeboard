@@ -34,6 +34,15 @@ function applyTheme(t) {
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'system');
 
+// ── Card description toggle ────────────────────────────────────────────────
+function getShowDescriptions() {
+  return localStorage.getItem('vb_show_descriptions') === 'true';
+}
+function setShowDescriptions(val) {
+  localStorage.setItem('vb_show_descriptions', val ? 'true' : 'false');
+}
+document.body.classList.toggle('vb-show-descriptions', getShowDescriptions());
+
 // ── State ──────────────────────────────────────────────────────────────────
 const TAB_ID = crypto.randomUUID();
 let board = { columns: [], agentLog: [] };

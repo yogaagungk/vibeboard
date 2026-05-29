@@ -216,6 +216,16 @@ document.getElementById('theme-btn').addEventListener('click', () => {
   applyTheme(next);
 });
 
+// ── Card description toggle ────────────────────────────────────────────────
+const descToggle = document.getElementById('setting-show-descriptions');
+if (descToggle) {
+  descToggle.checked = getShowDescriptions();
+  descToggle.addEventListener('change', () => {
+    setShowDescriptions(descToggle.checked);
+    document.body.classList.toggle('vb-show-descriptions', descToggle.checked);
+  });
+}
+
 document.getElementById('settings-copy-path').addEventListener('click', function() {
   const p = document.getElementById('settings-data-path').textContent;
   navigator.clipboard.writeText(p).then(() => {
