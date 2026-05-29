@@ -2,6 +2,12 @@
 
 // ── Render board ───────────────────────────────────────────────────────────
 function renderBoard(b) {
+  const scrollPositions = new Map();
+  boardEl.querySelectorAll('.cards-list').forEach(function(cl) {
+    var colId = cl.dataset.colId;
+    if (colId) scrollPositions.set(colId, cl.scrollTop);
+  });
+
   board = b;
   if (Array.isArray(b.runningCards)) {
     runningCards.clear();
@@ -13,6 +19,14 @@ function renderBoard(b) {
   }
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
+
+  requestAnimationFrame(function() {
+    scrollPositions.forEach(function(top, colId) {
+      var cl = boardEl.querySelector('.cards-list[data-col-id="' + colId + '"]');
+      if (cl && top > 0) cl.scrollTop = top;
+    });
+  });
+
   renderLog(board.agentLog || []);
   applySearch();
 }
@@ -24,13 +38,28 @@ const searchCount = document.getElementById('board-search-count');
 
 function applySearch() {
   const q = searchInput.value.trim().toLowerCase();
-  const cards = boardEl.querySelectorAll('.card');
+  
   if (!q) {
+    virtualizedColumns.forEach((state, colId) => {
+      if (state.searchActive) {
+        state.searchActive = false;
+        updateVisibleRange(state);
+      }
+    });
+    
+    const cards = boardEl.querySelectorAll('.card');
     cards.forEach(c => c.style.display = '');
     searchClear.style.display = 'none';
     searchCount.style.display = 'none';
     return;
   }
+  
+  virtualizedColumns.forEach((state, colId) => {
+    state.searchActive = true;
+    temporarilyRenderAllCards(colId);
+  });
+  
+  const cards = boardEl.querySelectorAll('.card');
   let total = 0, visible = 0;
   cards.forEach(c => {
     total++;
@@ -38,7 +67,7 @@ function applySearch() {
     c.style.display = match ? '' : 'none';
     if (match) visible++;
   });
-  // Use an explicit value: '' would fall back to the CSS rule (display:none).
+  
   searchClear.style.display = 'inline-block';
   searchCount.style.display = 'inline-block';
   searchCount.textContent = `${visible} of ${total}`;
@@ -80,7 +109,13 @@ function buildColumn(col) {
 
   const cardsList = document.createElement('div');
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
-  [...col.cards].reverse().forEach(card => cardsList.appendChild(buildCard(card, col.id)));
+  
+  const reversedCards = [...col.cards].reverse();
+  if (reversedCards.length >= VIRTUALIZE_THRESHOLD) {
+    virtualizeColumn(colEl, reversedCards);
+  } else {
+    reversedCards.forEach(card => cardsList.appendChild(buildCard(card, col.id)));
+  }
 
   cardsList.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; cardsList.classList.add('drag-over'); });
   cardsList.addEventListener('dragleave', e => { if (!cardsList.contains(e.relatedTarget)) cardsList.classList.remove('drag-over'); });
@@ -154,8 +189,17 @@ function buildCard(card, colId) {
   el.setAttribute('role', 'button');
   el.setAttribute('aria-label', `Open card: ${card.title || card.text || 'Untitled'}`);
 
-  el.addEventListener('dragstart', e => { draggingCard = card.id; draggingFromCol = colId; e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging'); });
-  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  el.addEventListener('dragstart', e => { 
+    draggingCard = card.id; 
+    draggingFromCol = colId; 
+    e.dataTransfer.effectAllowed = 'move'; 
+    el.classList.add('dragging');
+    if (typeof notifyDragStart === 'function') notifyDragStart();
+  });
+  el.addEventListener('dragend', () => { 
+    el.classList.remove('dragging');
+    if (typeof notifyDragEnd === 'function') notifyDragEnd();
+  });
   el.addEventListener('click', () => openCardModal(card.id, colId));
   el.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); openCardModal(card.id, colId); }

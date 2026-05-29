@@ -540,6 +540,13 @@ body.mcp-banner-open #log-sidebar {
 .cards-list:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 .cards-list.drag-over { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: var(--radius-md); }
 
+/* ── Virtual spacers ── */
+.virtual-spacer-top,
+.virtual-spacer-bottom {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 /* ── Cards ── */
 .card {
   background: var(--surface); border: 1px solid var(--border);
