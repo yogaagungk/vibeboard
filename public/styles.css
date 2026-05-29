@@ -1000,22 +1000,28 @@ kbd {
 
 /* ── Dependency (blocked-by) picker ── */
 #card-blocked-by-section { margin-top: 2px; }
-.dep-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; }
-.dep-list::-webkit-scrollbar { width: 4px; }
-.dep-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.dep-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--surface); cursor: pointer; font-size: 12px;
-  transition: border-color 0.12s, background 0.12s;
+.dep-list { display: flex; flex-direction: column; gap: 0; }
+.dep-select {
+  width: 100%; font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
 }
-.dep-row:hover { border-color: var(--border-strong); }
-.dep-row.checked { border-color: var(--accent); background: var(--bg); }
-.dep-row input { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
-.dep-row-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-.dep-row-col { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
-.dep-row-col.done { color: var(--active-ws); }
-.dep-empty { font-size: 12px; color: var(--text-muted); font-weight: 300; padding: 2px; }
+.dep-select:disabled { cursor: default; opacity: 0.6; }
+.dep-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.dep-chips:not(:empty) { margin-top: 7px; }
+.dep-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 3px 2px 9px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+  font-size: 11px; color: var(--text); max-width: 100%;
+}
+.dep-chip.done { border-color: var(--active-ws); }
+.dep-chip.done .dep-chip-label { color: var(--text-muted); text-decoration: line-through; }
+.dep-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dep-chip-x {
+  width: 16px; height: 16px; border: none; background: none; cursor: pointer;
+  color: var(--text-muted); font-size: 14px; line-height: 1; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0;
+}
+.dep-chip-x:hover { background: var(--danger-bg); color: var(--danger); }
 
 /* ── Diff viewer ── */
 #card-changes-section { margin-top: 4px; }

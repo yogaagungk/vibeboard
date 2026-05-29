@@ -241,11 +241,12 @@ function submitNewCard() {
   const activePriorityBtn = document.querySelector('#nc-priority-picker .priority-btn.active');
   const priority = activePriorityBtn?.dataset.ncPriority || undefined;
   const due_date = document.getElementById('nc-due-date').value || null;
-  col.cards.push({ 
-    id: uid(), title, tags, requires_review, priority: priority || null, due_date, 
-    ...(description && { description }), 
+  col.cards.push({
+    id: uid(), title, tags, requires_review, priority: priority || null, due_date,
+    ...(description && { description }),
     ...(agent && { agent }),
-    ...(model && { model })
+    ...(model && { model }),
+    ...(ncBlockedBy.length && { blocked_by: [...ncBlockedBy] })
   });
   closeNewCardModal();
   renderBoard(board); postBoard();

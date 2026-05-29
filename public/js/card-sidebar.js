@@ -11,6 +11,7 @@ const cardModalPromptTxt = document.getElementById('card-modal-prompt-text');
 const cardModalCopyBtn   = document.getElementById('card-modal-copy-btn');
 
 let modalCardId = null, modalColId = null, newCardColId = null;
+let ncBlockedBy = []; // blocked_by being assembled in the New Card modal
 
 async function loadCardNotes(cardId) {
   try {
@@ -289,6 +290,16 @@ function openNewCardModal(colId) {
   document.getElementById('nc-due-date').value = '';
   document.getElementById('nc-needs-review').checked = false;
   document.getElementById('nc-agent-warning').style.display = 'none';
+
+  // Blocked-by picker (buffered in ncBlockedBy until the card is created)
+  ncBlockedBy = [];
+  renderBlockedByControl(
+    document.getElementById('nc-dep-list'),
+    () => ncBlockedBy,
+    ids => { ncBlockedBy = ids; },
+    null,
+  );
+
   document.getElementById('nc-modal-overlay').classList.add('open');
   document.getElementById('nc-title-input').focus();
   syncAriaPressed(document.getElementById('nc-modal-overlay'));
@@ -304,41 +315,83 @@ function getModalAgent() {
 }
 
 
-function renderDepPicker(card) {
-  const list = document.getElementById('card-dep-list');
-  if (!list) return;
-  list.innerHTML = '';
-  const others = [];
-  for (const col of board.columns) {
+// Reusable "blocked by" control: a dropdown to add a blocker + removable chips
+// for the current selections. getBlocked()/setBlocked() own persistence so the
+// same control works for an existing card (saves immediately) and the New Card
+// modal (buffers into ncBlockedBy until create). excludeId hides the card itself.
+function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) {
+  if (!containerEl) return;
+  containerEl.innerHTML = '';
+
+  const candidates = [];
+  for (const col of (board?.columns || [])) {
     for (const c of col.cards) {
-      if (c.id !== card.id) others.push({ card: c, column: col });
+      if (c.id !== excludeId) candidates.push({ card: c, column: col });
     }
   }
-  if (!others.length) {
-    list.innerHTML = '<div class="dep-empty">No other cards to depend on.</div>';
-    return;
-  }
-  const blocked = new Set(card.blocked_by || []);
-  others.forEach(({ card: c, column: col }) => {
-    const row = document.createElement('label');
-    row.className = 'dep-row' + (blocked.has(c.id) ? ' checked' : '');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.checked = blocked.has(c.id);
-    const title = document.createElement('span');
-    title.className = 'dep-row-title'; title.textContent = c.title;
-    const colTag = document.createElement('span');
-    colTag.className = 'dep-row-col' + (col.title === 'Done' ? ' done' : '');
-    colTag.textContent = col.title;
-    cb.addEventListener('change', () => {
-      const set = new Set(card.blocked_by || []);
-      if (cb.checked) set.add(c.id); else set.delete(c.id);
-      card.blocked_by = [...set];
-      row.classList.toggle('checked', cb.checked);
-      saveModal(card);
+
+  const select = document.createElement('select');
+  select.className = 'ws-input dep-select';
+  const chips = document.createElement('div');
+  chips.className = 'dep-chips';
+
+  function repaint() {
+    const blocked = getBlocked();
+    select.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = !candidates.length ? 'No other cards available'
+      : (blocked.length >= candidates.length ? 'All cards selected' : '+ Add a blocker…');
+    select.appendChild(ph);
+    candidates
+      .filter(({ card }) => !blocked.includes(card.id))
+      .forEach(({ card, column }) => {
+        const o = document.createElement('option');
+        o.value = card.id;
+        o.textContent = `${card.title}  ·  ${column.title === 'Done' ? '✓ Done' : column.title}`;
+        select.appendChild(o);
+      });
+    select.disabled = !candidates.length || blocked.length >= candidates.length;
+
+    chips.innerHTML = '';
+    blocked.forEach(id => {
+      const entry = findCardEntry(id);
+      const done = entry && entry.column.title === 'Done';
+      const chip = document.createElement('span');
+      chip.className = 'dep-chip' + (done ? ' done' : '');
+      const label = document.createElement('span');
+      label.className = 'dep-chip-label';
+      label.textContent = entry ? entry.card.title : '(deleted card)';
+      chip.title = done ? 'Satisfied — already in Done' : (entry ? entry.column.title : 'No longer on the board');
+      const x = document.createElement('button');
+      x.type = 'button'; x.className = 'dep-chip-x'; x.textContent = '×';
+      x.setAttribute('aria-label', 'Remove blocker');
+      x.addEventListener('click', () => { setBlocked(getBlocked().filter(b => b !== id)); repaint(); });
+      chip.appendChild(label); chip.appendChild(x);
+      chips.appendChild(chip);
     });
-    row.appendChild(cb); row.appendChild(title); row.appendChild(colTag);
-    list.appendChild(row);
+  }
+
+  select.addEventListener('change', () => {
+    const id = select.value;
+    if (!id) return;
+    const cur = getBlocked();
+    if (!cur.includes(id)) setBlocked([...cur, id]);
+    repaint();
   });
+
+  containerEl.appendChild(select);
+  containerEl.appendChild(chips);
+  repaint();
+}
+
+function renderDepPicker(card) {
+  renderBlockedByControl(
+    document.getElementById('card-dep-list'),
+    () => card.blocked_by || [],
+    ids => { card.blocked_by = ids; saveModal(card); },
+    card.id,
+  );
 }
 
 function updateRunAgentBtn(card) {
