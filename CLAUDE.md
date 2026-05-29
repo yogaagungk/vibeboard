@@ -168,7 +168,7 @@ Add to your OpenCode config:
 
 This project is:
 - Open source (MIT license)
-- Published to npm as `vibeboard`
+- Published to npm as `@zanuartri/vibeboard` (CLI command: `vibeboard`)
 - Accepting contributions (see CONTRIBUTING.md)
 - Self-hostable with no cloud dependencies
 

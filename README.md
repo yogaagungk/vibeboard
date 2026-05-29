@@ -15,10 +15,10 @@ A self-hostable kanban board with bidirectional MCP (Model Context Protocol) int
 ## Installation
 
 ```bash
-npm install -g vibeboard
+npm install -g @zanuartri/vibeboard
 ```
 
-Or run locally:
+This installs a `vibeboard` command. Or run locally:
 
 ```bash
 git clone https://github.com/zanuartri/vibeboard.git
