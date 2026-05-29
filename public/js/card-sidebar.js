@@ -787,6 +787,9 @@ document.getElementById('card-stop-agent-btn').addEventListener('click', async f
       try { const d = await resp.json(); msg = d.error || msg; } catch(_) {}
       throw new Error(msg);
     }
+    const col = board.columns.find(c => c.cards?.some(c2 => c2.id === modalCardId));
+    const card = col?.cards.find(c => c.id === modalCardId);
+    if (card) updateRunAgentBtn(card);
   } catch(err) {
     this.disabled = false; this.textContent = 'Stop agent';
     showToast('Failed to stop agent: ' + err.message, 3000, 'error');
