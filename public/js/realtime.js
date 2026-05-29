@@ -25,6 +25,7 @@ function connectSSE() {
           const bb = document.getElementById('card-modal-branch-badge');
           if (card.branch) { bb.textContent = card.branch; bb.style.display = ''; }
           else { bb.style.display = 'none'; }
+          updateRunAgentBtn(card);
         }
         loadCardNotes(modalCardId).then(renderCardNotes);
       }
