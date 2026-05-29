@@ -399,7 +399,18 @@ function updateRunAgentBtn(card) {
   }
   if (section) section.style.display = '';
   const running = runningCards.has(card.id);
-  if (btn) { btn.disabled = running; btn.textContent = running ? 'Running…' : 'Run agent'; }
+  const isDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
+  if (btn) {
+    if (isDone && !running) {
+      btn.disabled = true;
+      btn.title = 'Card is in Done \u2014 move it back to In Progress to run the agent';
+      btn.textContent = 'Run agent';
+    } else {
+      btn.disabled = running;
+      btn.title = '';
+      btn.textContent = running ? 'Running\u2026' : 'Run agent';
+    }
+  }
   const stopBtn = document.getElementById('card-stop-agent-btn');
   if (stopBtn) { stopBtn.style.display = running ? '' : 'none'; stopBtn.disabled = false; stopBtn.textContent = 'Stop agent'; }
   if (lastRunEl) {
@@ -709,7 +720,13 @@ document.getElementById('card-diff-toggle').addEventListener('click', async func
 // ── Run agent ──────────────────────────────────────────────────────────────
 document.getElementById('card-run-agent-btn').addEventListener('click', async function() {
   if (!modalCardId) return;
-  this.disabled = true; this.textContent = 'Starting…';
+  const col = board.columns.find(c => c.id === modalColId);
+  if (col?.title === 'Done') {
+    showToast('Card is in Done \u2014 move it back to In Progress to run the agent', 3000, 'error');
+    updateRunAgentBtn(col.cards.find(c => c.id === modalCardId));
+    return;
+  }
+  this.disabled = true; this.textContent = 'Starting\u2026';
   const toggle = document.getElementById('card-output-toggle');
   const outputPre = document.getElementById('card-output-content');
   outputPre.textContent = '';
