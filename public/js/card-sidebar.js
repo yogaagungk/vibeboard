@@ -187,8 +187,8 @@ function openCardModal(cardId, colId) {
     dupBtn.disabled = true; dupBtn.textContent = '…';
     try {
       await fetch(`/api/cards/${cardId}/duplicate`, { method: 'POST' });
-      showToast('Card duplicated');
-    } catch(err) { showToast('Duplicate failed: ' + err.message); }
+      showToast('Card duplicated', 3000, 'success');
+    } catch(err) { showToast('Duplicate failed: ' + err.message, 3000, 'error'); }
     dupBtn.disabled = false; dupBtn.textContent = 'Duplicate';
   };
 
@@ -468,7 +468,7 @@ function updateMoveButtons(card, currentColTitle) {
       if (spawnsAgent) {
         showToast(`⚡ Starting ${AGENT_LABELS[card.agent] || card.agent} on "${card.title || card.text}"`, 4000);
         try { await fetch(`/api/cards/${card.id}/run`, { method: 'POST' }); }
-        catch (err) { showToast('Failed to start agent: ' + err.message); }
+        catch (err) { showToast('Failed to start agent: ' + err.message, 3000, 'error'); }
       } else {
         showToast(`Moved to ${targetCol.title}`);
       }
@@ -733,7 +733,7 @@ document.getElementById('card-run-agent-btn').addEventListener('click', async fu
     }
   } catch(err) {
     this.disabled = false; this.textContent = 'Run agent';
-    showToast('Failed: ' + err.message);
+    showToast('Failed to run agent: ' + err.message, 3000, 'error');
   }
 });
 
@@ -749,7 +749,7 @@ document.getElementById('card-stop-agent-btn').addEventListener('click', async f
     }
   } catch(err) {
     this.disabled = false; this.textContent = 'Stop agent';
-    showToast('Failed: ' + err.message);
+    showToast('Failed to stop agent: ' + err.message, 3000, 'error');
   }
 });
 
@@ -761,10 +761,10 @@ document.getElementById('card-merge-btn').addEventListener('click', async functi
     const resp = await fetch(`/api/cards/${modalCardId}/merge`, { method: 'POST' });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Merge failed');
-    showToast('Merged successfully');
+    showToast('Merged successfully', 3000, 'success');
     closeCardModal();
   } catch(err) {
-    showToast('Merge failed: ' + err.message);
+    showToast('Merge failed: ' + err.message, 3000, 'error');
     this.disabled = false; this.textContent = 'Merge';
   }
 });
@@ -777,10 +777,10 @@ document.getElementById('card-pr-btn').addEventListener('click', async function(
     const resp = await fetch(`/api/cards/${modalCardId}/pr`, { method: 'POST' });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'PR creation failed');
-    showToast('PR created: ' + data.url);
+    showToast('PR created: ' + data.url, 3000, 'success');
     if (data.url?.startsWith('http')) window.open(data.url, '_blank');
   } catch(err) {
-    showToast('PR failed: ' + err.message);
+    showToast('PR failed: ' + err.message, 3000, 'error');
   }
   this.disabled = false; this.textContent = 'Create PR';
 });

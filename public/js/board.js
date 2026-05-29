@@ -64,9 +64,11 @@ function buildColumn(col) {
   count.textContent = limit ? `${col.cards.length}/${limit}` : col.cards.length;
   if (limit && col.cards.length > limit) count.classList.add('over');
   count.title = 'Double-click to set a WIP limit';
-  count.addEventListener('dblclick', () => {
+  count.addEventListener('dblclick', async () => {
     const cur = limit ? String(limit) : '';
-    const input = prompt(`WIP limit for "${col.title}" (blank to clear):`, cur);
+    const input = await vbPrompt(`Set a work-in-progress limit for "${col.title}". Leave blank to clear it.`, {
+      title: 'WIP limit', value: cur, placeholder: 'e.g. 3', confirmText: 'Set limit',
+    });
     if (input === null) return;
     const n = parseInt(input, 10);
     col.wip_limit = (Number.isInteger(n) && n > 0) ? n : null;
@@ -147,10 +149,17 @@ function buildCard(card, colId) {
   const el = document.createElement('div');
   el.className = 'card'; el.draggable = true; el.dataset.cardId = card.id;
   el.dataset.searchTitle = (card.title || '').toLowerCase();
+  // Keyboard-accessible: a real button role, focusable, openable with Enter/Space.
+  el.tabIndex = 0;
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', `Open card: ${card.title || card.text || 'Untitled'}`);
 
   el.addEventListener('dragstart', e => { draggingCard = card.id; draggingFromCol = colId; e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging'); });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
   el.addEventListener('click', () => openCardModal(card.id, colId));
+  el.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); openCardModal(card.id, colId); }
+  });
 
   const text = document.createElement('div'); text.className = 'card-text'; text.textContent = card.title || card.text;
   const footer = document.createElement('div'); footer.className = 'card-footer';
@@ -283,7 +292,10 @@ document.getElementById('log-sidebar-close').addEventListener('click', () => {
 });
 
 document.getElementById('log-clear-btn').addEventListener('click', async () => {
-  if (!confirm('Clear all activity log entries?')) return;
+  const ok = await vbConfirm('Clear all activity log entries? This cannot be undone.', {
+    title: 'Clear activity log', confirmText: 'Clear', danger: true,
+  });
+  if (!ok) return;
   try {
     await fetch('/api/agent-log', { method: 'DELETE' });
     logEntries.innerHTML = '<p class="log-empty">No activity yet.</p>';

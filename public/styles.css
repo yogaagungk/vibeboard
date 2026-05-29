@@ -313,13 +313,7 @@ select.ws-input {
 #card-sidebar-body::-webkit-scrollbar { width: 4px; }
 #card-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-#card-sidebar-footer {
-  border-top: 1px solid var(--border);
-  padding: 12px 16px;
-  flex-shrink: 0;
-  display: none;
-}
-#card-sidebar-footer.visible { display: block; }
+/* (#card-sidebar-footer is defined once, lower in this file) */
 
 /* ── Card sidebar header layout ── */
 #card-sidebar-title-group {
@@ -465,10 +459,11 @@ body.mcp-banner-open #log-sidebar {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-card); padding: 10px 10px 8px;
   cursor: grab; position: relative;
-  transition: box-shadow 0.15s, border-color 0.15s; user-select: none;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; user-select: none;
 }
-.card:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
-.card.dragging { opacity: 0.4; }
+.card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-color: var(--border-strong); transform: translateY(-1px); }
+.card:active { transform: translateY(0); }
+.card.dragging { opacity: 0.4; transform: none; box-shadow: 0 6px 18px rgba(0,0,0,0.14); }
 .card.agent-flash { border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59,130,246,0.25); animation: agent-flash 1.5s ease-out forwards; }
 @keyframes agent-flash {
   0% { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
@@ -1247,3 +1242,104 @@ kbd {
   .header-btn { font-size: 10px; height: 24px; padding: 0 6px; }
   .column { min-width: 220px; max-width: 220px; }
 }
+
+/* ── Keyboard focus rings ── */
+/* Only for keyboard users (:focus-visible), so mouse clicks stay ringless.
+   Inputs already signal focus via border-color; these cover the controls that
+   previously had no visible focus state at all. */
+button:focus-visible,
+.card:focus-visible,
+.ws-item:focus-visible,
+.col-count:focus-visible,
+.add-card-trigger:focus-visible,
+.ws-input:focus-visible,
+.modal-path-input:focus-visible,
+.modal-textarea:focus-visible,
+.due-input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.card:focus-visible { outline-offset: 0; }
+
+/* ── De-nativised <select> ── */
+/* Replace the OS dropdown arrow with a themed chevron so selects match the
+   rest of the controls instead of rendering platform-native chrome. */
+select.ws-input,
+.dep-select {
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888680' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  padding-right: 28px;
+}
+select.ws-input::-ms-expand { display: none; }
+:root[data-theme="dark"] select.ws-input,
+:root[data-theme="dark"] .dep-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888680' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) select.ws-input,
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .dep-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888680' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
+  }
+}
+
+/* ── Firefox / standards scrollbars (Webkit handled per-element above) ── */
+#ws-list, .cards-list, #card-sidebar-body, #log-sidebar-body,
+.modal-body, #card-output-content, #card-diff-view, #board-wrap, #board-inner {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* ── Button press feedback ── */
+.btn-primary:active, .btn-save:active, .empty-cta:active,
+.btn-ghost:active, .btn-danger:active, .header-btn:active,
+.agent-btn:active, .priority-btn:active, .theme-opt:active,
+.card-move-btn:active, .agent-run-btn:active, .browse-btn:active,
+.ws-io-btn:active, .output-toggle-btn:active, .copy-path-btn:active,
+.prompt-copy-btn:active, .icon-btn:active, .mcp-agent-setup-btn:active {
+  transform: translateY(1px);
+}
+
+/* ── Toast variants ── */
+.toast { border-left: 3px solid var(--border-strong); }
+.toast.success { border-left-color: var(--active-ws); }
+.toast.error   { border-left-color: var(--danger); }
+
+/* ── Styled dialog (vbConfirm / vbPrompt) ── */
+.vb-dialog-overlay {
+  position: fixed; inset: 0; z-index: 650;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.vb-dialog-overlay.open { opacity: 1; }
+.vb-dialog {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; width: 380px; max-width: 100%;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 12px;
+  transform: translateY(8px) scale(0.98);
+  transition: transform 0.15s ease;
+}
+.vb-dialog-overlay.open .vb-dialog { transform: translateY(0) scale(1); }
+.vb-dialog-title { font-size: 15px; font-weight: 500; color: var(--text); }
+.vb-dialog-message { font-size: 13px; font-weight: 300; line-height: 1.6; color: var(--text-muted); }
+.vb-dialog-input {
+  width: 100%; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  padding: 8px 10px; outline: none; background: var(--bg);
+  transition: border-color 0.15s;
+}
+.vb-dialog-input:focus { border-color: var(--accent); background: var(--surface); }
+.vb-dialog-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
+/* Make the danger confirm read as the primary action: solid fill, not outline. */
+.vb-dialog-confirm-danger {
+  background: var(--danger); border-color: var(--danger); color: #fff;
+}
+.vb-dialog-confirm-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; opacity: 0.88; }

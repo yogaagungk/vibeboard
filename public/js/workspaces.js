@@ -176,12 +176,15 @@ document.getElementById('ws-modal-save').addEventListener('click', async () => {
 document.getElementById('ws-modal-delete').addEventListener('click', async () => {
   if (!editingWsId) return;
   const ws = workspaces.find(w => w.id === editingWsId);
-  if (!confirm(`Delete workspace "${ws?.name || 'Untitled'}"?`)) return;
+  const ok = await vbConfirm(`Delete workspace "${ws?.name || 'Untitled'}"? Its board and cards will be removed. This cannot be undone.`, {
+    title: 'Delete workspace', confirmText: 'Delete', danger: true,
+  });
+  if (!ok) return;
   const id = editingWsId;
   closeWsModal();
   try {
     const resp = await fetch(`/workspaces/${id}`, { method: 'DELETE' });
-    if (!resp.ok) showToast('Delete failed');
+    if (!resp.ok) showToast('Delete failed', 3000, 'error');
   } catch(_){}
 });
 

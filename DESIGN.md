@@ -1,0 +1,266 @@
+# VibeBoard — Design System & UI Guide
+
+Context for anyone (human or agent) building UI in this repo. Read this before
+touching `public/`. The goal is that new UI is **indistinguishable** from what's
+already there.
+
+> **Two pages:**
+> - `/` → `public/landing.html` — a **self-contained** marketing page (its own
+>   inline `<style>`, no external JS). It mirrors the app's tokens and dark theme
+>   but is intentionally standalone so it loads instantly with zero dependencies.
+> - `/app` → `public/index.html` — the kanban app: markup in `index.html`, styles
+>   in `public/styles.css`, behavior in ordered `public/js/*.js` classic scripts.
+>
+> The app obeys: no bundler, no build step, no ES modules, no inline
+> `<script>`/`<style>`. (The landing page's inline `<style>` is the one sanctioned
+> exception — it's a single static file with no shared scope.) See `CLAUDE.md`.
+
+---
+
+## 1. Design principles
+
+VibeBoard's look is **quiet, dense, and functional** — a developer tool, not a
+consumer app. The reference points are Linear / Height / Things.
+
+1. **Calm by default, color on signal.** The base UI is grayscale (paper + ink).
+   Color appears only to carry meaning: priority, tags, agent identity, run
+   status, danger. Never decorate with color.
+2. **Hairline structure.** Separation comes from 1px borders and a two-level
+   surface system (`--bg` behind, `--surface` on top), not shadows. Shadows are
+   reserved for things that float (modals, toasts, card hover).
+3. **One weight up for emphasis.** Hierarchy is font-weight (300→400→500) and
+   muted-vs-full text color, not size jumps. Body is 12–13px; almost nothing is
+   larger than 15px.
+4. **Everything is reversible and obvious.** Inline-edit titles, toggles over
+   checkboxes, toasts for feedback, explicit empty states.
+5. **Respect the two surface patterns** (see §6): **modals** for transient
+   create/config flows, **right sidebars** for persistent contextual detail.
+
+---
+
+## 2. Design tokens
+
+All visual constants are CSS custom properties on `:root` in `styles.css`.
+**Never hardcode a value that a token exists for.** If you need a new constant,
+add a token rather than a literal.
+
+### Color (light / dark)
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--bg` | `#f6f5f2` | `#1c1c1a` | App background, recessed wells (inputs, cards-in-group) |
+| `--surface` | `#ffffff` | `#242422` | Raised surfaces: header, columns, cards, modals, sidebars |
+| `--border` | `#e8e6e1` | `#333330` | Default hairline |
+| `--border-strong` | `#d4d1cb` | `#46463f` | Hover/focus borders, toggle track |
+| `--text` | `#111110` | `#e6e4df` | Primary text |
+| `--text-muted` | `#888680` | `#666460` | Secondary text, labels, placeholders, icons |
+| `--accent` | `#3a3835` | `#d4d1cb` | Primary buttons, active state, log action chip |
+| `--accent-fg` | `#ffffff` | `#1c1c1a` | Text on `--accent` |
+| `--danger` / `--danger-bg` | `#dc2626` / `#fee2e2` | `#f87171` / `#3b1515` | Destructive actions, overdue, errors |
+
+> **Note:** `--accent` is intentionally a near-black ink, not a brand hue.
+> The product has no single accent color — identity comes from neutrality.
+
+### Semantic color (used by badges/pills; currently hardcoded — prefer tokenizing new ones)
+- **Priority:** high `#dc2626`, medium `#d97706`, low `#2563eb` (badges use a tinted bg + colored text; pickers use solid fill when active).
+- **Tags:** feature `#7c3aed`, bug `#dc2626`, design `#db2777`, infra `#16a34a`, docs `#d97706`, api `#2563eb` (tokenized as `--tag-*`).
+- **Agents:** claude-code `#d97706`, opencode `#7c3aed`, codex `#0ea5e9` (badge labels CC / OC / CX).
+- **Status:** success/connected `#16a34a` (`--active-ws`), running/agent `#3b82f6`.
+
+### Geometry / scale
+| Token | Value | Notes |
+|---|---|---|
+| `--radius-card` | `8px` | Cards, small controls |
+| `--radius-col` | `10px` | Columns |
+| (modals) | `12px` | Modal boxes, overlays (literal, not yet a token) |
+| (controls) | `5–6px` | Buttons, inputs, badges `4px`, pills/chips `14–20px` |
+| `--col-width` | `280px` | Column width (mobile drops to 220–260) |
+| `--header-h` | `52px` | Sticky header height |
+| `--sidebar-w` | `220px` | Left workspace rail |
+| (right sidebars) | `480px` | Card-detail + log (literal; resizable for card) |
+
+**Spacing rhythm:** 4 / 6 / 8 / 10 / 12 / 14 / 16 / 20px. Component padding is
+typically 10–16px; gaps between controls 5–10px. Stick to these steps.
+
+**Transitions:** `0.15s` for hover/focus on controls; `0.2–0.3s` for theme and
+panel slide. Easing is default/`ease`. Keep new transitions in this range.
+
+---
+
+## 3. Typography
+
+- **Font:** `'DM Sans', sans-serif` everywhere; **`monospace`** for paths,
+  branch names, diffs, agent output, prompt text, and config snippets.
+- **Weights:** 300 (descriptions, hints, body prose), 400 (default UI text,
+  buttons), 500 (titles, active/emphasis, labels). No 600/700 except a couple of
+  tiny uppercase badges at 600.
+- **Sizes:** 9–10px (badges, pills, timestamps), 11px (hints, secondary), 12px
+  (default control/body), 13px (card text, section body, toggles), 14–15px
+  (titles/headers). Don't exceed 17px (empty-state title).
+- **Uppercase micro-labels:** field labels and group labels use
+  `font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.4px;
+  color:var(--text-muted)` — see `.field-label`, `.sidebar-group-label`,
+  `.nc-agent-box-label`. Reuse these classes; don't reinvent.
+
+---
+
+## 4. Theming
+
+- Three modes: **System / Light / Dark**, set via `data-theme` on `:root`
+  (`light`/`dark`) or absent (system).
+- **Every dark override must be written twice** — once under
+  `:root[data-theme="dark"]` and once under
+  `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="dark"]) … }`.
+  This is forced by the no-build constraint. When you add a dark-specific rule
+  (e.g. a tinted badge bg), add **both** blocks or system-dark users get the
+  light styling. This is the #1 theming footgun in this codebase.
+- Prefer theming through tokens so a single `:root` override covers most cases;
+  only duplicate when a value genuinely differs in dark (e.g. tinted overlays
+  like `.priority-badge`, `.agent-permission-warning`, `.due-input.overdue`).
+
+---
+
+## 5. Layout & z-index
+
+```
+┌─ header (sticky, --header-h, z100) ───────────────────────────┐
+│ conn-dot · ☰ · VibeBoard · Agent Log · MCP Setup · theme      │
+├──────────┬────────────────────────────────────┬──────────────┤
+│ workspace│ board-wrap                          │ card-sidebar │
+│ sidebar  │  ├ board-toolbar (search)           │  (z60, 480px,│
+│ (z50,    │  └ board-inner → columns → cards    │   resizable) │
+│  220px)  │     · empty-state when no workspace │ OR log-      │
+│          │                                     │  sidebar(z59)│
+└──────────┴────────────────────────────────────┴──────────────┘
+   mcp-banner: fixed under header (z90) when MCP unconfigured
+```
+
+**z-index scale** (keep new layers on this ladder):
+`workspace-sidebar 50` · `log-sidebar 59` · `card-sidebar 60` · `mcp-banner 90` ·
+`header 100` · `modal-overlay 300` · `mcp-modal 400` · `toast 500` ·
+`shortcuts-overlay 600`.
+
+- The card sidebar and log sidebar are **mutually exclusive** (opening one closes
+  the other) and slide in via `transform: translateX`. The left rail and right
+  panels offset their `top`/`height` when `body.mcp-banner-open`.
+
+---
+
+## 6. Component patterns
+
+### Buttons (pick the right one — don't invent variants)
+| Class | Look | Use |
+|---|---|---|
+| `.btn-primary` / `.btn-save` / `.empty-cta` | Solid `--accent`, white text, hover = `opacity .85` | The one primary action in a context |
+| `.btn-ghost` / `.header-btn` / `.browse-btn` / `.card-move-btn` / `.output-toggle-btn` | Transparent, `--border`, muted text; hover fills `--bg` + `--text` + `--border-strong` | Secondary/neutral actions |
+| `.btn-danger` | Transparent, `--danger` text; hover = `--danger-bg` | Destructive (Delete) |
+| `.icon-btn` | 24px square, bordered, muted glyph | Icon-only (`+`, `↻`) — add a `title` |
+
+**The universal ghost-hover recipe** (memorize it): `background→var(--bg);
+color→var(--text); border-color→var(--border-strong)`. Almost every neutral
+control uses exactly this. Exception: the **stop-agent** button keeps its danger
+border on hover (no fill) — see `#card-stop-agent-btn:hover`.
+
+**Active/selected state** (theme picker, agent picker, priority "None"):
+`border-color + background: var(--accent); color: var(--accent-fg)`. Priority
+high/medium/low use their semantic color as the active fill instead.
+
+### Inputs
+- Text inputs: `.ws-input` (compact, sidebar) or `.modal-path-input` /
+  `.modal-textarea` (modal). Recessed `--bg`, `--border`, focus brightens to
+  `--surface` + `--border-strong` (or `--accent` for `.ws-input`).
+- Inline-edit titles (column titles, card/workspace name) are **borderless
+  transparent inputs** that show a border only on `:focus`. This is the pattern
+  for "click the text to rename."
+- Toggles use `.toggle-switch` (a styled checkbox), **never** a raw checkbox.
+  Pair with `.toggle-row` + `.toggle-row-label` + `.toggle-row-hint`.
+- `<select>`s use `.ws-input` (and `.dep-select`): the native OS arrow is removed
+  (`appearance:none`) and replaced with a themed chevron. Keep new selects on
+  these classes so they don't render platform-native chrome.
+
+### Containers
+- **`.sidebar-group` / `.nc-agent-box`**: a recessed (`--bg`) bordered card that
+  groups related fields, with an uppercase `…-label`. Use this to chunk forms in
+  the card sidebar / new-card modal.
+- **`.modal-box`**: `--surface`, 12px radius, `header / body / footer` rows.
+  Header has a title (or inline-edit input) + `.modal-close-btn`. Footer is
+  right-aligned via `.modal-spacer`; destructive action goes far-left.
+- **Right sidebars** (`#card-sidebar`, `#log-sidebar`): `header / body(scroll) /
+  footer` columns, slide in from the right, 480px.
+
+### Badges & pills (footer of a card, header chips)
+Small, `flex-shrink:0`, 9–10px. Families: `.tag-*`, `.priority-badge`,
+`.card-agent-badge`, `.run-status-badge` (ok/fail), `.usage-badge`,
+`.card-queued-pill` (pulsing dot), `.blocked-badge` (🔒), `.branch-badge`
+(monospace), `.card-running-dot` (pulsing). When adding a new card signal, make
+it a badge in this family and append it to `.card-footer` in `buildCard()`.
+
+### Feedback
+- **Toasts** (`showToast(msg, dur, type)`) bottom-right for transient
+  confirmations/errors. `type` is `''` (neutral), `'success'` (green left bar),
+  or `'error'` (red left bar). Auto-dismiss; pointer-events only on the toast.
+- **Dialogs** — **never use native `confirm()`/`prompt()`/`alert()`.** Use the
+  promise-based `vbConfirm(message, opts)` / `vbPrompt(message, opts)` from
+  `public/js/dialogs.js` instead. They render a themed `.vb-dialog`, trap focus,
+  and support Esc/Enter. Pass `{ title, confirmText, danger }` (set `danger:true`
+  for destructive confirms — it gives a solid red confirm button).
+- **Connection dot** in header reflects SSE state (gray → pulsing green).
+- **Agent-flash** outline on a card when an agent touches it.
+- Animations are subtle and short (`fadeIn`, `toastIn`, `pulse`,
+  `running-pulse`). Keep new motion in the same vocabulary.
+
+---
+
+## 7. Responsive
+
+Breakpoints: **768px** (tablet/mobile) and **480px** (small phone).
+- Left rail becomes an off-canvas drawer toggled by `.mobile-menu-btn` (☰).
+- Right sidebars and the card sidebar go full-width (`100vw`); resize handle hides.
+- Modals go `90vw` / `85vh`. Columns shrink to 260 → 220px.
+Test any new layout at 768 and 480 before considering it done.
+
+---
+
+## 8. Accessibility
+
+**In place — keep it that way:**
+- **Focus rings.** A `:focus-visible` outline (`2px solid var(--accent)`) covers
+  buttons, cards, list items, selects and key inputs on both pages. New
+  interactive elements inherit it via the element/class selectors — don't set
+  `outline:none` without providing a `:focus-visible` alternative.
+- **Cards are keyboard-operable** — `role="button"`, `tabindex="0"`, and
+  Enter/Space open them. Build new interactive elements as real `<button>`s, or
+  replicate this trio. Don't ship click-only `<div>`s.
+- **Modals/sidebars** trap focus, set `role="dialog"`/`aria-modal`, restore focus
+  on close, and reflect picker state via `aria-pressed` (see `app.js`
+  `initModalA11y` / `syncAriaPressed`). New static modals should be added to the
+  `dialogs` list in `initModalA11y`.
+- **No native dialogs** — `vbConfirm`/`vbPrompt` only (see §6).
+
+**Still to improve when you're in the area:**
+- **Label icon-only controls** with `aria-label`, not just `title`.
+- **Contrast:** `--text-muted` is borderline against `--bg` at small sizes. Don't
+  use muted text smaller than 11px for anything load-bearing; never put muted
+  text on `--bg` for primary content. (The landing page uses a slightly lighter
+  muted value in dark mode for body-copy legibility.)
+
+---
+
+## 9. Conventions & footguns
+
+- **No inline styles for *appearance*.** State toggles (`style="display:none"`)
+  that JS flips are tolerated; styling (fonts, widths, colors) belongs in a class
+  in `styles.css`. Several legacy inline styles in `index.html` violate this —
+  don't add more.
+- **Keep markup and behavior separated:** new DOM goes in `index.html` (static)
+  or is built in a `public/js/*.js` file; element wiring/`addEventListener`
+  lives in JS, never inline `onclick`.
+- **Token-first:** reach for an existing CSS variable before any literal; add a
+  token if one is missing. New semantic colors (priority/tag/agent) should become
+  tokens rather than repeated hexes (current ones are partly hardcoded — a known
+  debt).
+- **Dark mode = two blocks** (see §4). Forgetting the `prefers-color-scheme`
+  twin is the most common visual regression here.
+- **One primary action per surface.** Everything else is ghost/secondary.
+- **Match the neighbors.** Before adding a control, find the closest existing one
+  and reuse its class. The system only stays coherent if new code copies the
+  established pattern instead of introducing a parallel one.

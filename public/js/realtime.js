@@ -141,9 +141,9 @@ function flashCard(id) {
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
-function showToast(msg, dur = 3000) {
+function showToast(msg, dur = 3000, type = '') {
   const c = document.getElementById('toast-container');
-  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  const t = document.createElement('div'); t.className = 'toast' + (type ? ' ' + type : ''); t.textContent = msg;
   c.appendChild(t);
   setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, dur);
 }

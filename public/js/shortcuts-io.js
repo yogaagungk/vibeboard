@@ -42,14 +42,14 @@ document.getElementById('ws-export-btn').addEventListener('click', async () => {
   if (!editingWsId) return;
   try {
     const resp = await fetch(`/api/workspaces/${editingWsId}/export`);
-    if (!resp.ok) { showToast('Export failed'); return; }
+    if (!resp.ok) { showToast('Export failed', 3000, 'error'); return; }
     const data = await resp.json();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `vibeboard-${(data.workspace?.name || 'board').replace(/\s+/g, '-')}-${new Date().toISOString().slice(0,10)}.json`;
     a.click(); URL.revokeObjectURL(a.href);
-  } catch(err) { showToast('Export failed: ' + err.message); }
+  } catch(err) { showToast('Export failed: ' + err.message, 3000, 'error'); }
 });
 
 document.getElementById('ws-import-btn').addEventListener('click', () => {
@@ -65,11 +65,11 @@ document.getElementById('ws-import-file').addEventListener('change', async funct
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
     });
     const result = await resp.json();
-    if (!resp.ok) { showToast('Import failed: ' + (result.error || 'unknown error')); return; }
-    showToast(`Imported "${result.name || 'workspace'}" successfully`);
+    if (!resp.ok) { showToast('Import failed: ' + (result.error || 'unknown error'), 3000, 'error'); return; }
+    showToast(`Imported "${result.name || 'workspace'}" successfully`, 3000, 'success');
     closeWsModal();
     await loadWorkspaces();
-  } catch(err) { showToast('Import failed: ' + err.message); }
+  } catch(err) { showToast('Import failed: ' + err.message, 3000, 'error'); }
   this.value = '';
 });
 
@@ -192,11 +192,11 @@ async function installMcpForAgent(agentKey, btn) {
     const data = await resp.json();
     const result = data.results?.[agentKey];
     if (!result?.ok) throw new Error(result?.error || 'Failed');
-    showToast(`${AGENT_LABELS_MCP[agentKey]} MCP configured`);
+    showToast(`${AGENT_LABELS_MCP[agentKey]} MCP configured`, 3000, 'success');
     await refreshMcpModal();
   } catch(err) {
     btn.disabled = false; btn.textContent = 'Set up';
-    showToast('Setup failed: ' + err.message);
+    showToast('Setup failed: ' + err.message, 3000, 'error');
   }
 }
 

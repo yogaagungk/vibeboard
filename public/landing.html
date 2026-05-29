@@ -14,12 +14,30 @@
   --bg: #f6f5f2;
   --surface: #ffffff;
   --border: #e8e6e1;
+  --border-strong: #d4d1cb;
   --text: #111110;
   --text-muted: #888680;
   --accent: #3a3835;
   --accent-fg: #ffffff;
   --radius: 10px;
 }
+
+/* Match the app's dark theme so going from a dark board to the landing page
+   (or loading on a dark-mode system) doesn't flash a bright white page. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a;
+    --surface: #242422;
+    --border: #333330;
+    --border-strong: #46463f;
+    --text: #e6e4df;
+    --text-muted: #908d86;
+    --accent: #d4d1cb;
+    --accent-fg: #1c1c1a;
+  }
+}
+
+html { scroll-behavior: smooth; }
 
 body {
   font-family: 'DM Sans', sans-serif;
@@ -28,6 +46,14 @@ body {
   color: var(--text);
   min-height: 100vh;
   line-height: 1.6;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Keyboard focus rings for nav links, CTAs and cards. */
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 /* ── Nav ── */
@@ -114,6 +140,8 @@ nav {
 
 .hero-cta:hover { opacity: 0.85; }
 
+.hero-cta:active, .hero-cta-ghost:active { transform: translateY(1px); }
+
 .hero-cta-ghost {
   display: inline-flex;
   align-items: center;
@@ -129,16 +157,26 @@ nav {
   border-radius: var(--radius);
   cursor: pointer;
   text-decoration: none;
-  margin-left: 10px;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, transform 0.1s;
 }
 
 .hero-cta-ghost:hover { border-color: var(--text); color: var(--text); }
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 
 @media (max-width: 600px) {
   .hero h1 { font-size: 30px; }
   .hero p { font-size: 15px; }
   .hero { padding: 50px 20px 40px; }
+  nav { padding: 14px 18px; }
+  .nav-links { gap: 14px; }
+  .hero-cta, .hero-cta-ghost { width: 100%; justify-content: center; }
 }
 
 /* ── Section ── */
@@ -176,10 +214,14 @@ nav {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 28px;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
 }
 
-.feature-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.feature-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
 
 .feature-icon {
   width: 40px;
@@ -222,7 +264,10 @@ nav {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
+  transition: border-color 0.2s;
 }
+
+.step:hover { border-color: var(--border-strong); }
 
 .step-num {
   flex-shrink: 0;
@@ -348,7 +393,7 @@ footer a:hover { text-decoration: underline; }
     VibeBoard is a self-hostable kanban board for developers working with AI coding agents.
     Move a card to "In Progress" and VibeBoard spawns your agent automatically.
   </p>
-  <div>
+  <div class="hero-actions">
     <a href="/app" class="hero-cta">Open the board</a>
     <a href="https://github.com/zanuartri/vibeboard" target="_blank" class="hero-cta-ghost">View on GitHub</a>
   </div>
