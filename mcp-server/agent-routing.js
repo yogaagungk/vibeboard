@@ -12,7 +12,7 @@ const { spawnAgent, stopAgent, isAgentRunning, isAgentActive } = require('./agen
 function routeSpawnAgent(cardId) {
   if (isHttpRunning()) {
     const card = db.getCard(cardId);
-    if (card?.agent && !isAgentRunning(cardId)) {
+    if (card?.agent) {
       spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
     }
   } else {
