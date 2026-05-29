@@ -80,7 +80,7 @@ function buildColumn(col) {
 
   const cardsList = document.createElement('div');
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
-  col.cards.forEach(card => cardsList.appendChild(buildCard(card, col.id)));
+  [...col.cards].reverse().forEach(card => cardsList.appendChild(buildCard(card, col.id)));
 
   cardsList.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; cardsList.classList.add('drag-over'); });
   cardsList.addEventListener('dragleave', e => { if (!cardsList.contains(e.relatedTarget)) cardsList.classList.remove('drag-over'); });
@@ -119,7 +119,7 @@ function buildColumn(col) {
     const over = e.target.closest('.card');
     if (over?.dataset.cardId) {
       const oi = tCol.cards.findIndex(c => c.id === over.dataset.cardId);
-      if (oi !== -1) tCol.cards.splice(oi, 0, card); else tCol.cards.push(card);
+      if (oi !== -1) tCol.cards.splice(oi + 1, 0, card); else tCol.cards.push(card);
     } else { tCol.cards.push(card); }
     draggingCard = null; draggingFromCol = null;
 
