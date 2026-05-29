@@ -30,7 +30,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zanuartri/vibeboard.git"
+    "url": "git+https://github.com/zanuartri/vibeboard.git"
   },
   "homepage": "https://github.com/zanuartri/vibeboard#readme",
   "bugs": {
