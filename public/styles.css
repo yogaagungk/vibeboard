@@ -1511,6 +1511,12 @@ select:focus-visible,
 .vb-dialog-overlay.open .vb-dialog { transform: translateY(0) scale(1); }
 .vb-dialog-title { font-size: 15px; font-weight: 500; color: var(--text); }
 .vb-dialog-message { font-size: 13px; font-weight: 300; line-height: 1.6; color: var(--text-muted); }
+.vb-dialog-message p { margin: 6px 0; }
+.vb-dialog-message code,
+.vb-dialog-message .vb-dialog-code { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 400; background: var(--surface-2); color: var(--text); border-radius: var(--radius-xs); padding: 2px 6px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; line-height: 1.5; }
+.vb-dialog-message .vb-dialog-code-block { display: block; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 400; background: var(--surface-2); color: var(--text); border-radius: var(--radius-xs); padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 4px 0; }
+.vb-dialog-message ul { margin: 4px 0; padding-left: 18px; }
+.vb-dialog-message li { margin: 3px 0; }
 .vb-dialog-input {
   width: 100%; font-family: 'Inter', sans-serif; font-size: 13px; color: var(--text);
   border: 1px solid var(--border-strong); border-radius: var(--radius-md);

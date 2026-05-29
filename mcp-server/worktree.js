@@ -141,9 +141,16 @@ function pushAndCreatePR(worktreePath, title) {
   return execFileCapture('gh', ['pr', 'create', '--title', title, '--fill'], { cwd: worktreePath });
 }
 
+function deleteBranch(workspacePath, branch) {
+  try {
+    execFileSync('git', ['branch', '-D', branch], { cwd: workspacePath, stdio: 'ignore' });
+  } catch (_) {}
+}
+
 module.exports = {
   isGitRepo, getBaseBranch,
   createWorktree, removeWorktree,
   getDiff, getCommits,
   mergeBranch, pushAndCreatePR,
+  deleteBranch,
 };
