@@ -209,6 +209,7 @@ function buildCard(card, colId) {
 
   // Footer is split into two tiers: a tags row (what kind of work) and a meta
   // row (status, agent, priority, dates) so a busy card stays scannable.
+  const cardTop = document.createElement('div'); cardTop.className = 'card-top';
   const footer = document.createElement('div'); footer.className = 'card-footer';
   const tagsRow = document.createElement('div'); tagsRow.className = 'card-tags';
   const metaRow = document.createElement('div'); metaRow.className = 'card-meta';
@@ -221,20 +222,20 @@ function buildCard(card, colId) {
     const pb = document.createElement('span');
     pb.className = `priority-badge priority-${card.priority}`;
     pb.textContent = card.priority;
-    metaRow.appendChild(pb);
-  }
-  if (card.due_date) {
-    const db = document.createElement('span');
-    db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : '');
-    db.textContent = '📅 ' + card.due_date;
-    metaRow.appendChild(db);
+    cardTop.appendChild(pb);
   }
   if (card.agent) {
     const badge = document.createElement('span');
     badge.className = `card-agent-badge ${card.agent}`;
     badge.textContent = { 'claude-code': 'CC', 'opencode': 'OC', 'codex': 'CX' }[card.agent] || card.agent.slice(0,2).toUpperCase();
     badge.title = AGENT_LABELS[card.agent] || card.agent;
-    metaRow.appendChild(badge);
+    cardTop.appendChild(badge);
+  }
+  if (card.due_date) {
+    const db = document.createElement('span');
+    db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : '');
+    db.textContent = '📅 ' + card.due_date;
+    metaRow.appendChild(db);
   }
   if (card.requires_review) {
     const rb = document.createElement('span');
@@ -305,7 +306,9 @@ function buildCard(card, colId) {
   delBtn.setAttribute('aria-label', 'Delete card');
   delBtn.addEventListener('click', e => { e.stopPropagation(); deleteCard(card.id, colId); });
 
-  el.appendChild(delBtn); el.appendChild(text);
+  el.appendChild(delBtn);
+  if (cardTop.children.length) el.appendChild(cardTop);
+  el.appendChild(text);
   if (card.description) { const d = document.createElement('div'); d.className = 'card-desc-preview'; d.textContent = card.description; el.appendChild(d); }
   if (footer.children.length) el.appendChild(footer);
   return el;
