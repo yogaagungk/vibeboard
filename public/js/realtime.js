@@ -95,7 +95,8 @@ function connectSSE() {
     }
     if (type === 'agent_log') {
       prependLogEntry(data);
-      board.agentLog = board.agentLog || []; board.agentLog.push(data);
+      board.agentLog = board.agentLog || []; board.agentLog.unshift(data);
+      if (board.agentLog.length > 500) board.agentLog.length = 500;
     }
     if (type === 'mcp_configured') {
       checkMcpStatus().then(() => refreshAgentBtnsInModal());
