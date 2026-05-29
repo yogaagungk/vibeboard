@@ -368,6 +368,50 @@ select.ws-input {
   overflow: hidden;
 }
 
+/* ── Sidebar Tab Bar ── */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.sidebar-tab {
+  flex: 1;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-tab:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.sidebar-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
+/* ── Sidebar Tab Panels ── */
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sidebar-panel[hidden] {
+  display: none;
+}
+
 #card-sidebar-header {
   display: flex;
   align-items: flex-start;
@@ -383,7 +427,6 @@ select.ws-input {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 #card-sidebar-body::-webkit-scrollbar { width: 8px; }
 #card-sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
