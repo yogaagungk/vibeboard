@@ -29,9 +29,13 @@ with a single **lavender-blue accent** (`#5e6ad2`).
    reserved for the primary action, the active/selected state, focus rings, and
    the connection of agent activity. Everything else earns its color from
    meaning (priority, tags, agent identity, run status, danger), never decoration.
-2. **Hairline structure.** Separation comes from 1px borders and a two-level
-   surface system (`--bg` behind, `--surface` on top), not shadows. Shadows are
-   reserved for things that float (modals, toasts, card hover).
+2. **Elevation by surface ladder, not shadow.** Depth comes from a hairline
+   border + a step up the surface ladder (`--bg` canvas → `--surface` panel →
+   `--surface-2` hover/featured → `--surface-3` popover), echoing Linear. Hover
+   lifts by changing background, not by casting a shadow. Drop shadows are
+   reserved for things that genuinely float over a scrim (modals, toasts,
+   dropdown popover, dragging card). On dark, lifted panels carry a subtle white
+   top edge-highlight (`--edge`) for the crisp "rendered" feel.
 3. **One weight up for emphasis.** Hierarchy is font-weight (300→400→500) and
    muted-vs-full text color, not size jumps. Body is 12–13px; almost nothing is
    larger than 15px.
@@ -52,7 +56,10 @@ add a token rather than a literal.
 | Token | Light | Dark | Use |
 |---|---|---|---|
 | `--bg` | `#f7f8f8` | `#08090a` | App background, recessed wells (inputs, cards-in-group) |
-| `--surface` | `#ffffff` | `#141516` | Raised surfaces: header, columns, cards, modals, sidebars |
+| `--surface` | `#ffffff` | `#141516` | Raised panels (surface-1): header, columns, cards, modals, sidebars |
+| `--surface-2` | `#eef0f4` | `#1b1c1e` | One step up: card/feature hover, featured |
+| `--surface-3` | `#ffffff` | `#202123` | Popovers / dropdown menus (the `vbSelect` list) |
+| `--edge` | `0 0 0 0 transparent` | `inset 0 1px 0 rgba(255,255,255,.045)` | Top edge-highlight on lifted dark panels (list-safe, layer it before float shadows) |
 | `--border` | `#e7e8ec` | `#23252a` | Default hairline |
 | `--border-strong` | `#d3d5dc` | `#34343a` | Hover/focus borders, toggle track |
 | `--text` | `#08090a` | `#f7f8f8` | Primary text |
@@ -75,10 +82,11 @@ add a token rather than a literal.
 ### Geometry / scale
 | Token | Value | Notes |
 |---|---|---|
-| `--radius-card` | `8px` | Cards, small controls |
-| `--radius-col` | `10px` | Columns |
-| (modals) | `12px` | Modal boxes, overlays (literal, not yet a token) |
-| (controls) | `5–6px` | Buttons, inputs, badges `4px`, pills/chips `14–20px` |
+| `--radius-card` | `8px` | Cards |
+| `--radius-col` | `12px` | Columns / large panels |
+| (controls) | `8px` | Buttons, inputs (Linear control radius) |
+| (modals) | `12px` | Modal boxes (literal, not yet a token) |
+| (badges/pills) | `4px` / `14–9999px` | Status badges 4px; tabs/pills fully round |
 | `--col-width` | `280px` | Column width (mobile drops to 220–260) |
 | `--header-h` | `52px` | Sticky header height |
 | `--sidebar-w` | `220px` | Left workspace rail |
@@ -94,18 +102,25 @@ panel slide. Easing is default/`ease`. Keep new transitions in this range.
 
 ## 3. Typography
 
-- **Font:** `'DM Sans', sans-serif` everywhere; **`monospace`** for paths,
-  branch names, diffs, agent output, prompt text, and config snippets.
-- **Weights:** 300 (descriptions, hints, body prose), 400 (default UI text,
-  buttons), 500 (titles, active/emphasis, labels). No 600/700 except a couple of
-  tiny uppercase badges at 600.
+- **Font:** **`'Inter', sans-serif`** everywhere (Linear's typeface is
+  proprietary; Inter is its documented open substitute), with **`'JetBrains
+  Mono'`** for paths, branch names, diffs, agent output, prompt text, version
+  badge, and config snippets. `body` sets `letter-spacing:-0.01em` +
+  `-webkit-font-smoothing:antialiased` — Inter wants both.
+- **Weights:** 300 (descriptions, hints), 400 (default UI text/body), 500
+  (labels, active/emphasis), **600 (headings — Linear caps display at 600, not
+  700)**.
+- **Negative tracking on display.** Headings tighten as they grow: header title
+  -0.3px, empty-state -0.5px, landing section titles -0.8px, hero -1.8px. Body
+  stays at the -0.01em set on `body`. This aggressive negative tracking is the
+  Linear signature — keep new large headings on weight 600 + negative tracking.
 - **Sizes:** 9–10px (badges, pills, timestamps), 11px (hints, secondary), 12px
-  (default control/body), 13px (card text, section body, toggles), 14–15px
-  (titles/headers). Don't exceed 17px (empty-state title).
-- **Uppercase micro-labels:** field labels and group labels use
+  (default control/body), 13px (card text, section body), 14–18px (titles).
+- **Uppercase micro-labels (eyebrows):** field/group labels use
   `font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.4px;
   color:var(--text-muted)` — see `.field-label`, `.sidebar-group-label`,
-  `.nc-agent-box-label`. Reuse these classes; don't reinvent.
+  `.nc-agent-box-label`. Linear eyebrows use *positive* tracking; keep these sans
+  (not mono). Reuse the classes; don't reinvent.
 
 ---
 
