@@ -258,7 +258,7 @@ function buildCard(card, colId) {
     m.className = 'merged-badge';
     m.textContent = 'merged';
     m.title = 'Merged: ' + fmtTime(card.merged_at);
-    metaRow.appendChild(m);
+    cardTop.appendChild(m);
   }
   if (runningCards.has(card.id)) {
     const dot = document.createElement('span');
