@@ -22,7 +22,8 @@ Thank you for your interest in contributing to VibeBoard! This document provides
 
 ### Architecture Principles
 
-1. **Single-file UI** — `public/index.html` must remain a single file with no build step
+1. **No build step UI** — plain `public/index.html` + `styles.css` + ordered
+   `public/js/*.js` classic scripts. No bundler, no transpile, no ES-module imports.
 2. **SQLite storage** — All data goes through `mcp-server/db.js`
 3. **Cross-platform** — Support Windows and macOS
 4. **No auth** — This is a local tool, not a SaaS
@@ -33,14 +34,25 @@ Thank you for your interest in contributing to VibeBoard! This document provides
 ```
 vibeboard/
 ├── mcp-server/
-│   ├── index.js      # Main server (HTTP + MCP + SSE)
-│   ├── db.js         # Database layer
-│   ├── agent.js      # Agent spawning
-│   └── migrate.js    # Legacy migration
+│   ├── index.js        # Bootstrap (wires modules, listen, shutdown)
+│   ├── config.js       # PORT / HOST / PUBLIC_DIR / VERSION
+│   ├── events.js       # SSE registry + emitSSE
+│   ├── auth.js         # Network-mode token middleware
+│   ├── http-routes.js  # All REST + SSE endpoints
+│   ├── mcp-tools.js    # All MCP tool definitions
+│   ├── mcp-config.js   # Per-agent MCP config
+│   ├── agent-routing.js# Spawn/stop routing + dependency checks
+│   ├── agent.js        # Agent spawning, queue, lifecycle
+│   ├── worktree.js     # Git worktree helpers
+│   ├── models.js       # Model lists
+│   ├── db.js           # Database layer
+│   └── migrate.js      # Legacy migration
 ├── public/
-│   └── index.html    # Single-file UI
+│   ├── index.html      # UI markup
+│   ├── styles.css      # UI styles
+│   └── js/*.js         # UI logic (ordered classic scripts)
 ├── .claude/
-│   └── mcp.json      # Claude Code config
+│   └── mcp.json        # Claude Code config
 └── README.md
 ```
 

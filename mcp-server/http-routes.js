@@ -1,4 +1,5 @@
 const { spawn } = require('child_process');
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
@@ -21,6 +22,10 @@ module.exports = function registerRoutes(app) {
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: VERSION }));
 
   app.use(authMiddleware);
+
+  // Serve static UI assets (styles.css, js/*.js) behind the auth gate. index.html
+  // is served explicitly below so the root path stays an exact, intentional route.
+  app.use(express.static(PUBLIC_DIR, { index: false }));
 
   app.get('/workspaces', (_req, res) => {
     const active = db.getActiveWorkspaceId();

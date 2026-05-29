@@ -1,0 +1,270 @@
+'use strict';
+
+// ── Network-mode token ───────────────────────────────────────────────────────
+// When the server runs on a non-loopback host it requires a shared token. The
+// operator opens the board via http://host:7341/?token=… ; we capture it once and
+// attach it to every same-origin fetch + the SSE stream. In normal local use the
+// URL has no token, so this is a no-op and fetch is left untouched.
+const VB_TOKEN = new URLSearchParams(location.search).get('token') || '';
+if (VB_TOKEN) {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    init = { ...(init || {}) };
+    init.headers = { ...(init.headers || {}), 'X-VB-Token': VB_TOKEN };
+    return _fetch(input, init);
+  };
+}
+function vbUrl(pathAndQuery) {
+  if (!VB_TOKEN) return pathAndQuery;
+  return pathAndQuery + (pathAndQuery.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(VB_TOKEN);
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+const THEME_KEY = 'vb_theme';
+const THEME_CYCLE = ['light', 'dark'];
+const THEME_ICONS = { system: '☀', light: '☀', dark: '☾' };
+const THEME_LABELS = { system: 'Light', light: 'Light', dark: 'Dark' };
+function applyTheme(t) {
+  if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+  localStorage.setItem(THEME_KEY, t);
+  const btn = document.getElementById('theme-btn');
+  if (btn) { btn.textContent = THEME_ICONS[t] || '⊙'; btn.title = `Theme: ${THEME_LABELS[t] || t} (click to cycle)`; }
+}
+applyTheme(localStorage.getItem(THEME_KEY) || 'system');
+
+// ── State ──────────────────────────────────────────────────────────────────
+const TAB_ID = crypto.randomUUID();
+let board = { columns: [], agentLog: [] };
+let workspaces = [];
+let activeWsId = null;
+let editingWsId = null;
+let draggingCard = null;
+let draggingFromCol = null;
+let es = null;
+
+const TAGS = ['feature','bug','design','infra','docs','api'];
+const COL_COLORS = ['#6b6860','#2563eb','#d97706','#16a34a','#7c3aed','#dc2626','#0891b2','#db2777'];
+const AGENT_LABELS = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'codex': 'Codex CLI', '': 'None' };
+
+let agentsAvailable = { 'claude-code': true, 'opencode': true, 'codex': true };
+fetch('/api/agents/available').then(r => r.json()).then(data => { agentsAvailable = data; }).catch(() => {});
+
+let availableModels = { 'claude-code': [], 'opencode': [], 'codex': [] };
+fetch('/api/models').then(r => r.json()).then(data => { availableModels = data; }).catch(() => {});
+
+const runningCards = new Set();
+const queuedCards = new Set();
+
+// ── Dependency helpers ───────────────────────────────────────────────────────
+function findCardEntry(id) {
+  for (const col of (board?.columns || [])) {
+    const c = col.cards.find(x => x.id === id);
+    if (c) return { card: c, column: col };
+  }
+  return null;
+}
+// Blocker cards that haven't reached Done yet (a deleted blocker counts as cleared).
+function unfinishedBlockersUI(card) {
+  if (!Array.isArray(card.blocked_by) || !card.blocked_by.length) return [];
+  return card.blocked_by
+    .map(id => findCardEntry(id))
+    .filter(e => e && e.column.title !== 'Done')
+    .map(e => e.card);
+}
+
+// ── DOM ────────────────────────────────────────────────────────────────────
+const boardEl        = document.getElementById('board');
+const boardWrap      = document.getElementById('board-wrap');
+const emptyState     = document.getElementById('empty-state');
+const connDot        = document.getElementById('conn-dot');
+const logSidebar     = document.getElementById('log-sidebar');
+const logEntries     = document.getElementById('log-entries');
+const logToggleBtn   = document.getElementById('log-toggle-btn');
+const wsAddBtn       = document.getElementById('ws-add-btn');
+const wsCreateForm   = document.getElementById('ws-create-form');
+const wsCreatePath   = document.getElementById('ws-create-path');
+const wsCreateName   = document.getElementById('ws-create-name');
+const wsCreateBrowse = document.getElementById('ws-create-browse');
+const wsCreateSubmit = document.getElementById('ws-create-submit');
+const wsCreateCancel = document.getElementById('ws-create-cancel');
+const wsListEl       = document.getElementById('ws-list');
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function uid() { return crypto.randomUUID(); }
+function stableHash(o) { return JSON.stringify(o); }
+function fmtTime(iso) { return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function folderName(p) { return p.replace(/[/\\]+$/, '').split(/[/\\]/).filter(Boolean).pop() || ''; }
+
+function timeAgo(isoString) {
+  if (!isoString) return '';
+  const seconds = Math.floor((new Date() - new Date(isoString)) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function fmtDuration(seconds) {
+  if (seconds == null) return '';
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+function fmtTokens(n) {
+  if (n == null) return '';
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return (n / 1000).toFixed(n < 10_000 ? 1 : 0) + 'k';
+  return (n / 1_000_000).toFixed(1) + 'M';
+}
+
+function updateModelDropdown(prefix, agent, selectedModel) {
+  const modelRow = document.getElementById(`${prefix}-model-row`);
+  const modelSelect = document.getElementById(`${prefix}-model-select`);
+  
+  if (!agent || !availableModels[agent] || availableModels[agent].length === 0) {
+    if (modelRow) modelRow.style.display = 'none';
+    return;
+  }
+  
+  if (!modelRow || !modelSelect) return;
+  
+  modelRow.style.display = '';
+  modelSelect.innerHTML = '<option value="">Default</option>';
+  
+  availableModels[agent].forEach(model => {
+    const opt = document.createElement('option');
+    opt.value = model.id;
+    opt.textContent = model.name;
+    if (model.description) opt.textContent += ` — ${model.description}`;
+    modelSelect.appendChild(opt);
+  });
+  
+  if (selectedModel) {
+    modelSelect.value = selectedModel;
+  }
+  
+  modelSelect.onchange = () => {
+    const card = board.columns.flatMap(c => c.cards).find(c => c.id === modalCardId);
+    if (card) {
+      card.model = modelSelect.value || undefined;
+      saveModal(card);
+    }
+  };
+}
+
+async function refreshModels() {
+  try {
+    const resp = await fetch('/api/models/refresh', { method: 'POST' });
+    const data = await resp.json();
+    availableModels = data;
+    showToast('Models refreshed');
+  } catch (err) {
+    showToast('Failed to refresh models: ' + err.message);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ncRefresh = document.getElementById('nc-model-refresh');
+  const cardRefresh = document.getElementById('card-model-refresh');
+  if (ncRefresh) ncRefresh.addEventListener('click', refreshModels);
+  if (cardRefresh) cardRefresh.addEventListener('click', refreshModels);
+});
+
+// ── Persistence ────────────────────────────────────────────────────────────
+function saveCache(b) { try { localStorage.setItem('vb_board', JSON.stringify(b)); } catch(_){} }
+function loadCache() { try { const r=localStorage.getItem('vb_board'); if(r) return JSON.parse(r); } catch(_){} return null; }
+
+// ── POST board ─────────────────────────────────────────────────────────────
+async function postBoard() {
+  const payload = { ...JSON.parse(JSON.stringify(board)), _tabId: TAB_ID };
+  try { await fetch('/board', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); } catch(_){}
+  saveCache(board);
+}
+
+// ── Empty state ────────────────────────────────────────────────────────────
+function setEmptyState(empty) {
+  emptyState.classList.toggle('visible', empty);
+  boardEl.style.display = empty ? 'none' : '';
+}
+
+document.getElementById('empty-create-btn').addEventListener('click', () => {
+  openCreateForm();
+});
+
+// ── Browse folder ──────────────────────────────────────────────────────────
+async function browseFolder(inputEl, btnEl) {
+  btnEl.disabled = true;
+  const orig = btnEl.textContent;
+  btnEl.textContent = '…';
+  try {
+    const resp = await fetch('/api/folder-dialog');
+    if (resp.ok) {
+      const { path } = await resp.json();
+      if (path) {
+        inputEl.value = path;
+        inputEl.dispatchEvent(new Event('input'));
+      }
+    }
+  } catch(_) { showToast('Folder dialog unavailable — type the path manually'); }
+  finally { btnEl.disabled = false; btnEl.textContent = orig; }
+}
+
+wsCreateBrowse.addEventListener('click', () => browseFolder(wsCreatePath, wsCreateBrowse));
+document.getElementById('ws-modal-browse').addEventListener('click', () =>
+  browseFolder(document.getElementById('ws-modal-path'), document.getElementById('ws-modal-browse'))
+);
+
+// Auto-fill name from path and check git status when path changes
+let _gitCheckTimer = null;
+wsCreatePath.addEventListener('input', () => {
+  if (!wsCreateName.value.trim()) {
+    const suggested = folderName(wsCreatePath.value);
+    wsCreateName.placeholder = suggested ? `Name (${suggested})` : 'Name (optional)';
+  }
+  clearTimeout(_gitCheckTimer);
+  const p = wsCreatePath.value.trim();
+  const gitRow = document.getElementById('ws-git-status');
+  if (!p) { gitRow.style.display = 'none'; return; }
+  _gitCheckTimer = setTimeout(() => checkPathGitStatus(p), 600);
+});
+
+async function checkPathGitStatus(wsPath) {
+  const gitRow = document.getElementById('ws-git-status');
+  gitRow.style.display = 'flex';
+  gitRow.innerHTML = '<span style="color:var(--text-muted)">Checking git…</span>';
+  try {
+    const data = await fetch(`/api/git-status?path=${encodeURIComponent(wsPath)}`).then(r => r.json());
+    if (data.isGit) {
+      gitRow.innerHTML = `<span style="color:#16a34a">✓ Git repo</span><span style="color:var(--text-muted);font-family:monospace">${data.branch ? `  ${data.branch}` : ''}</span>`;
+    } else {
+      gitRow.innerHTML = `<span style="color:var(--text-muted)">Not a git repo</span><button id="ws-git-init-btn" style="margin-left:auto;font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer">Init git</button>`;
+      document.getElementById('ws-git-init-btn').addEventListener('click', async function() {
+        this.disabled = true; this.textContent = 'Initializing…';
+        try {
+          const r = await fetch('/api/git-init', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ path: wsPath }),
+          }).then(r => r.json());
+          if (r.ok) {
+            gitRow.innerHTML = `<span style="color:#16a34a">✓ Git initialized</span><span style="color:var(--text-muted);font-family:monospace">  ${r.branch || 'main'}</span>`;
+          } else {
+            throw new Error(r.error);
+          }
+        } catch(err) {
+          gitRow.innerHTML = `<span style="color:var(--danger)">Init failed: ${err.message}</span>`;
+        }
+      });
+    }
+  } catch(_) {
+    gitRow.style.display = 'none';
+  }
+}

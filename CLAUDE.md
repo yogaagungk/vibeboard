@@ -13,17 +13,30 @@ VibeBoard is a self-hostable open source kanban board built for developers who w
 ```
 vibeboard/
 ├── mcp-server/
-│   ├── index.js      ← Main server: MCP stdio + HTTP + SSE
-│   ├── db.js         ← SQLite database layer (cross-platform)
-│   ├── agent.js      ← Agent spawning and lifecycle management
-│   └── migrate.js    ← Legacy JSON to SQLite migration
+│   ├── index.js        ← Bootstrap: migrate, prune, wire modules, listen
+│   ├── config.js       ← PORT / HOST / PUBLIC_DIR / VERSION
+│   ├── events.js       ← SSE client registry + emitSSE (proxy in MCP-only mode)
+│   ├── auth.js         ← Network-mode token middleware
+│   ├── http-routes.js  ← registerRoutes(app): all REST + SSE endpoints
+│   ├── mcp-tools.js    ← registerMcpTools(mcp): all MCP tool definitions
+│   ├── mcp-config.js   ← Per-agent MCP config discovery / write
+│   ├── agent-routing.js← routeSpawn/Stop + dependency (blocked_by) checks
+│   ├── agent.js        ← Agent spawning, queue, lifecycle, usage parsing
+│   ├── worktree.js     ← Git worktree create/merge/PR helpers
+│   ├── models.js       ← Per-agent model lists
+│   ├── db.js           ← SQLite database layer (cross-platform)
+│   └── migrate.js      ← Legacy JSON to SQLite migration
 ├── public/
-│   └── index.html    ← Single-file kanban UI (vanilla JS, no build)
+│   ├── index.html      ← Kanban UI markup (no inline JS/CSS)
+│   ├── styles.css      ← UI styles
+│   └── js/             ← UI logic as ordered classic scripts (no bundler)
+│       ├── bootstrap.js, workspaces.js, board.js, realtime.js,
+│       └── shortcuts-io.js, card-sidebar.js, app.js
 ├── .claude/
-│   └── mcp.json      ← MCP config for Claude Code
-├── README.md         ← User documentation
-├── CONTRIBUTING.md   ← Contributor guidelines
-└── CLAUDE.md         ← This file (agent context)
+│   └── mcp.json        ← MCP config for Claude Code
+├── README.md           ← User documentation
+├── CONTRIBUTING.md     ← Contributor guidelines
+└── CLAUDE.md           ← This file (agent context)
 ```
 
 ## How the system works
@@ -32,7 +45,13 @@ vibeboard/
 - Windows: `%APPDATA%\vibeboard\vibeboard.db`
 - macOS: `~/Library/Application Support/vibeboard/vibeboard.db`
 
-**Server architecture**: Single Node.js process (`mcp-server/index.js`) handles:
+**UI assets**: `index.html` loads `styles.css` and the `js/*.js` files as ordered
+classic `<script src>` tags (served by `express.static`). They share one global
+scope and run in load order — no bundler, no build step, no ES-module imports.
+Load order matters: `bootstrap.js` first (it patches `fetch` for the network
+token), `app.js` last (it calls `init()`).
+
+**Server architecture**: Single Node.js process (entry `mcp-server/index.js`) handles:
 1. **MCP stdio transport** → Agents call tools (get_board, create_card, move_card, add_card_note, etc.)
 2. **Express HTTP server** → Serves UI, REST endpoints
 3. **SSE stream** → Real-time updates to UI when agents make changes
@@ -128,14 +147,18 @@ Add to your OpenCode config:
 2. Use move_card to signal task status, not just create_card
 3. Use add_card_note to log progress and checkpoints as you work
 4. Log to stderr only — stdout is reserved for MCP stdio protocol
-5. When adding features, keep the single-file constraint for index.html
-6. mcp-server/index.js and public/index.html are intentionally separate —
-   do not merge them or add a build step
+5. UI = plain HTML + CSS + ordered classic scripts. No bundler, no build step,
+   no ES-module imports. New UI logic goes in an existing `public/js/*.js` file
+   (or a new one added to the ordered `<script src>` list, respecting load order).
+6. Server and UI stay separate: never inline JS/CSS back into index.html, and
+   never add a build/transpile step to either side.
 
 ## Tech decisions (do not change without discussion)
 
 - **SQLite database** — stored in OS user data directory (Windows: `%APPDATA%`, macOS: `~/Library/Application Support`)
-- **No bundler** — index.html must work as a single file, no build step
+- **No bundler / no build step** — UI ships as static `index.html` + `styles.css`
+  + ordered `public/js/*.js` classic scripts served by `express.static`; the
+  server is plain CommonJS modules. Nothing is transpiled or bundled.
 - **No auth** — this is a local tool, not a SaaS
 - **stdio transport** — not HTTP MCP, because it works without a running server
 - **Node.js only** — no Bun, no Deno, keeps the runtime consistent across contributors
