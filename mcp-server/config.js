@@ -1,0 +1,12 @@
+const path = require('path');
+
+// Shared server configuration. PUBLIC_DIR is resolved relative to this module
+// (not cwd) so the UI is found no matter where the `vibeboard` bin is launched.
+const PORT = process.env.PORT || 7341;
+// Bind to loopback by default. The board has no auth and can spawn agents with
+// skipped permissions, so exposing it on the network is opt-in via VB_HOST=0.0.0.0.
+const HOST = process.env.VB_HOST || '127.0.0.1';
+const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
+const VERSION = '0.1.0';
+
+module.exports = { PORT, HOST, PUBLIC_DIR, VERSION };
