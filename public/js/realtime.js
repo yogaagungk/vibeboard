@@ -40,6 +40,11 @@ function connectSSE() {
     if (type === 'agent_dequeued') {
       queuedCards.delete(data.cardId);
       renderBoard(board);
+      if (modalCardId === data.cardId) {
+        const col = board.columns.find(c => c.cards?.some(c2 => c2.id === data.cardId));
+        const card = col?.cards.find(c => c.id === data.cardId);
+        if (card) updateRunAgentBtn(card);
+      }
     }
     if (type === 'agent_started') {
       runningCards.add(data.cardId);
