@@ -80,7 +80,14 @@ function buildColumn(col) {
 
   const cardsList = document.createElement('div');
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
-  [...col.cards].reverse().forEach(card => cardsList.appendChild(buildCard(card, col.id)));
+  
+  const reversedCards = [...col.cards].reverse();
+  if (reversedCards.length >= 100) {
+    colEl.appendChild(cardsList);
+    virtualizeColumn(colEl, reversedCards);
+  } else {
+    reversedCards.forEach(card => cardsList.appendChild(buildCard(card, col.id)));
+  }
 
   cardsList.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; cardsList.classList.add('drag-over'); });
   cardsList.addEventListener('dragleave', e => { if (!cardsList.contains(e.relatedTarget)) cardsList.classList.remove('drag-over'); });
@@ -140,7 +147,9 @@ function buildColumn(col) {
     }
   });
 
-  colEl.appendChild(cardsList);
+  if (col.cards.length < 100) {
+    colEl.appendChild(cardsList);
+  }
   colEl.appendChild(buildAddCardArea(col));
   return colEl;
 }
