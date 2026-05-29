@@ -7,9 +7,9 @@ const models = require('./models');
 // Register all MCP tools on the given McpServer. Every tool returns a JSON text
 // payload and never throws — errors are serialized so the agent can react.
 module.exports = function registerMcpTools(mcp) {
-  mcp.tool('get_board', 'Get the full board state of the active workspace', {}, async () => {
+  mcp.tool('get_board', 'Get the full board state of the active workspace', { workspaceId: z.string().optional() }, async ({ workspaceId }) => {
     try {
-      const activeId = db.getActiveWorkspaceId();
+      const activeId = workspaceId || db.getActiveWorkspaceId();
       if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
       return { content: [{ type: 'text', text: JSON.stringify(db.getBoard(activeId)) }] };
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
@@ -65,9 +65,9 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
-  mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.string() }, async ({ columnTitle }) => {
+  mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.string(), workspaceId: z.string().optional() }, async ({ columnTitle, workspaceId }) => {
     try {
-      const activeId = db.getActiveWorkspaceId();
+      const activeId = workspaceId || db.getActiveWorkspaceId();
       if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
       const board = db.getBoard(activeId);
       const column = board.columns.find(c => c.title === columnTitle);
@@ -77,10 +77,10 @@ module.exports = function registerMcpTools(mcp) {
   });
 
   mcp.tool('create_card', 'Create a new card in a column (default: Backlog). blocked_by takes card IDs that must reach Done before this card can move to In Progress.',
-    { title: z.string(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
-    async ({ title, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date, blocked_by }) => {
+    { title: z.string(), workspaceId: z.string().optional(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
+    async ({ title, workspaceId, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date, blocked_by }) => {
       try {
-        const activeId = db.getActiveWorkspaceId();
+        const activeId = workspaceId || db.getActiveWorkspaceId();
         if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
         const board = db.getBoard(activeId);
         const column = board.columns.find(c => c.title === columnTitle);

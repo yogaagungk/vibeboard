@@ -66,13 +66,13 @@ token), `app.js` last (it calls `init()`).
 
 ## MCP tools available to agents
 
-get_board          → read full board state
-get_column         → read cards in a specific column by title
+get_board          → read full board state (params: workspaceId?)
+get_column         → read cards in a specific column by title (params: columnTitle, workspaceId?)
 list_workspaces    → list all workspaces
 create_workspace   → create a new workspace (params: name, path, description?)
 switch_workspace   → switch to a different workspace (params: workspaceId)
 set_workspace      → update workspace metadata (params: name?, path?, description?)
-create_card        → add a card (params: title, columnTitle?, tags?, description?, agent?, model?, priority?, due_date?, blocked_by?)
+create_card        → add a card (params: title, workspaceId?, columnTitle?, tags?, description?, agent?, model?, priority?, due_date?, blocked_by?)
 update_card        → update card fields (params: cardId, title?, description?, tags?, agent?, model?, priority?, due_date?, blocked_by?)
 move_card          → move a card between columns (params: cardId, toColumnTitle)
 complete_card      → move a card to Done (params: cardId)
