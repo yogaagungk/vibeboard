@@ -465,6 +465,10 @@ select.ws-input {
   font-size: 11px; font-weight: 500; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.4px;
 }
+.sidebar-group .details-row {
+  border-top: none;
+  padding: 0;
+}
 .agent-last-run { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px; }
 .agent-actions-row {
   display: flex;

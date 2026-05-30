@@ -658,10 +658,9 @@ Column workflow:
 Git rule: ALWAYS run \`git add -A && git commit\` before calling move_card or complete_card.
 This ensures your work is never lost when the card changes state.${card.custom_prompt ? '\n\nAdditional instructions from the user:\n' + card.custom_prompt : ''}`;
     promptSection.style.display = 'block';
-    // Collapse prompt by default when first shown
     if (wasHidden) {
-      promptText.classList.add('collapsed');
-      promptToggle.textContent = 'Show \u25BE';
+      promptText.classList.remove('collapsed');
+      promptToggle.textContent = 'Hide \u25B4';
     }
   }
 }
