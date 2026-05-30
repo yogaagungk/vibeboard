@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.7] - 2026-05-30
+
+### Added
+- **Discard changes button** — Done cards with an unmerged branch now show a "Discard changes" danger button alongside the merge button; confirming deletes the worktree, removes the local branch, and clears the branch reference on the card.
+- **Expand diff dialog** — a ⛶ expand button on the diff view opens the full diff in a wide (80 vw, max 900 px) centered dialog with monospace font and horizontal scroll for long lines.
+- **Theme icons in settings modal** — System / Light / Dark theme buttons now include inline SVG icons (monitor / sun / moon) for faster scanning.
+
+### Changed
+- **Details tab redesigned** — flat layout replaces the bordered "DETAILS" box; all fields (Tags, Priority, Due Date, Blocked by) are now inline label + control rows with thin dividers, matching a clean sidebar aesthetic.
+- **Agent tab redesigned** — same flat label treatment: Agent selector, Model picker, Running+Stop buttons (now side by side), and Additional Instructions all converted to compact inline rows. Agent Prompt is collapsed by default with a Show/Hide toggle.
+- **New card modal redesigned** — Tags, Priority, Due Date, Blocked by, and Agent fields updated to match the flat inline label style introduced in the Details and Agent tab redesigns.
+- **Settings button flattened** — sidebar bottom Settings button no longer has a border/box; renders as a flat hover row consistent with workspace list items above it.
+- **Notes & Checkpoints collapsed by default** — each note shows timestamp + first-line preview; click to expand. Most recent note starts expanded. Reduces visual clutter when agents write many checkpoints.
+- **Agent prompt collapsed by default** — the prompt textarea in the Agent tab is hidden by default; a Show/Hide toggle reveals it when needed.
+
+### Fixed
+- **ANSI escape codes stripped from full output** — terminal color/formatting sequences (e.g. `\x1b[0m`, `\x1b[90m`) are now sanitized before display; previously rendered as garbage characters.
+- **Card sidebar refreshes when column changes via SSE** — the merge button and move actions now update in place when an agent moves the open card to Done; previously required closing and reopening the sidebar.
+
 ## [0.2.6] - 2026-05-30
 
 ### Added
