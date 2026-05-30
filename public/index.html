@@ -372,15 +372,18 @@
         </div>
       </div>
       <div class="sidebar-panel" data-panel="agent" hidden>
-        <div class="details-row">
-          <span class="details-label">Agent</span>
-          <div id="card-agent-mount" style="flex:1;min-width:0"></div>
-        </div>
-        <div id="card-model-row" style="display:none">
+        <div class="sidebar-group">
+          <div class="sidebar-group-label">Agent</div>
           <div class="details-row">
-            <span class="details-label">Model</span>
-            <div id="card-model-mount" style="flex:1;min-width:0"></div>
-            <button class="icon-btn" id="card-model-refresh" title="Refresh models">↻</button>
+            <span class="details-label">Agent</span>
+            <div id="card-agent-mount" style="flex:1;min-width:0"></div>
+          </div>
+          <div id="card-model-row" style="display:none">
+            <div class="details-row">
+              <span class="details-label">Model</span>
+              <div id="card-model-mount" style="flex:1;min-width:0"></div>
+              <button class="icon-btn" id="card-model-refresh" title="Refresh models">↻</button>
+            </div>
           </div>
         </div>
         <div id="card-agent-run-section" style="display:none">
@@ -410,7 +413,7 @@
             <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
           </div>
           <div class="prompt-toggle-row">
-            <button class="prompt-toggle-btn prompt-toggle-left" id="card-prompt-toggle">Show ▾</button>
+            <button class="prompt-toggle-btn prompt-toggle-left" id="card-prompt-toggle">Hide ▴</button>
           </div>
           <textarea id="card-modal-prompt-text" readonly class="agent-prompt-textarea agent-prompt-readonly"></textarea>
         </div>
