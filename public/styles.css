@@ -631,8 +631,10 @@ body.mcp-banner-open #log-sidebar {
   font-family: 'Inter', sans-serif; color: var(--text);
 }
 .col-title:focus { border-color: var(--border-strong); background: var(--bg); }
-.col-count { font-size: 11px; color: var(--text-muted); font-weight: 300; cursor: pointer; padding: 1px 4px; border-radius: var(--radius-xs); }
+.col-count { font-size: 11px; color: var(--text-muted); font-weight: 300; cursor: pointer; padding: 1px 4px; border-radius: var(--radius-xs); position: relative; }
 .col-count:hover { background: var(--bg); color: var(--text); }
+.col-count::after { content: '✎'; font-size: 9px; margin-left: 3px; opacity: 0; transition: opacity 0.15s; }
+.col-count:hover::after { opacity: 0.6; }
 .col-count.over { color: var(--danger); font-weight: 500; }
 
 
