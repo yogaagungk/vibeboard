@@ -440,6 +440,29 @@ module.exports = function registerRoutes(app) {
     }
   });
 
+  app.get('/api/workspaces/:id/agent-context', (req, res) => {
+    const workspace = db.getWorkspace(req.params.id);
+    if (!workspace?.path) return res.status(404).json({ error: 'Workspace not found' });
+
+    const candidates = [
+      'CLAUDE.md',
+      'AGENTS.md',
+      'OPENCODE.md',
+      'CODEX.md',
+      'DESIGN.md',
+      '.claude/CLAUDE.md',
+    ];
+
+    const files = [];
+    for (const rel of candidates) {
+      try {
+        const content = fs.readFileSync(path.join(workspace.path, rel), 'utf8');
+        files.push({ filename: rel, content });
+      } catch (_) {}
+    }
+    res.json({ files });
+  });
+
   app.get('/api/workspaces/:id/export', (req, res) => {
     const data = db.exportWorkspace(req.params.id);
     if (!data) return res.status(404).json({ error: 'Workspace not found' });

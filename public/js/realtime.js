@@ -131,6 +131,7 @@ function connectSSE() {
       workspaces = workspaces.map(w => ({ ...w, active: w.id === workspaceId }));
       renderWorkspaceList(); setEmptyState(false);
       nb.agentLog = nb.agentLog || []; saveCache(nb); renderBoard(nb);
+      loadContextPanel(workspaceId);
       mcpBannerDismissed = false;
       checkMcpStatus();
     }

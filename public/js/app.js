@@ -153,6 +153,7 @@ async function init() {
   }
 
   await loadBoard();
+  loadContextPanel(activeWsId);
 }
 
 init();

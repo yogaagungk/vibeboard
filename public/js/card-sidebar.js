@@ -24,6 +24,41 @@ function sanitizeOutput(str) {
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
 }
 
+async function loadAgentContext(agent) {
+  const tabsEl  = document.getElementById('context-sidebar-tabs');
+  const pre     = document.getElementById('context-file-content');
+  const emptyEl = document.getElementById('context-file-empty');
+  tabsEl.innerHTML = '';
+  pre.innerHTML = '';
+
+  if (!agent) {
+    document.getElementById('context-file-empty-msg').textContent = 'Select an agent on the Agent tab to see its context file.';
+    emptyEl.style.display = '';
+    return;
+  }
+
+  const wsId = activeWsId || board?.id;
+  if (!wsId) { emptyEl.style.display = ''; return; }
+
+  const target = agent === 'claude-code' ? 'CLAUDE.md' : 'AGENTS.md';
+  emptyEl.style.display = 'none';
+
+  try {
+    const resp = await fetch(`/api/workspaces/${wsId}/agent-context`);
+    if (resp.ok) {
+      const data = await resp.json();
+      const file = (data.files || []).find(f => f.filename === target);
+      if (file) {
+        pre.innerHTML = renderMarkdown(file.content);
+        return;
+      }
+    }
+  } catch (_) {}
+
+  document.getElementById('context-file-empty-msg').textContent = `${target} not found in this workspace.`;
+  emptyEl.style.display = '';
+}
+
 async function loadCardNotes(cardId) {
   try {
     const resp = await fetch(`/api/cards/${cardId}/notes`);
@@ -188,6 +223,8 @@ function openCardModal(cardId, colId) {
       document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
       document.getElementById('card-custom-prompt-section').style.display = card.agent ? '' : 'none';
       updateModelDropdown('card', card.agent || '', card.model);
+      const activeTab = document.querySelector('.sidebar-tab.active');
+      if (activeTab?.dataset.tab === 'context') loadAgentContext(card.agent);
     },
   });
   agentMount.appendChild(agentMount._agentSelect.el);
@@ -304,6 +341,8 @@ function openCardModal(cardId, colId) {
     const actDivider = document.getElementById('card-activity-divider');
     if (actDivider) actDivider.style.display = hasActivity ? '' : 'none';
   });
+
+  if (savedTab === 'context') loadAgentContext(card.agent);
 }
 
 function openNewCardModal(colId) {
@@ -815,7 +854,14 @@ function switchSidebarTab(tabId) {
 }
 
 document.querySelectorAll('.sidebar-tab').forEach(btn => {
-  btn.addEventListener('click', () => switchSidebarTab(btn.dataset.tab));
+  btn.addEventListener('click', () => {
+    switchSidebarTab(btn.dataset.tab);
+    if (btn.dataset.tab === 'context') {
+      const col = board.columns.find(c => c.id === modalColId);
+      const card = col?.cards.find(c => c.id === modalCardId);
+      loadAgentContext(card?.agent);
+    }
+  });
 });
 
 function closeCardModal() {

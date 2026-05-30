@@ -102,6 +102,7 @@
       <input type="text" id="board-search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
       <button id="board-search-clear">Clear</button>
       <span id="board-search-count"></span>
+      <button class="header-btn" id="ws-context-btn" title="View AI context files" style="display:none">Context</button>
     </div>
     <div id="board-inner">
       <div id="board"></div>
@@ -353,6 +354,7 @@
       <button class="sidebar-tab active" data-tab="details" role="tab" aria-selected="true">Details</button>
       <button class="sidebar-tab" data-tab="agent" role="tab" aria-selected="false">Agent</button>
       <button class="sidebar-tab" data-tab="activity" role="tab" aria-selected="false">Activity</button>
+      <button class="sidebar-tab" data-tab="context" role="tab" aria-selected="false">Context</button>
     </div>
     <div id="card-sidebar-body">
       <div class="sidebar-panel" data-panel="details">
@@ -423,6 +425,13 @@
           <textarea id="card-modal-prompt-text" readonly class="agent-prompt-textarea agent-prompt-readonly"></textarea>
         </div>
       </div>
+      <div class="sidebar-panel" data-panel="context" hidden>
+        <div id="context-sidebar-tabs" class="context-sidebar-tabs" role="tablist"></div>
+        <div id="context-file-content" class="md-content context-file-content"></div>
+        <div id="context-file-empty" style="display:none">
+          <p class="log-empty" id="context-file-empty-msg">Select an agent on the Agent tab to see its context file.</p>
+        </div>
+      </div>
       <div class="sidebar-panel" data-panel="activity" hidden>
         <div class="sidebar-group" id="card-move-actions" style="display:none">
           <div class="sidebar-group-label">Move to</div>
@@ -466,6 +475,23 @@
   </div>
 </aside>
 
+<!-- Agent Context Modal -->
+<div class="modal-overlay" id="context-modal-overlay">
+  <div class="modal-box" id="context-modal">
+    <div class="modal-header">
+      <span class="modal-header-title">Workspace Context</span>
+      <button class="modal-close-btn" id="context-modal-close">×</button>
+    </div>
+    <div id="context-modal-tabs" class="sidebar-tabs" role="tablist" style="padding:0 16px;border-bottom:1px solid var(--border);flex-shrink:0"></div>
+    <div id="context-modal-body" class="modal-body" style="padding:0;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0">
+      <div id="context-modal-content" class="md-content context-modal-content"></div>
+      <div id="context-modal-empty" style="display:none;padding:24px 20px">
+        <p class="log-empty">No AI context files found in this workspace.<br>Add a <code>CLAUDE.md</code>, <code>AGENTS.md</code>, or <code>OPENCODE.md</code> to describe your project for agents.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/js/bootstrap.js"></script>
 <script src="/js/dialogs.js"></script>
 <script src="/js/select.js"></script>
@@ -475,6 +501,7 @@
 <script src="/js/realtime.js"></script>
 <script src="/js/datepicker.js"></script>
 <script src="/js/shortcuts-io.js"></script>
+<script src="/js/md-render.js"></script>
 <script src="/js/card-sidebar.js"></script>
 <script src="/js/app.js"></script>
 </body>
