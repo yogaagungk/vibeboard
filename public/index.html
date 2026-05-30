@@ -367,47 +367,52 @@
         </div>
       </div>
       <div class="sidebar-panel" data-panel="agent" hidden>
-        <div class="sidebar-group">
-          <div class="sidebar-group-label">Agent</div>
+        <div class="details-row">
+          <span class="details-label">Agent</span>
           <div class="agent-options">
             <button class="agent-btn active" data-agent="">None</button>
             <button class="agent-btn" data-agent="claude-code">Claude Code</button>
             <button class="agent-btn" data-agent="opencode">OpenCode</button>
             <button class="agent-btn" data-agent="codex">Codex CLI</button>
           </div>
-          <div id="card-model-row" style="display:none">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-              <div class="field-label" style="margin:0;flex:1">Model</div>
-              <button class="icon-btn" id="card-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
-            </div>
-            <div id="card-model-mount"></div>
-          </div>
-          <div id="card-agent-run-section" style="display:none">
-            <button class="agent-run-btn" id="card-run-agent-btn" style="width:100%">Run agent</button>
-            <button class="btn-ghost" id="card-stop-agent-btn" style="width:100%;margin-top:6px;display:none;color:var(--danger);border-color:var(--danger)">Stop agent</button>
-            <div class="agent-last-run" id="card-agent-last-run"></div>
-          </div>
-          <div id="card-review-toggle-row" class="toggle-row" style="display:none">
-            <div>
-              <div class="toggle-row-label">Needs review</div>
-              <div class="toggle-row-hint">Agent moves to Review before Done</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="card-needs-review-toggle" checked>
-              <span class="toggle-track"></span>
-            </label>
-          </div>
-          <div id="card-custom-prompt-section" style="display:none">
-            <div class="field-label">Additional instructions</div>
-            <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
+        </div>
+        <div id="card-model-row" style="display:none">
+          <div class="details-row">
+            <span class="details-label">Model</span>
+            <div id="card-model-mount" style="flex:1;min-width:0"></div>
+            <button class="icon-btn" id="card-model-refresh" title="Refresh models">↻</button>
           </div>
         </div>
-        <div id="card-prompt-section" style="display:none">
-          <div class="field-label">Agent prompt</div>
-          <div style="display:flex;align-items:flex-start;gap:8px">
-            <textarea id="card-modal-prompt-text" readonly style="flex:1;height:180px;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);outline:none;line-height:1.5"></textarea>
-            <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
+        <div id="card-agent-run-section" style="display:none">
+          <div class="agent-actions-row">
+            <button class="agent-run-btn" id="card-run-agent-btn">Run agent</button>
+            <button class="btn-ghost" id="card-stop-agent-btn" style="display:none">Stop agent</button>
           </div>
+          <div class="agent-last-run" id="card-agent-last-run"></div>
+        </div>
+        <div id="card-review-toggle-row" class="toggle-row" style="display:none">
+          <div>
+            <div class="toggle-row-label">Needs review</div>
+            <div class="toggle-row-hint">Agent moves to Review before Done</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="card-needs-review-toggle" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div id="card-custom-prompt-section" style="display:none">
+          <div class="details-label" style="margin-bottom:6px">Instructions</div>
+          <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
+        </div>
+        <div id="card-prompt-section" style="display:none">
+          <div class="agent-prompt-header">
+            <span class="details-label">Agent prompt</span>
+            <div class="agent-prompt-actions">
+              <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
+              <button class="prompt-toggle-btn" id="card-prompt-toggle">Show ▾</button>
+            </div>
+          </div>
+          <textarea id="card-modal-prompt-text" readonly class="agent-prompt-textarea"></textarea>
         </div>
       </div>
       <div class="sidebar-panel" data-panel="activity" hidden>

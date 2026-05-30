@@ -408,6 +408,19 @@ select.ws-input {
   flex-direction: column;
   gap: 14px;
 }
+
+.details-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.details-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 60px;
+}
 .sidebar-panel[hidden] {
   display: none;
 }
@@ -469,6 +482,54 @@ select.ws-input {
 .sidebar-field-row { display: flex; gap: 10px; }
 .sidebar-field-col { flex: 1; min-width: 0; }
 .agent-last-run { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px; }
+.agent-actions-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.agent-actions-row .agent-run-btn {
+  flex: 1;
+}
+.agent-actions-row .agent-run-btn::before { content: '▶'; font-size: 9px; }
+.agent-actions-row .agent-run-btn:disabled::before { content: ''; }
+.agent-actions-row #card-stop-agent-btn {
+  flex-shrink: 0;
+  color: var(--danger);
+  border-color: var(--danger);
+  white-space: nowrap;
+}
+.agent-actions-row #card-stop-agent-btn:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.agent-prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.agent-prompt-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.prompt-toggle-btn {
+  height: 28px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: transparent; font-family: 'Inter', sans-serif;
+  font-size: 12px; cursor: pointer; color: var(--text-muted);
+  white-space: nowrap; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.prompt-toggle-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+.agent-prompt-textarea {
+  width: 100%; height: 180px; resize: vertical;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 7px 9px; font-family: monospace; font-size: 11px;
+  background: var(--bg); color: var(--text); outline: none; line-height: 1.5;
+  margin-top: 8px;
+}
+.agent-prompt-textarea.collapsed { display: none; }
 
 /* ── Layout ── */
 #app {
@@ -965,7 +1026,8 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .modal-tag-picker { display: flex; gap: 5px; flex-wrap: wrap; }
 .agent-options { display: flex; gap: 6px; }
 .agent-btn {
-  flex: 1; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  flex: 1; height: 28px; padding: 2px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
   background: transparent; font-family: 'Inter', sans-serif; font-size: 12px;
   font-weight: 400; color: var(--text-muted); cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -1103,13 +1165,12 @@ kbd {
   cursor: pointer; transition: opacity 0.15s, transform 0.1s;
 }
 .agent-run-btn::before { content: '▶'; font-size: 9px; }
+.agent-run-btn:disabled::before { content: ''; }
 .agent-run-btn:hover { opacity: 0.88; }
 .agent-run-btn:active { transform: translateY(1px); }
 .agent-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.agent-run-btn:disabled::before { content: ''; }
 
-/* Stop button gets a light danger background tint on hover. */
-#card-stop-agent-btn:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); border-color: var(--danger); }
+/* Stop button hover handled in .agent-actions-row #card-stop-agent-btn:hover */
 
 .card-move-btn {
   height: 28px; padding: 0 12px; white-space: nowrap;
@@ -1615,7 +1676,7 @@ select:focus-visible,
 .agent-btn:active, .priority-btn:active, .theme-opt:active,
 .card-move-btn:active, .agent-run-btn:active, .browse-btn:active,
 .ws-io-btn:active, .output-toggle-btn:active, .copy-path-btn:active,
-.prompt-copy-btn:active, .icon-btn:active, .mcp-agent-setup-btn:active {
+.prompt-copy-btn:active, .prompt-toggle-btn:active, .icon-btn:active, .mcp-agent-setup-btn:active {
   transform: translateY(1px);
 }
 
