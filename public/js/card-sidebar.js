@@ -301,7 +301,8 @@ function openCardModal(cardId, colId) {
   loadCardNotes(cardId).then(notes => {
     renderCardNotes(notes);
     const hasActivity = notes.length > 0 || card.branch;
-    document.getElementById('card-activity-divider').style.display = hasActivity ? '' : 'none';
+    const actDivider = document.getElementById('card-activity-divider');
+    if (actDivider) actDivider.style.display = hasActivity ? '' : 'none';
   });
 }
 
@@ -828,7 +829,8 @@ function closeCardModal() {
   document.getElementById('card-merge-actions').style.display = 'none';
   document.getElementById('card-merged-info').style.display = 'none';
   document.getElementById('card-changes-section').style.display = 'none';
-  document.getElementById('card-activity-divider').style.display = 'none';
+  const actDivider = document.getElementById('card-activity-divider');
+  if (actDivider) actDivider.style.display = 'none';
   document.getElementById('card-notes-section').style.display = 'none';
   const outToggle = document.getElementById('card-output-toggle');
   if (outToggle) { outToggle.style.display = 'none'; outToggle.textContent = 'Show full output'; }
