@@ -157,10 +157,13 @@ Add a `vibeboard` entry under `mcpServers` in `~/.codex/config.json`:
 
 ### MCP tools agents can call
 
-`get_board` · `get_column` · `list_workspaces` · `create_workspace` ·
-`switch_workspace` · `set_workspace` · `create_card` · `update_card` ·
-`move_card` · `complete_card` · `delete_card` · `add_card_note` ·
-`get_card_notes` · `list_models` · `refresh_models`
+`get_board` · `get_column` · `list_cards` · `search_cards` ·
+`list_workspaces` · `create_workspace` · `switch_workspace` · `set_workspace` ·
+`create_card` · `update_card` · `move_card` · `complete_card` · `delete_card` ·
+`add_card_note` · `get_card_notes` · `get_agent_status` ·
+`list_models` · `refresh_models`
+
+`get_board` supports `columnsOnly`, `excludeLogs`, and `columnTitle` filters to reduce payload size. `search_cards` and `list_cards` support `limit`/`offset` pagination.
 
 ## Configuration
 

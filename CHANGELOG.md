@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.11] - 2026-05-30
+
+### Fixed
+- **Agent completion never lost** — the internal HTTP notify that marks a card done after an agent exits now retries up to 3 times (500 ms / 1 s / 1.5 s backoff) instead of silently swallowing errors; a failed notify is logged to stderr so it's always visible.
+- **Timer leak on long-running servers** — `clearTimeout` is now called immediately in the agent's `close` and `error` handlers before the async notify fetch, preventing timeout handles from accumulating when the fetch is slow or retrying.
+- **`activeAgents` map leak on spawn error** — if `updateCard` or another step throws after the agent child was already set in the map, the catch block now fully tears down the entry (clears interval/timeout, kills child, removes PID file) so nothing leaks.
+- **PID file registry for cross-process cleanup** — each spawned agent writes a `agent-pid-<cardId>` file to the data directory; `killAllAgents` on SIGTERM now also kills any PIDs registered by MCP subprocess instances that aren't in the current process's `activeAgents` map, so no orphaned agents survive a server shutdown.
+- **Duplicate dead declarations removed** — agent.js had two redundant function declarations (`isAgentRunning`, `isAgentActive`) introduced at the top of the file that shadowed the correct implementations lower down; removed.
+
+### Added
+- **`list_cards` MCP tool** — lightweight card listing with `columnTitle`, `tag`, `agent`, `limit`, and `offset` filters; much more efficient than `get_board` when you only need card IDs or a filtered subset.
+- **`get_agent_status` MCP tool** — returns `{ running, queued, lastNote, lastExitCode }` for a card so agents can check peer activity without fetching the full board.
+- **`get_board` filter params** — `columnsOnly` (strips card data), `excludeLogs` (omits agent log), and `columnTitle` (returns a single column) reduce payload size for agents that don't need the full state.
+- **`search_cards` pagination** — `limit` (default 50) and `offset` params added; response now includes `total` count alongside the page.
+- **`move_card` spawn failure visible** — if agent spawn throws after a card is moved, VibeBoard adds a card note `⚠️ Agent spawn failed: …` and emits `agent_spawn_failed` SSE instead of leaving the card silently stuck.
+- **`update_card` logs agent changes** — assigning or clearing a card's agent now writes an explicit agent log entry (`Agent assigned: opencode (was: none)`).
+
+### Changed
+- **WIP limit badge shows edit affordance** — the card-count badge on column headers now shows a `✎` pencil icon on hover, making the double-click-to-edit interaction discoverable.
+- **Search debounced** — board search input now waits 150 ms after the last keystroke before filtering, preventing layout thrashing on large boards.
+- **Note preview tooltips** — truncated agent checkpoint previews in the activity feed now have a `title` attribute with the full text, accessible on hover and to screen readers.
+- **Column title accessibility** — the inline-edit input for renaming a column now has `aria-label="Column title"`.
+- **Datepicker keyboard clear** — pressing `Delete` or `Backspace` while the datepicker trigger has focus clears the date without opening the calendar popup.
+
 ## [0.2.10] - 2026-05-30
 
 ### Added

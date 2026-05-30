@@ -67,8 +67,6 @@ function killAllRegisteredPids() {
 }
 
 function isQueued(cardId) { return agentQueue.some(q => q.cardId === cardId); }
-function isAgentRunning(cardId) { return activeAgents.has(cardId); }
-function isAgentActive(cardId) { return activeAgents.has(cardId); }
 function getQueuedCardIds() { return agentQueue.map(q => q.cardId); }
 function dequeueCard(cardId) {
   const i = agentQueue.findIndex(q => q.cardId === cardId);
