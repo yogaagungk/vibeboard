@@ -52,6 +52,8 @@ let editingWsId = null;
 let draggingCard = null;
 let draggingFromCol = null;
 let es = null;
+let sseReconnectAttempts = 0;
+const MAX_SSE_RECONNECT = 3;
 
 const TAGS = ['feature','bug','design','infra','docs','api'];
 const COL_COLORS = ['#6b6860','#2563eb','#d97706','#16a34a','#7c3aed','#dc2626','#0891b2','#db2777'];

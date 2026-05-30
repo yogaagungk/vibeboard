@@ -4,7 +4,12 @@
 function connectSSE() {
   if (es) { es.close(); es = null; }
   es = new EventSource(vbUrl('/events'));
-  es.onopen = () => { connDot.className = 'connected'; connDot.title = 'SSE connected'; };
+  es.onopen = () => {
+    connDot.className = 'connected'; connDot.title = 'SSE connected';
+    sseReconnectAttempts = 0;
+    const banner = document.getElementById('sse-banner');
+    if (banner) banner.classList.remove('visible');
+  };
   es.onmessage = e => {
     let msg; try { msg = JSON.parse(e.data); } catch(_) { return; }
     const { type, data } = msg;
@@ -133,7 +138,12 @@ function connectSSE() {
   };
   es.onerror = () => {
     connDot.className = ''; connDot.title = 'SSE disconnected';
+    sseReconnectAttempts++;
     es.close(); es = null;
+    if (sseReconnectAttempts >= MAX_SSE_RECONNECT) {
+      const banner = document.getElementById('sse-banner');
+      if (banner) banner.classList.add('visible');
+    }
     setTimeout(async () => {
       connectSSE();
       // Re-sync board state - may have changed while disconnected

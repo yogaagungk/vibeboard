@@ -70,6 +70,74 @@ function initModalA11y() {
   });
 }
 
+// ── Board loading ──────────────────────────────────────────────────────────
+async function loadBoard() {
+  const errorEl = document.getElementById('board-error-state');
+  if (errorEl) errorEl.remove();
+
+  const cached = loadCache();
+  if (cached) {
+    boardEl.style.display = '';
+    renderBoard(cached);
+  }
+
+  try {
+    const resp = await fetch('/board');
+    if (resp.ok) {
+      const fresh = await resp.json();
+      if (fresh) { fresh.agentLog = fresh.agentLog||[]; saveCache(fresh); renderBoard(fresh); }
+    } else {
+      throw new Error('Server responded with ' + resp.status);
+    }
+  } catch(err) {
+    if (!cached) {
+      renderBoardError();
+    } else {
+      showToast('Failed to refresh board', 5000, 'error');
+    }
+  }
+}
+
+function renderBoardError() {
+  boardEl.style.display = 'none';
+  emptyState.classList.remove('visible');
+
+  let errorEl = document.getElementById('board-error-state');
+  if (!errorEl) {
+    errorEl = document.createElement('div');
+    errorEl.id = 'board-error-state';
+    boardWrap.appendChild(errorEl);
+  }
+
+  errorEl.innerHTML = '';
+
+  const icon = document.createElement('div');
+  icon.className = 'error-icon';
+  icon.textContent = '⚠';
+
+  const title = document.createElement('div');
+  title.className = 'error-title';
+  title.textContent = 'Failed to load board';
+
+  const sub = document.createElement('div');
+  sub.className = 'error-sub';
+  sub.textContent = 'The server could not be reached. Check your connection and try again.';
+
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'error-retry-btn';
+  retryBtn.textContent = 'Retry';
+  retryBtn.addEventListener('click', async () => {
+    retryBtn.disabled = true;
+    retryBtn.textContent = 'Loading…';
+    await loadBoard();
+  });
+
+  errorEl.appendChild(icon);
+  errorEl.appendChild(title);
+  errorEl.appendChild(sub);
+  errorEl.appendChild(retryBtn);
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
   initModalA11y();
@@ -84,16 +152,7 @@ async function init() {
     return;
   }
 
-  const cached = loadCache();
-  if (cached) renderBoard(cached);
-
-  try {
-    const resp = await fetch('/board');
-    if (resp.ok) {
-      const fresh = await resp.json();
-      if (fresh) { fresh.agentLog = fresh.agentLog||[]; saveCache(fresh); renderBoard(fresh); }
-    }
-  } catch(_) { if (!cached) renderBoard({ columns:[], agentLog:[] }); }
+  await loadBoard();
 }
 
 init();
