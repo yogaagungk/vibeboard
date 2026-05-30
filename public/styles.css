@@ -1087,8 +1087,8 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .due-date-badge.overdue { color: #dc2626; font-weight: 500; }
 :root[data-theme="dark"] .due-date-badge.overdue { color: #f87171; }
 .due-input {
-  height: 28px; padding: 0 8px;
-  border: 1px solid var(--border); border-radius: var(--radius-md);
+  height: 34px; padding: 0 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-md);
   background: var(--surface); color: var(--text);
   font-family: 'Inter', sans-serif; font-size: 12px; outline: none;
   transition: border-color 0.15s;
@@ -1289,7 +1289,34 @@ kbd {
   padding: 0;
 }
 .sidebar-group .details-row + .details-row {
-  margin-top: 12px;
+  margin-top: 8px;
+}
+.nc-schedule-grid {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.nc-schedule-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.nc-schedule-col:last-child {
+  gap: 12px;
+}
+.nc-schedule-col .details-label {
+  min-width: 72px;
+  flex-shrink: 0;
+}
+.nc-schedule-col:last-child .details-label {
+  min-width: auto;
+}
+.nc-schedule-col #nc-priority-mount,
+.nc-schedule-col .due-input {
+  flex: 1;
+  min-width: 0;
 }
 .tag-add-btn {
   width: 24px; height: 24px;
@@ -1750,23 +1777,25 @@ select:focus-visible,
   box-shadow: var(--edge), 0 8px 28px rgba(0,0,0,0.18);
   scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent;
   animation: vbSelectPop 0.12s ease;
+  width: max-content;
 }
-@keyframes vbSelectPop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
-.vb-select-pop::-webkit-scrollbar { width: 5px; }
-.vb-select-pop::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 .vb-select-opt {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 9px; border-radius: var(--radius-md);
   font-size: 12px; color: var(--text); cursor: pointer;
   line-height: 1.3;
+  max-width: 380px;
 }
 .vb-select-opt.active { background: var(--bg); }
 .vb-select-opt.selected { color: var(--text); font-weight: 500; }
 .vb-select-opt.disabled { opacity: 0.4; cursor: default; }
 .vb-select-opt.disabled .vb-select-opt-hint { color: var(--text); }
-.vb-select-opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-select-opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .vb-select-opt-hint { font-size: 11px; color: var(--text-muted); font-weight: 400; flex-shrink: 0; margin-left: 8px; }
 .vb-select-opt-check { color: var(--active-ws); font-size: 11px; flex-shrink: 0; }
+@keyframes vbSelectPop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+.vb-select-pop::-webkit-scrollbar { width: 5px; }
+.vb-select-pop::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 .vb-select-trigger:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }
 
 /* ── Styled dialog (vbConfirm / vbPrompt) ── */
