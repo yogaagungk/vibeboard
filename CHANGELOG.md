@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.10] - 2026-05-30
+
+### Added
+- **Agent context file viewer** — new "Context" button in the board toolbar opens a modal listing all AI context files found in the workspace (`CLAUDE.md`, `AGENTS.md`, `OPENCODE.md`, `CODEX.md`, `DESIGN.md`, `.claude/CLAUDE.md`) with tab navigation between files. Contributed by [@yogaagungk](https://github.com/yogaagungk).
+- **Context tab in card sidebar** — shows the context file relevant to the card's assigned agent (`CLAUDE.md` for claude-code, `AGENTS.md` for others) so you can review what the agent will read before it spawns.
+- **Markdown renderer** (`md-render.js`) — lightweight vanilla renderer supporting headings, bold/italic, inline code, fenced code blocks, tables, ordered/unordered lists, blockquotes, and YAML front matter as a collapsible "Design tokens" block. Inline hex color codes (`#RRGGBB` / `#RGB`) render with a small color swatch chip.
+
+### Changed
+- **Date picker replaced with custom calendar picker** — native `<input type="date">` replaced with a minimalist floating calendar popup matching the Linear-inspired design system; supports both light and dark themes; shows overdue state in red; Clear and Today shortcuts in the footer.
+
 ## [0.2.9] - 2026-05-30
 
 ### Changed
