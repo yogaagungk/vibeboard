@@ -394,10 +394,21 @@ function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) 
 
   const candidates = [];
   for (const col of (board?.columns || [])) {
+    if (col.title === 'Done') continue; // Done cards can't block anything
     for (const c of col.cards) {
       if (c.id !== excludeId) candidates.push({ card: c, column: col });
     }
   }
+
+  // Sort: In Progress first, then Review, then Backlog, then remaining columns
+  const colRank = {};
+  (board.columns || []).forEach((col, i) => { colRank[col.title] = i; });
+  const COL_SORT = { 'In Progress': 0, 'Review': 1, 'Backlog': 2 };
+  candidates.sort((a, b) => {
+    const ra = COL_SORT[a.column.title] ?? (3 + (colRank[a.column.title] ?? 99));
+    const rb = COL_SORT[b.column.title] ?? (3 + (colRank[b.column.title] ?? 99));
+    return ra - rb;
+  });
 
   const chips = document.createElement('div');
   chips.className = 'dep-chips';
@@ -431,10 +442,10 @@ function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) 
     ctrl.setOptions(available.map(({ card, column }) => ({
       value: card.id,
       label: card.title,
-      hint: column.title === 'Done' ? '✓ Done' : column.title,
+      hint: column.title,
     })));
     ctrl.setValue('');
-    ctrl.setPlaceholder(!candidates.length ? 'No other cards available'
+    ctrl.setPlaceholder(!candidates.length ? 'No available blockers'
       : (!available.length ? 'All cards selected' : '+ Add a blocker…'));
 
     chips.innerHTML = '';
