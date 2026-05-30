@@ -455,19 +455,6 @@ select.ws-input {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 
-/* ── New card modal layout ── */
-.nc-meta-row { display: flex; gap: 10px; }
-.nc-meta-col { flex: 1; min-width: 0; }
-.nc-agent-box {
-  border: 1px solid var(--border); border-radius: var(--radius-md);
-  padding: 12px; background: var(--bg);
-  display: flex; flex-direction: column; gap: 10px;
-}
-.nc-agent-box-label {
-  font-size: 11px; font-weight: 500; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-
 /* ── Sidebar groups ── */
 .sidebar-group {
   border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -1067,8 +1054,6 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .priority-btn.active[data-nc-priority="low"]    { background: #2563eb; border-color: #2563eb; color: #fff; }
 .priority-btn.active[data-priority=""],
 .priority-btn.active[data-nc-priority=""]       { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-
-.nc-meta-col .priority-btn { font-size: 10px; }
 
 .priority-badge {
   display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
