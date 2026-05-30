@@ -248,6 +248,21 @@ module.exports = function registerMcpTools(mcp) {
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
+  mcp.tool('search_cards', 'Search cards by text, tag, column, agent, or status without loading the full board', {
+    query: z.string().optional(),
+    tag: z.string().optional(),
+    columnTitle: z.string().optional(),
+    agent: z.string().optional(),
+    workspaceId: z.string().optional(),
+  }, async ({ query, tag, columnTitle, agent, workspaceId }) => {
+    try {
+      const activeId = workspaceId || db.getActiveWorkspaceId();
+      if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ count: 0, cards: [] }) }] };
+      const cards = db.searchCards(activeId, { query, tag, column: columnTitle, agent });
+      return { content: [{ type: 'text', text: JSON.stringify({ count: cards.length, cards }) }] };
+    } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+  });
+
   mcp.tool('list_models', 'List available models for each agent type, optionally filtered by agent',
     { agent: z.enum(['claude-code', 'opencode', 'codex']).optional() },
     async ({ agent }) => {

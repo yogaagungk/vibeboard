@@ -466,6 +466,14 @@ module.exports = function registerRoutes(app) {
     }
   });
 
+  app.get('/api/cards/search', (req, res) => {
+    const { q, tag, column, agent, status, workspaceId } = req.query;
+    const activeId = workspaceId || db.getActiveWorkspaceId();
+    if (!activeId) return res.json({ count: 0, cards: [] });
+    const cards = db.searchCards(activeId, { query: q, tag, column, agent, status });
+    res.json({ count: cards.length, cards });
+  });
+
   app.post('/api/sse-emit', (req, res) => {
     const { type, data } = req.body || {};
     if (type) broadcast(type, data);

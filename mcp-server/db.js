@@ -515,6 +515,73 @@ function getColumn(columnId) {
   return db.prepare('SELECT * FROM columns WHERE id = ?').get(columnId);
 }
 
+function searchCards(workspaceId, filters = {}) {
+  const { query, tag, column, agent, status } = filters;
+  const conditions = ['c.workspace_id = ?'];
+  const params = [workspaceId];
+
+  if (query) {
+    conditions.push('(c.title LIKE ? OR c.description LIKE ?)');
+    params.push(`%${query}%`, `%${query}%`);
+  }
+
+  if (tag) {
+    conditions.push("c.tags LIKE ?");
+    params.push(`%"${tag}"%`);
+  }
+
+  if (column) {
+    conditions.push('col.title = ?');
+    params.push(column);
+  }
+
+  if (agent) {
+    conditions.push('c.agent = ?');
+    params.push(agent);
+  }
+
+  if (status) {
+    const statusMap = {
+      'has_branch': 'c.branch IS NOT NULL',
+      'unmerged': 'c.merged_at IS NULL',
+      'blocked': 'c.blocked_by IS NOT NULL',
+    };
+    if (statusMap[status]) {
+      conditions.push(statusMap[status]);
+    }
+  }
+
+  const sql = `SELECT c.*, col.title as column_title FROM cards c JOIN columns col ON c.column_id = col.id WHERE ${conditions.join(' AND ')} ORDER BY c.position`;
+  const rows = db.prepare(sql).all(...params);
+
+  return rows.map(c => ({
+    id: c.id,
+    column_id: c.column_id,
+    column_title: c.column_title,
+    workspace_id: c.workspace_id,
+    title: c.title,
+    description: c.description,
+    tags: c.tags ? JSON.parse(c.tags) : [],
+    agent: c.agent,
+    model: c.model,
+    branch: c.branch,
+    worktreePath: c.worktree_path,
+    requires_review: !!c.requires_review,
+    priority: c.priority || null,
+    custom_prompt: c.custom_prompt || '',
+    due_date: c.due_date || null,
+    agent_ran_at: c.agent_ran_at || null,
+    last_exit_code: c.last_exit_code,
+    last_duration: c.last_duration,
+    last_cost: c.last_cost,
+    last_tokens: c.last_tokens,
+    blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
+    merged_at: c.merged_at || null,
+    position: c.position,
+    createdAt: c.created_at,
+  }));
+}
+
 function exportWorkspace(workspaceId) {
   const workspace = getWorkspace(workspaceId);
   if (!workspace) return null;
@@ -591,6 +658,7 @@ module.exports = {
   syncBoard,
   getCard,
   getColumn,
+  searchCards,
   exportWorkspace,
   importWorkspace,
 };
