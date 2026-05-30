@@ -1265,7 +1265,51 @@ kbd {
 .diff-line.del { background: rgba(220,38,38,0.08); color: #dc2626; }
 .diff-line.hunk { background: rgba(37,99,235,0.07); color: #6b84c8; }
 .diff-line.meta { color: var(--text-muted); }
+.diff-expand-btn {
+  background: none; border: none; padding: 0;
+  font-size: 14px; line-height: 1; color: var(--text-muted); cursor: pointer;
+  transition: color 0.15s;
+}
+.diff-expand-btn:hover { color: var(--text); }
 .diff-empty { padding: 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
+.diff-expand-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+}
+.diff-expand-dialog {
+  width: 80vw; max-width: 900px; max-height: 80vh; overflow-y: auto;
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: 0; box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+  border: 1px solid var(--border); display: flex; flex-direction: column;
+}
+.diff-expand-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.diff-expand-title {
+  flex: 1; font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.diff-expand-close {
+  width: 28px; height: 28px; border: none; background: none;
+  cursor: pointer; font-size: 18px; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md); flex-shrink: 0; line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.diff-expand-close:hover { background: var(--bg); color: var(--text); }
+.diff-expand-body {
+  padding: 0; overflow: auto; flex: 1;
+}
+.diff-expand-body .diff-view {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6;
+}
+.diff-expand-body .diff-line { white-space: pre; padding: 0 16px; display: block; }
+.diff-expand-body .diff-line.add { background: rgba(22,163,74,0.1); color: #16a34a; }
+.diff-expand-body .diff-line.del { background: rgba(220,38,38,0.08); color: #dc2626; }
+.diff-expand-body .diff-line.hunk { background: rgba(37,99,235,0.07); color: #6b84c8; }
+.diff-expand-body .diff-line.meta { color: var(--text-muted); }
 .card-merge-actions { display: flex; gap: 8px; margin-top: 8px; }
 .card-merged-info {
   display: flex; align-items: center; gap: 8px; margin-top: 8px;
