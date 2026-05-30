@@ -203,14 +203,14 @@ async function installMcpForAgent(agentKey, btn) {
 function refreshAgentBtnsInModal() {
   if (!cardSidebar.classList.contains('open')) return;
   const currentAgent = getModalAgent();
-  if (modalCardId) {
-    const col = board.columns.find(c => c.id === modalColId);
-    const card = col?.cards.find(c => c.id === modalCardId);
-    applyAgentBtns(currentAgent, btn => {
-      if (card) { card.agent = btn.dataset.agent || undefined; updatePromptBox(card); saveModal(card); }
-    });
-  } else {
-    applyAgentBtns(currentAgent, null);
+  const cardMount = document.getElementById('card-agent-mount');
+  if (cardMount?._agentSelect) {
+    cardMount._agentSelect.setOptions(buildAgentOptions());
+    cardMount._agentSelect.setValue(currentAgent);
+  }
+  const ncMount = document.getElementById('nc-agent-mount');
+  if (ncMount?._agentSelect) {
+    ncMount._agentSelect.setOptions(buildAgentOptions());
   }
   updateMcpHint();
 }

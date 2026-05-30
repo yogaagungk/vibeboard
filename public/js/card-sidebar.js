@@ -89,15 +89,9 @@ function renderCardNotes(notes) {
     bodyEl.appendChild(previewEl);
     bodyEl.appendChild(contentEl);
     
-    // Most recent note (last index) starts expanded; older notes start collapsed
-    const isLatest = idx === notes.length - 1;
-    if (isLatest) {
-      noteEl.classList.add('note-expanded');
-      previewEl.style.display = 'none';
-    } else {
-      noteEl.classList.add('note-collapsed');
-      contentEl.style.display = 'none';
-    }
+    // All notes start collapsed; user clicks header to expand
+    noteEl.classList.add('note-collapsed');
+    contentEl.style.display = 'none';
     
     headerEl.addEventListener('click', () => {
       const isCollapsed = noteEl.classList.contains('note-collapsed');
@@ -128,28 +122,17 @@ function agentUnavailableReason(agent) {
   return null;
 }
 
-function applyAgentBtns(activeAgent, onSelect) {
-  const agentBtns = document.querySelectorAll('.agent-btn');
-  agentBtns.forEach(btn => {
-    const agent = btn.dataset.agent;
-    const reason = agentUnavailableReason(agent);
-    const unavailable = !!reason;
-    btn.disabled = unavailable;
-    btn.classList.toggle('unavailable', unavailable);
-    btn.classList.toggle('active', !unavailable && agent === activeAgent);
-    if (unavailable) {
-      btn.dataset.reason = reason;
-      btn.title = `${AGENT_LABELS[agent] || agent}: ${reason}`;
-      btn.onclick = null;
-    } else {
-      delete btn.dataset.reason;
-      btn.title = '';
-      btn.onclick = () => {
-        agentBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (onSelect) onSelect(btn);
-      };
-    }
+function buildAgentOptions() {
+  const base = [
+    { value: '', label: 'None' },
+    { value: 'claude-code', label: 'Claude Code' },
+    { value: 'opencode', label: 'OpenCode' },
+    { value: 'codex', label: 'Codex CLI' },
+  ];
+  return base.map(o => {
+    if (!o.value) return { ...o, hint: undefined, disabled: false };
+    const reason = agentUnavailableReason(o.value);
+    return { ...o, disabled: !!reason, hint: reason || undefined };
   });
 }
 
@@ -191,14 +174,23 @@ function openCardModal(cardId, colId) {
     cardModalTagPicker.appendChild(btn);
   });
 
-  applyAgentBtns((card.agent||''), btn => {
-    card.agent = btn.dataset.agent || undefined;
-    updatePromptBox(card); saveModal(card);
-    updateRunAgentBtn(card);
-    document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
-    document.getElementById('card-custom-prompt-section').style.display = card.agent ? '' : 'none';
-    updateModelDropdown('card', card.agent || '', card.model);
+  const agentMount = document.getElementById('card-agent-mount');
+  agentMount.innerHTML = '';
+  agentMount._agentSelect = vbSelect({
+    options: buildAgentOptions(),
+    value: card.agent || '',
+    placeholder: 'Select agent',
+    ariaLabel: 'Agent',
+    onChange: value => {
+      card.agent = value || undefined;
+      updatePromptBox(card); saveModal(card);
+      updateRunAgentBtn(card);
+      document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
+      document.getElementById('card-custom-prompt-section').style.display = card.agent ? '' : 'none';
+      updateModelDropdown('card', card.agent || '', card.model);
+    },
   });
+  agentMount.appendChild(agentMount._agentSelect.el);
 
   updateModelDropdown('card', card.agent || '', card.model);
 
@@ -404,10 +396,10 @@ function getModalTags() {
 }
 
 function getModalAgent() {
-  // Card sidebar uses button groups
-  const active = document.querySelector('.agent-btn.active');
-  if (active) return active?.dataset?.agent || undefined;
-  // New card modal uses vbSelect
+  // Card sidebar uses vbSelect dropdown
+  const sidebarMount = document.getElementById('card-agent-mount');
+  if (sidebarMount?._agentSelect) return sidebarMount._agentSelect.getValue() || undefined;
+  // New card modal uses vbSelect dropdown
   return window._ncAgentSelect?.getValue() || undefined;
 }
 
@@ -902,12 +894,10 @@ document.getElementById('card-diff-toggle').addEventListener('click', async func
 document.getElementById('card-diff-expand').addEventListener('click', async function() {
   const toggleBtn = document.getElementById('card-diff-toggle');
   if (!toggleBtn._diffData) {
-    this.textContent = '…';
     try {
       toggleBtn._diffData = await fetch(`/api/cards/${modalCardId}/diff`).then(r => r.json());
-    } catch(_) { this.textContent = '⛶'; return; }
+    } catch(_) { return; }
   }
-  this.textContent = '⛶';
 
   const col = board.columns.find(c => c.id === modalColId);
   const card = col?.cards.find(c => c.id === modalCardId);

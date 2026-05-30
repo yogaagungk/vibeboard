@@ -12,12 +12,12 @@ document.addEventListener('keydown', e => {
 // ── Accessibility ────────────────────────────────────────────────────────────
 // Reflect the .active state of toggle-style pickers to assistive tech.
 function syncAriaPressed(root) {
-  (root || document).querySelectorAll('.agent-btn, .priority-btn, .tag-pick-btn, .theme-opt')
+  (root || document).querySelectorAll('.priority-btn, .tag-pick-btn, .theme-opt')
     .forEach(b => b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
 }
 document.addEventListener('click', e => {
-  const b = e.target.closest && e.target.closest('.agent-btn, .priority-btn, .tag-pick-btn, .theme-opt');
-  if (b) queueMicrotask(() => syncAriaPressed(b.closest('.agent-options, .priority-picker, .modal-tag-picker, #card-modal-tag-picker, .theme-picker') || document));
+  const b = e.target.closest && e.target.closest('.priority-btn, .tag-pick-btn, .theme-opt');
+  if (b) queueMicrotask(() => syncAriaPressed(b.closest('.priority-picker, .modal-tag-picker, #card-modal-tag-picker, .theme-picker') || document));
 }, true);
 
 // Mark modal containers as dialogs and trap focus within the topmost open one.

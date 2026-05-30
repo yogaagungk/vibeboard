@@ -493,26 +493,30 @@ select.ws-input {
   align-items: center;
   justify-content: space-between;
 }
-.agent-prompt-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+.prompt-toggle-row {
+  margin-top: 6px;
 }
-.prompt-toggle-btn {
-  height: 28px; padding: 0 10px;
-  border: 1px solid var(--border); border-radius: var(--radius-md);
-  background: transparent; font-family: 'Inter', sans-serif;
-  font-size: 12px; cursor: pointer; color: var(--text-muted);
-  white-space: nowrap; transition: background 0.15s, color 0.15s, border-color 0.15s;
+.prompt-toggle-left {
+  height: 24px; padding: 0 6px;
+  border: none; background: none;
+  font-family: 'Inter', sans-serif; font-size: 11px;
+  cursor: pointer; color: var(--text-muted);
+  white-space: nowrap; transition: color 0.15s;
 }
-.prompt-toggle-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+.prompt-toggle-left:hover { color: var(--text); }
 .agent-prompt-textarea {
-  width: 100%; height: 180px; resize: vertical;
+  width: 100%; min-height: 160px; max-height: 280px; overflow-y: auto;
   border: 1px solid var(--border); border-radius: var(--radius-md);
   padding: 7px 9px; font-family: monospace; font-size: 11px;
   background: var(--bg); color: var(--text); outline: none; line-height: 1.5;
   margin-top: 8px;
 }
+.agent-prompt-readonly {
+  background: var(--bg);
+  resize: none;
+  cursor: default;
+}
+.agent-prompt-readonly:focus { border-color: var(--border); }
 .agent-prompt-textarea.collapsed { display: none; }
 
 /* ── Layout ── */
@@ -1182,10 +1186,10 @@ kbd {
 .prompt-box { display: flex; flex-direction: column; gap: 8px; }
 .prompt-box-header { display: flex; align-items: center; justify-content: space-between; }
 #card-modal-prompt-text {
-  width: 100%; height: 80px; resize: none;
+  width: 100%; min-height: 160px; max-height: 280px; overflow-y: auto;
   border: 1px solid var(--border); border-radius: var(--radius-md); padding: 7px 9px;
   font-family: monospace; font-size: 11px; background: var(--bg); color: var(--text);
-  outline: none; line-height: 1.5;
+  outline: none; line-height: 1.5; resize: none; cursor: default;
 }
 .prompt-copy-btn {
   height: 28px; padding: 0 12px;
@@ -1345,8 +1349,10 @@ kbd {
 .diff-line.meta { color: var(--text-muted); }
 .diff-expand-btn {
   background: none; border: none; padding: 0;
-  font-size: 14px; line-height: 1; color: var(--text-muted); cursor: pointer;
+  color: var(--text-muted); cursor: pointer;
   transition: color 0.15s;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
 }
 .diff-expand-btn:hover { color: var(--text); }
 .diff-empty { padding: 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
