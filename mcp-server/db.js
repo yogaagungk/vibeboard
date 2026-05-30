@@ -516,7 +516,7 @@ function getColumn(columnId) {
 }
 
 function searchCards(workspaceId, filters = {}) {
-  const { query, tag, column, agent, status } = filters;
+  const { query, tag, column, agent, status, limit, offset } = filters;
   const conditions = ['c.workspace_id = ?'];
   const params = [workspaceId];
 
@@ -551,35 +551,41 @@ function searchCards(workspaceId, filters = {}) {
     }
   }
 
-  const sql = `SELECT c.*, col.title as column_title FROM cards c JOIN columns col ON c.column_id = col.id WHERE ${conditions.join(' AND ')} ORDER BY c.position`;
-  const rows = db.prepare(sql).all(...params);
+  const countSql = `SELECT COUNT(*) as total FROM cards c JOIN columns col ON c.column_id = col.id WHERE ${conditions.join(' AND ')}`;
+  const total = db.prepare(countSql).get(...params).total;
 
-  return rows.map(c => ({
-    id: c.id,
-    column_id: c.column_id,
-    column_title: c.column_title,
-    workspace_id: c.workspace_id,
-    title: c.title,
-    description: c.description,
-    tags: c.tags ? JSON.parse(c.tags) : [],
-    agent: c.agent,
-    model: c.model,
-    branch: c.branch,
-    worktreePath: c.worktree_path,
-    requires_review: !!c.requires_review,
-    priority: c.priority || null,
-    custom_prompt: c.custom_prompt || '',
-    due_date: c.due_date || null,
-    agent_ran_at: c.agent_ran_at || null,
-    last_exit_code: c.last_exit_code,
-    last_duration: c.last_duration,
-    last_cost: c.last_cost,
-    last_tokens: c.last_tokens,
-    blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
-    merged_at: c.merged_at || null,
-    position: c.position,
-    createdAt: c.created_at,
-  }));
+  const sql = `SELECT c.*, col.title as column_title FROM cards c JOIN columns col ON c.column_id = col.id WHERE ${conditions.join(' AND ')} ORDER BY c.position LIMIT ? OFFSET ?`;
+  const rows = db.prepare(sql).all(...params, limit || 50, offset || 0);
+
+  return {
+    total,
+    cards: rows.map(c => ({
+      id: c.id,
+      column_id: c.column_id,
+      column_title: c.column_title,
+      workspace_id: c.workspace_id,
+      title: c.title,
+      description: c.description,
+      tags: c.tags ? JSON.parse(c.tags) : [],
+      agent: c.agent,
+      model: c.model,
+      branch: c.branch,
+      worktreePath: c.worktree_path,
+      requires_review: !!c.requires_review,
+      priority: c.priority || null,
+      custom_prompt: c.custom_prompt || '',
+      due_date: c.due_date || null,
+      agent_ran_at: c.agent_ran_at || null,
+      last_exit_code: c.last_exit_code,
+      last_duration: c.last_duration,
+      last_cost: c.last_cost,
+      last_tokens: c.last_tokens,
+      blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
+      merged_at: c.merged_at || null,
+      position: c.position,
+      createdAt: c.created_at,
+    }))
+  };
 }
 
 function exportWorkspace(workspaceId) {
@@ -635,6 +641,69 @@ function importWorkspace(data) {
   return ws;
 }
 
+function listCards(workspaceId, filters = {}) {
+  const { column, tag, agent, limit, offset } = filters;
+  const conditions = ['c.workspace_id = ?'];
+  const params = [workspaceId];
+
+  if (column) {
+    conditions.push('col.title = ?');
+    params.push(column);
+  }
+
+  if (tag) {
+    conditions.push("c.tags LIKE ?");
+    params.push(`%"${tag}"%`);
+  }
+
+  if (agent) {
+    conditions.push('c.agent = ?');
+    params.push(agent);
+  }
+
+  const countSql = `SELECT COUNT(*) as total FROM cards c JOIN columns col ON c.column_id = col.id WHERE ${conditions.join(' AND ')}`;
+  const total = db.prepare(countSql).get(...params).total;
+
+  const sql = `SELECT c.id, c.title, col.title as column_title, c.priority, c.agent, c.tags, c.due_date FROM cards c JOIN columns col ON c.column_id = col.id WHERE ${conditions.join(' AND ')} ORDER BY c.position LIMIT ? OFFSET ?`;
+  const rows = db.prepare(sql).all(...params, limit || 50, offset || 0);
+
+  return {
+    total,
+    cards: rows.map(c => ({
+      id: c.id,
+      title: c.title,
+      column: c.column_title,
+      priority: c.priority || null,
+      agent: c.agent || null,
+      tags: c.tags ? JSON.parse(c.tags) : [],
+      due_date: c.due_date || null,
+    }))
+  };
+}
+
+function getAgentStatus(cardId) {
+  const { isAgentRunning, isQueued, getQueuedCardIds } = require('./agent');
+  const card = getCard(cardId);
+  if (!card) return { error: 'Card not found' };
+
+  const running = isAgentRunning(cardId);
+  const queued = isQueued(cardId);
+  const notes = db.prepare('SELECT content, created_at FROM card_notes WHERE card_id = ? ORDER BY created_at DESC LIMIT 1').get(cardId);
+  
+  return {
+    cardId,
+    running,
+    queued,
+    lastNote: notes ? notes.content : null,
+    lastNoteAt: notes ? notes.created_at : null,
+    lastExitCode: card.last_exit_code,
+    lastDuration: card.last_duration,
+    lastCost: card.last_cost,
+    lastTokens: card.last_tokens,
+    agentRanAt: card.agent_ran_at,
+  };
+}
+
 module.exports = {
   db,
   DATA_DIR,
@@ -661,4 +730,6 @@ module.exports = {
   searchCards,
   exportWorkspace,
   importWorkspace,
+  listCards,
+  getAgentStatus,
 };

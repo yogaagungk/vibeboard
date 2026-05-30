@@ -28,6 +28,8 @@ const PORT = process.env.PORT || 7341;
 const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60 * 1000;
 
 function isQueued(cardId) { return agentQueue.some(q => q.cardId === cardId); }
+function isAgentRunning(cardId) { return activeAgents.has(cardId); }
+function isAgentActive(cardId) { return activeAgents.has(cardId); }
 function getQueuedCardIds() { return agentQueue.map(q => q.cardId); }
 function dequeueCard(cardId) {
   const i = agentQueue.findIndex(q => q.cardId === cardId);
@@ -445,4 +447,4 @@ function getPendingRespawnCardIds() {
   return Array.from(pendingRespawn.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt };
+module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt, isQueued };
