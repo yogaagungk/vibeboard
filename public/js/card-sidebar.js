@@ -204,15 +204,25 @@ function openCardModal(cardId, colId) {
     saveModal(card);
   };
 
-  // Priority picker
-  document.querySelectorAll('#card-priority-picker .priority-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.priority === (card.priority || ''));
-    btn.onclick = () => {
-      card.priority = btn.dataset.priority || null;
-      document.querySelectorAll('#card-priority-picker .priority-btn').forEach(b => b.classList.toggle('active', b === btn));
+  // Priority dropdown
+  const cardPriorityMount = document.getElementById('card-priority-mount');
+  cardPriorityMount.innerHTML = '';
+  const cardPrioritySel = vbSelect({
+    options: [
+      { value: '', label: 'None' },
+      { value: 'high', label: 'High' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'low', label: 'Low' },
+    ],
+    value: card.priority || '',
+    placeholder: 'None',
+    ariaLabel: 'Priority',
+    onChange: value => {
+      card.priority = value || null;
       saveModal(card);
-    };
+    },
   });
+  cardPriorityMount.appendChild(cardPrioritySel.el);
 
   // Due date
   const dueDateEl = document.getElementById('card-due-date');
