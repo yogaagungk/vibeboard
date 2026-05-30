@@ -316,14 +316,13 @@ select.ws-input {
 }
 
 #settings-btn {
-  width: 100%; height: 32px;
+  width: 100%;
   display: flex; align-items: center; gap: 8px;
-  padding: 0 10px;
-  border: 1px solid var(--border); border-radius: 7px;
-  background: transparent; cursor: pointer;
+  padding: 7px 8px; border-radius: 7px;
+  border: 1px solid transparent; cursor: pointer;
   color: var(--text-muted); font-family: 'Inter', sans-serif;
   font-size: 12px; font-weight: 400;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 #settings-btn:hover { background: var(--bg); color: var(--text); }
 #settings-btn svg { flex-shrink: 0; opacity: 0.7; }
@@ -963,6 +962,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .theme-picker { display: flex; gap: 6px; }
 .theme-opt {
   flex: 1; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   border: 1px solid var(--border); border-radius: var(--radius-md); background: transparent;
   font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 400;
   color: var(--text-muted); cursor: pointer;
@@ -970,6 +970,8 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 }
 .theme-opt:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg); }
 .theme-opt.active { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); font-weight: 500; }
+.theme-opt svg { flex-shrink: 0; opacity: 0.7; }
+.theme-opt.active svg { opacity: 1; }
 
 /* ── New Card Modal ── */
 #nc-modal { width: 480px; }
