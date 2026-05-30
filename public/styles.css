@@ -932,7 +932,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
   border-radius: var(--radius-pill); color: #fff; white-space: nowrap; flex-shrink: 0;
 }
 #card-modal-desc {
-  width: 100%; min-height: 90px; resize: vertical;
+  width: 100%; min-height: 200px; resize: vertical;
   border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 10px;
   font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 300;
   background: var(--bg); color: var(--text); outline: none; line-height: 1.55;
