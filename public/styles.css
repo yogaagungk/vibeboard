@@ -558,6 +558,7 @@ body.mcp-banner-open #log-sidebar {
   box-shadow: var(--edge); /* subtle top edge highlight on dark, none on light */
   display: flex; flex-direction: column;
   max-height: calc(100vh - var(--header-h) - 80px); overflow: hidden;
+  padding-bottom: 32px;
 }
 .col-header { display: flex; align-items: center; padding: 12px 12px 8px; gap: 6px; flex-shrink: 0; }
 .col-color-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
