@@ -1116,6 +1116,103 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
   :root:not([data-theme="light"]):not([data-theme="dark"]) .due-input.overdue { border-color: #f87171; color: #f87171; }
 }
 
+/* ── vbDatePicker ── */
+.vb-datepicker { position: relative; width: 100%; }
+.vb-datepicker-trigger {
+  width: 100%; height: 34px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+  background: var(--surface); color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 12px; cursor: pointer;
+  text-align: left; transition: border-color 0.15s;
+  white-space: nowrap; overflow: hidden;
+}
+.vb-datepicker-trigger:hover { border-color: var(--text-muted); }
+.vb-datepicker.open .vb-datepicker-trigger { border-color: var(--accent); }
+.vb-datepicker-trigger .vb-dp-placeholder { color: var(--text-muted); }
+.vb-dp-cal-icon { flex-shrink: 0; color: var(--text-muted); }
+.vb-datepicker-trigger.overdue { border-color: #dc2626; color: #dc2626; }
+.vb-datepicker-trigger.overdue .vb-dp-cal-icon { color: #dc2626; }
+:root[data-theme="dark"] .vb-datepicker-trigger.overdue { border-color: #f87171; color: #f87171; }
+:root[data-theme="dark"] .vb-datepicker-trigger.overdue .vb-dp-cal-icon { color: #f87171; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .vb-datepicker-trigger.overdue { border-color: #f87171; color: #f87171; }
+}
+.vb-datepicker-trigger:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }
+
+.vb-datepicker-pop {
+  position: fixed; z-index: 1100;
+  width: 248px;
+  background: var(--surface-3); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg); padding: 12px;
+  box-shadow: var(--edge), 0 8px 32px rgba(0,0,0,0.18);
+  animation: vbDpPop 0.12s ease;
+  user-select: none;
+}
+@keyframes vbDpPop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.vb-dp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.vb-dp-month-year {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  flex: 1; text-align: center;
+}
+.vb-dp-nav {
+  width: 26px; height: 26px; padding: 0;
+  border: none; background: transparent; border-radius: var(--radius-sm);
+  color: var(--text-muted); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.vb-dp-nav:hover { background: var(--surface-2); color: var(--text); }
+
+.vb-dp-dow-row {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.vb-dp-dow {
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
+  text-align: center; padding: 2px 0;
+}
+
+.vb-dp-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.vb-dp-day {
+  aspect-ratio: 1; width: 100%; padding: 0;
+  border: none; border-radius: 50%;
+  background: transparent; color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, color 0.1s;
+}
+.vb-dp-day:hover:not(.selected) { background: var(--surface-2); }
+.vb-dp-day.other-month { color: var(--text-muted); opacity: 0.5; }
+.vb-dp-day.today { color: var(--accent); font-weight: 600; }
+.vb-dp-day.selected {
+  background: var(--accent); color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.vb-dp-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.vb-dp-foot-btn {
+  height: 26px; padding: 0 10px; border: none; border-radius: var(--radius-sm);
+  background: transparent; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 12px; color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.vb-dp-foot-btn:hover { background: var(--surface-2); color: var(--text); }
+.vb-dp-today-btn { color: var(--accent); }
+.vb-dp-today-btn:hover { color: var(--accent); }
+
 /* ── Keyboard shortcuts ── */
 #shortcuts-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
@@ -1330,7 +1427,8 @@ kbd {
   min-width: auto;
 }
 .nc-schedule-col #nc-priority-mount,
-.nc-schedule-col .due-input {
+.nc-schedule-col .due-input,
+.nc-schedule-col .vb-datepicker {
   flex: 1;
   min-width: 0;
 }
