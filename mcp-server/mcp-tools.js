@@ -65,6 +65,35 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
+  mcp.tool('delete_workspace', 'Delete a workspace and all its cards, notes, and agent log entries',
+    { workspaceId: z.string(), confirm: z.boolean() },
+    async ({ workspaceId, confirm }) => {
+      try {
+        if (confirm !== true) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Must set confirm=true to delete a workspace' }) }] };
+
+        const ws = db.getWorkspace(workspaceId);
+        if (!ws) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Workspace not found' }) }] };
+
+        const list = db.listWorkspaces();
+        if (list.length <= 1) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Cannot delete the only workspace' }) }] };
+
+        if (!db.deleteWorkspace(workspaceId)) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Delete failed' }) }] };
+
+        if (db.getActiveWorkspaceId() === workspaceId) {
+          const next = list.find(w => w.id !== workspaceId);
+          if (next) db.setActiveWorkspaceId(next.id);
+        }
+
+        const active = db.getActiveWorkspaceId();
+        emitSSE('workspace_deleted', { workspaceId });
+        emitSSE('workspace_list', db.listWorkspaces().map(w => ({ ...w, active: w.id === active })));
+        if (active) emitSSE('workspace_switch', { board: db.getBoard(active), workspaceId: active });
+
+        return { content: [{ type: 'text', text: JSON.stringify({ deleted: true, workspaceId }) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
+
   mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.string(), workspaceId: z.string().optional() }, async ({ columnTitle, workspaceId }) => {
     try {
       const activeId = workspaceId || db.getActiveWorkspaceId();

@@ -207,10 +207,24 @@ function updateWorkspace(id, updates) {
 }
 
 function deleteWorkspace(id) {
-  const ws = db.prepare('SELECT path FROM workspaces WHERE id = ?').get(id);
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(id);
+  if (!ws) return false;
+
   const worktrees = db.prepare('SELECT worktree_path FROM cards WHERE workspace_id = ? AND worktree_path IS NOT NULL').all(id);
-  db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
-  if (ws?.path) for (const row of worktrees) cleanupWorktree(ws.path, row.worktree_path);
+
+  const del = db.transaction(() => {
+    db.prepare('DELETE FROM card_notes WHERE card_id IN (SELECT id FROM cards WHERE workspace_id = ?)').run(id);
+    db.prepare('DELETE FROM agent_log WHERE workspace_id = ?').run(id);
+    db.prepare('DELETE FROM cards WHERE workspace_id = ?').run(id);
+    db.prepare('DELETE FROM columns WHERE workspace_id = ?').run(id);
+    db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
+  });
+
+  del();
+
+  if (ws.path) for (const row of worktrees) cleanupWorktree(ws.path, row.worktree_path);
+
+  return true;
 }
 
 function getBoard(workspaceId) {

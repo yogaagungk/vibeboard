@@ -72,7 +72,8 @@ module.exports = function registerRoutes(app) {
   app.delete('/workspaces/:id', (req, res) => {
     const { id } = req.params;
     const list = db.listWorkspaces();
-    try { db.deleteWorkspace(id); } catch { return res.status(404).json({ error: 'Not found' }); }
+    if (list.length <= 1) return res.status(400).json({ error: 'Cannot delete the only workspace' });
+    if (!db.deleteWorkspace(id)) return res.status(404).json({ error: 'Not found' });
 
     if (db.getActiveWorkspaceId() === id) {
       const next = list.find(w => w.id !== id);
