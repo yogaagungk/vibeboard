@@ -1295,6 +1295,7 @@ kbd {
 }
 .card-merge-actions .btn-primary { flex: 1; }
 .card-merge-actions .btn-ghost   { flex: 1; }
+.card-merge-actions .btn-danger  { flex: 1; }
 
 /* ── Card Notes ── */
 #card-notes-section { margin-top: 4px; }
