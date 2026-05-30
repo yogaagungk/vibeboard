@@ -38,26 +38,73 @@ function renderCardNotes(notes) {
   if (divider) divider.style.display = '';
   notesList.innerHTML = '';
   
-  notes.forEach(note => {
+  notes.forEach((note, idx) => {
     const noteEl = document.createElement('div');
     noteEl.className = 'card-note';
+    
+    const headerEl = document.createElement('div');
+    headerEl.className = 'card-note-header';
     
     const timeEl = document.createElement('div');
     timeEl.className = 'card-note-time';
     timeEl.textContent = fmtTime(note.createdAt);
     
-    const contentEl = document.createElement('div');
-    contentEl.className = 'card-note-content';
+    const chevronEl = document.createElement('span');
+    chevronEl.className = 'card-note-chevron';
+    chevronEl.textContent = '\u25B6';
+    
+    headerEl.appendChild(timeEl);
+    headerEl.appendChild(chevronEl);
+    
     // Strip BOM and non-printable control chars that may have leaked from old terminal output
     const clean = note.content
       .replace(/﻿/g, '')
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
       .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')
       .trim();
+    
+    const previewEl = document.createElement('div');
+    previewEl.className = 'card-note-preview';
+    const firstLine = clean.split('\n')[0] || clean;
+    const truncated = firstLine.length > 80 ? firstLine.slice(0, 80) + '\u2026' : firstLine;
+    previewEl.textContent = truncated;
+    
+    const contentEl = document.createElement('div');
+    contentEl.className = 'card-note-content';
     contentEl.textContent = clean;
     
-    noteEl.appendChild(timeEl);
-    noteEl.appendChild(contentEl);
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'card-note-body';
+    bodyEl.appendChild(previewEl);
+    bodyEl.appendChild(contentEl);
+    
+    // Most recent note (last index) starts expanded; older notes start collapsed
+    const isLatest = idx === notes.length - 1;
+    if (isLatest) {
+      noteEl.classList.add('note-expanded');
+      previewEl.style.display = 'none';
+    } else {
+      noteEl.classList.add('note-collapsed');
+      contentEl.style.display = 'none';
+    }
+    
+    headerEl.addEventListener('click', () => {
+      const isCollapsed = noteEl.classList.contains('note-collapsed');
+      if (isCollapsed) {
+        noteEl.classList.remove('note-collapsed');
+        noteEl.classList.add('note-expanded');
+        previewEl.style.display = 'none';
+        contentEl.style.display = '';
+      } else {
+        noteEl.classList.remove('note-expanded');
+        noteEl.classList.add('note-collapsed');
+        previewEl.style.display = '';
+        contentEl.style.display = 'none';
+      }
+    });
+    
+    noteEl.appendChild(headerEl);
+    noteEl.appendChild(bodyEl);
     notesList.appendChild(noteEl);
   });
 }

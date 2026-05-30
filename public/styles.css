@@ -1319,6 +1319,40 @@ kbd {
 .card-note-content {
   white-space: pre-wrap; word-break: break-word; font-weight: 300;
 }
+.card-note-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.card-note-header:hover .card-note-time {
+  color: var(--text);
+}
+.card-note-chevron {
+  font-size: 8px;
+  color: var(--text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.note-expanded .card-note-chevron {
+  transform: rotate(90deg);
+}
+.card-note-body {
+  overflow: hidden;
+}
+.note-collapsed .card-note-content {
+  display: none;
+}
+.note-expanded .card-note-preview {
+  display: none;
+}
+.card-note-preview {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 300;
+}
 
 /* ── Section divider ── */
 .sidebar-section-divider {
