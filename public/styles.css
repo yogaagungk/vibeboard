@@ -478,8 +478,6 @@ select.ws-input {
   font-size: 11px; font-weight: 500; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.4px;
 }
-.sidebar-field-row { display: flex; gap: 10px; }
-.sidebar-field-col { flex: 1; min-width: 0; }
 .agent-last-run { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px; }
 .agent-actions-row {
   display: flex;
@@ -1054,8 +1052,8 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 /* ── Priority ── */
 .priority-picker { display: flex; gap: 5px; }
 .priority-btn {
-  flex: 1; height: 28px; border: 1px solid var(--border); border-radius: var(--radius-md);
-  background: transparent; font-family: 'Inter', sans-serif; font-size: 11px;
+  flex: 1; padding: 2px 10px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: transparent; font-family: 'Inter', sans-serif; font-size: 12px;
   font-weight: 400; color: var(--text-muted); cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -1070,8 +1068,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .priority-btn.active[data-priority=""],
 .priority-btn.active[data-nc-priority=""]       { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 
-.nc-meta-col .priority-btn,
-.sidebar-field-col .priority-btn { font-size: 10px; }
+.nc-meta-col .priority-btn { font-size: 10px; }
 
 .priority-badge {
   display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
@@ -1274,6 +1271,39 @@ kbd {
 :root[data-theme="dark"] .cycle-warn-badge {
   background: rgba(220,38,38,0.20);
   color: #f87171;
+}
+
+/* ── Details tab flat layout ── */
+.sidebar-panel[data-panel="details"] {
+  gap: 0;
+}
+.details-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.details-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 64px;
+  flex-shrink: 0;
+}
+.tag-add-btn {
+  width: 24px; height: 24px;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tag-add-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 /* ── Dependency (blocked-by) picker ── */

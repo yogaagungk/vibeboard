@@ -364,31 +364,25 @@
     <div id="card-sidebar-body">
       <div class="sidebar-panel" data-panel="details">
         <textarea id="card-modal-desc" placeholder="Describe the task for the agent…"></textarea>
-        <div>
-          <div class="field-label">Tags</div>
-          <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
+        <div class="details-row" style="border-top:none">
+          <span class="details-label">Tags</span>
+          <div class="modal-tag-picker" id="card-modal-tag-picker" style="flex:1"></div>
+          <button class="tag-add-btn" id="card-tag-add-btn" type="button" aria-label="Add tag">+</button>
         </div>
-        <div class="sidebar-group">
-          <div class="sidebar-group-label">Details</div>
-          <div class="sidebar-field-row">
-            <div class="sidebar-field-col">
-              <div class="field-label">Priority</div>
-              <div class="priority-picker" id="card-priority-picker">
-                <button class="priority-btn active" data-priority="">None</button>
-                <button class="priority-btn" data-priority="high">High</button>
-                <button class="priority-btn" data-priority="medium">Medium</button>
-                <button class="priority-btn" data-priority="low">Low</button>
-              </div>
-            </div>
-            <div class="sidebar-field-col">
-              <div class="field-label">Due date</div>
-              <input type="date" class="due-input" id="card-due-date" style="width:100%">
-            </div>
+        <div class="details-row">
+          <span class="details-label">Priority</span>
+          <div class="priority-picker" id="card-priority-picker" style="flex:1">
+            <button class="priority-btn active" data-priority="">None</button>
+            <button class="priority-btn" data-priority="high">High</button>
+            <button class="priority-btn" data-priority="medium">Medium</button>
+            <button class="priority-btn" data-priority="low">Low</button>
           </div>
-          <div id="card-blocked-by-section">
-            <div class="field-label">Blocked by</div>
-            <div class="dep-list" id="card-dep-list"></div>
-          </div>
+          <span class="details-label" style="min-width:auto;flex-shrink:0;margin-left:auto">Due</span>
+          <input type="date" class="due-input" id="card-due-date" style="min-width:130px">
+        </div>
+        <div class="details-row">
+          <span class="details-label">Blocked by</span>
+          <div class="dep-list" id="card-dep-list" style="flex:1;min-width:0"></div>
         </div>
       </div>
       <div class="sidebar-panel" data-panel="agent" hidden>
