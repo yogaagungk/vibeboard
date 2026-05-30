@@ -1003,6 +1003,12 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 #card-modal-desc:focus { border-color: var(--border-strong); background: var(--surface); }
 #card-modal-desc::placeholder { color: var(--text-muted); }
 .modal-tag-picker { display: flex; gap: 5px; flex-wrap: wrap; }
+.sidebar-group .modal-tag-picker {
+  margin-bottom: 8px;
+}
+.sidebar-group .tag-add-btn {
+  align-self: flex-start;
+}
 .agent-options { display: flex; gap: 6px; }
 .agent-btn {
   flex: 1; height: 28px; padding: 2px 10px;
@@ -1252,14 +1258,17 @@ kbd {
 
 /* ── Details tab flat layout ── */
 .sidebar-panel[data-panel="details"] {
-  gap: 12px;
+  gap: 16px;
 }
 .details-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--border);
+}
+.details-row:first-child {
+  border-top: none;
 }
 .details-label {
   font-size: 11px;
@@ -1274,6 +1283,9 @@ kbd {
 .sidebar-group .details-row {
   border-top: none;
   padding: 0;
+}
+.sidebar-group .details-row + .details-row {
+  margin-top: 12px;
 }
 .tag-add-btn {
   width: 24px; height: 24px;
