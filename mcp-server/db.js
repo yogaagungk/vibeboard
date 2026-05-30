@@ -325,7 +325,19 @@ function updateCard(cardId, updates) {
   if (updates.last_duration !== undefined)  { fields.push('last_duration = ?');  values.push(updates.last_duration); }
   if (updates.last_cost !== undefined)      { fields.push('last_cost = ?');      values.push(updates.last_cost); }
   if (updates.last_tokens !== undefined)    { fields.push('last_tokens = ?');    values.push(updates.last_tokens); }
-  if (updates.blocked_by !== undefined)     { fields.push('blocked_by = ?');     values.push(Array.isArray(updates.blocked_by) && updates.blocked_by.length ? JSON.stringify(updates.blocked_by) : null); }
+  if (updates.blocked_by !== undefined) {
+    const cardData = db.prepare('SELECT workspace_id FROM cards WHERE id = ?').get(cardId);
+    if (cardData) {
+      const { wouldCreateCycle } = require('./cycle-detection');
+      const allCards = db.prepare('SELECT id, blocked_by FROM cards WHERE workspace_id = ?').all(cardData.workspace_id);
+      const parsed = allCards.map(c => ({ id: c.id, blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [] }));
+      const newBlockedBy = Array.isArray(updates.blocked_by) ? updates.blocked_by : [];
+      const cyclePath = wouldCreateCycle(cardId, newBlockedBy, parsed);
+      if (cyclePath) throw new Error(`Cyclic dependency detected, cycle: [${cyclePath.join(', ')}]`);
+    }
+    fields.push('blocked_by = ?');
+    values.push(Array.isArray(updates.blocked_by) && updates.blocked_by.length ? JSON.stringify(updates.blocked_by) : null);
+  }
   if (updates.merged_at !== undefined)     { fields.push('merged_at = ?');     values.push(updates.merged_at || null); }
 
   if (fields.length === 0) return;
@@ -402,6 +414,16 @@ function addAgentLog(workspaceId, agent, action, detail) {
 }
 
 function syncBoard(workspaceId, columns) {
+  const { findCycleIds } = require('./cycle-detection');
+  const incomingCards = columns.flatMap(c => (c.cards || []).map(card => ({
+    id: card.id,
+    blocked_by: Array.isArray(card.blocked_by) ? card.blocked_by : [],
+  })));
+  const cycleIds = findCycleIds(incomingCards);
+  if (cycleIds.length) {
+    throw new Error(`Cyclic dependency detected, cards in cycle: [${cycleIds.join(', ')}]`);
+  }
+
   const existingRows = db.prepare('SELECT id, worktree_path, branch FROM cards WHERE workspace_id = ?').all(workspaceId);
   const existingCards = existingRows.map(r => r.id);
   const incomingCardIds = columns.flatMap(c => (c.cards || []).map(card => card.id));
