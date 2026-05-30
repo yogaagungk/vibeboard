@@ -791,6 +791,27 @@ cardModalCopyBtn.addEventListener('click', () => {
   });
 });
 
+// ── Diff rendering helper ───────────────────────────────────────────────────
+function renderDiffInto(container, diffStr) {
+  container.innerHTML = '';
+  if (!diffStr) {
+    const empty = document.createElement('div'); empty.className = 'diff-empty';
+    empty.textContent = 'No changes yet.'; container.appendChild(empty);
+    return;
+  }
+  const wrap = document.createElement('div'); wrap.className = 'diff-view';
+  diffStr.split('\n').forEach(line => {
+    const el = document.createElement('span'); el.className = 'diff-line';
+    if (line.startsWith('+') && !line.startsWith('+++'))      el.classList.add('add');
+    else if (line.startsWith('-') && !line.startsWith('---')) el.classList.add('del');
+    else if (line.startsWith('@@'))                           el.classList.add('hunk');
+    else if (/^(diff |index |--- |\+\+\+ )/.test(line))      el.classList.add('meta');
+    el.textContent = line || ' ';
+    wrap.appendChild(el);
+  });
+  container.appendChild(wrap);
+}
+
 // ── Diff toggle ────────────────────────────────────────────────────────────
 document.getElementById('card-diff-toggle').addEventListener('click', async function() {
   const diffView = document.getElementById('card-diff-view');
@@ -803,25 +824,69 @@ document.getElementById('card-diff-toggle').addEventListener('click', async func
       this._diffData = await fetch(`/api/cards/${modalCardId}/diff`).then(r => r.json());
     } catch(_) { this.textContent = 'Show diff'; return; }
   }
-  const data = this._diffData;
-  diffView.innerHTML = '';
-  if (!data.diff) {
-    const empty = document.createElement('div'); empty.className = 'diff-empty';
-    empty.textContent = 'No changes yet.'; diffView.appendChild(empty);
-  } else {
-    const wrap = document.createElement('div'); wrap.className = 'diff-view';
-    data.diff.split('\n').forEach(line => {
-      const el = document.createElement('span'); el.className = 'diff-line';
-      if (line.startsWith('+') && !line.startsWith('+++'))      el.classList.add('add');
-      else if (line.startsWith('-') && !line.startsWith('---')) el.classList.add('del');
-      else if (line.startsWith('@@'))                           el.classList.add('hunk');
-      else if (/^(diff |index |--- |\+\+\+ )/.test(line))      el.classList.add('meta');
-      el.textContent = line || ' ';
-      wrap.appendChild(el);
-    });
-    diffView.appendChild(wrap);
-  }
+  renderDiffInto(diffView, this._diffData.diff);
   diffView.style.display = 'block'; this.textContent = 'Hide diff';
+});
+
+// ── Diff expand dialog ─────────────────────────────────────────────────────
+document.getElementById('card-diff-expand').addEventListener('click', async function() {
+  const toggleBtn = document.getElementById('card-diff-toggle');
+  if (!toggleBtn._diffData) {
+    this.textContent = '…';
+    try {
+      toggleBtn._diffData = await fetch(`/api/cards/${modalCardId}/diff`).then(r => r.json());
+    } catch(_) { this.textContent = '⛶'; return; }
+  }
+  this.textContent = '⛶';
+
+  const col = board.columns.find(c => c.id === modalColId);
+  const card = col?.cards.find(c => c.id === modalCardId);
+  const branchName = card?.branch || 'Diff';
+
+  const existing = document.querySelector('.diff-expand-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'diff-expand-overlay';
+
+  const dialog = document.createElement('div');
+  dialog.className = 'diff-expand-dialog';
+
+  const header = document.createElement('div');
+  header.className = 'diff-expand-header';
+  const title = document.createElement('span');
+  title.className = 'diff-expand-title';
+  title.textContent = branchName;
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'diff-expand-close';
+  closeBtn.textContent = '✕';
+  closeBtn.setAttribute('aria-label', 'Close diff dialog');
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'diff-expand-body';
+  renderDiffInto(body, toggleBtn._diffData.diff);
+
+  dialog.appendChild(header);
+  dialog.appendChild(body);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  function closeDialog() {
+    overlay.remove();
+  }
+
+  closeBtn.addEventListener('click', closeDialog);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeDialog();
+  });
+  document.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape' && document.body.contains(overlay)) {
+      closeDialog();
+      document.removeEventListener('keydown', handler);
+    }
+  });
 });
 
 // ── Run agent ──────────────────────────────────────────────────────────────
