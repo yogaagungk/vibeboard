@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.9] - 2026-05-30
+
+### Changed
+- **New card modal redesigned** — tags moved above description textarea; Priority and Due Date now share a single row; Schedule section renamed to Details; Agent section renamed to Assignment; removed redundant section labels; tighter 8px spacing between fields.
+- **Card details sidebar redesigned** — Details tab matches new card modal layout (tags above textarea, Priority/Due in one row); Agent tab renamed to Assignment with Needs review toggle moved inside the section; Activity tab wraps Move to buttons in a sidebar-group for consistency.
+- **Priority dropdown width increased in card details** — Priority field now uses `flex: 1.5` for better proportion with Due date field (card details only, new card modal unchanged).
+- **Additional instructions label** — "Instructions" field in Agent tab renamed to "Additional instructions" for clarity.
+
+### Fixed
+- **Blocked by dropdown width overflow** — long card titles with badges now properly constrain to `max-width: 380px` with ellipsis truncation; dropdown uses `width: max-content` to prevent expanding beyond trigger width.
+- **Date picker styling** — height increased from 28px to 34px and padding/border updated to match priority dropdown styling.
+- **Activity tab divider removed** — eliminated redundant `<hr>` between Move to and Changes sections; Move to now uses sidebar-group wrapper for consistent styling.
+- **Expand diff button hidden when merged** — diff expand button now properly hides alongside the "Show diff" toggle when a card is merged.
+- **Card sidebar crash on missing divider** — removed reference to deleted `card-activity-divider` element that was causing "Cannot read properties of null" error.
+
 ## [0.2.8] - 2026-05-30
 
 ### Changed
