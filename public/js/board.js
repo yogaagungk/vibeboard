@@ -363,6 +363,12 @@ async function deleteCard(cardId, colId) {
       danger: true,
     });
     if (!ok) return;
+  } else {
+    const ok = await vbConfirm(
+      `Delete card "${card.title || 'Untitled'}"? This cannot be undone.`,
+      { confirmText: 'Delete', cancelText: 'Cancel', danger: true }
+    );
+    if (!ok) return;
   }
 
   col.cards = col.cards.filter(c => c.id !== cardId);
