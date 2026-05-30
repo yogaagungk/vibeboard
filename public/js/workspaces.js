@@ -246,8 +246,8 @@ function submitNewCard() {
   const col = board.columns.find(c => c.id === newCardColId);
   if (!col) return;
   const tags = Array.from(document.querySelectorAll('#nc-tag-picker .tag-pick-btn.active')).map(b => b.dataset.tag);
-  const activeAgentBtn = document.querySelector('#nc-agent-opts .agent-btn.active');
-  const agent = activeAgentBtn?.dataset.ncAgent || undefined;
+  const ncMount = document.getElementById('nc-agent-mount');
+  const agent = ncMount?._agentSelect?.getValue() || undefined;
   const model = modelSelects['nc']?.getValue() || undefined;
   const description = document.getElementById('nc-desc').value.trim() || undefined;
   const requires_review = document.getElementById('nc-needs-review').checked;

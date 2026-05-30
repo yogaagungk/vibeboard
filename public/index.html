@@ -302,12 +302,7 @@
       </div>
       <div class="details-row">
         <span class="details-label">Agent</span>
-        <div class="agent-options" id="nc-agent-opts">
-          <button class="agent-btn active" data-nc-agent="">None</button>
-          <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
-          <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
-          <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
-        </div>
+        <div id="nc-agent-mount" style="flex:1;min-width:0"></div>
       </div>
       <div id="nc-model-row" style="display:none">
         <div class="details-row">
@@ -384,12 +379,7 @@
       <div class="sidebar-panel" data-panel="agent" hidden>
         <div class="details-row">
           <span class="details-label">Agent</span>
-          <div class="agent-options">
-            <button class="agent-btn active" data-agent="">None</button>
-            <button class="agent-btn" data-agent="claude-code">Claude Code</button>
-            <button class="agent-btn" data-agent="opencode">OpenCode</button>
-            <button class="agent-btn" data-agent="codex">Codex CLI</button>
-          </div>
+          <div id="card-agent-mount" style="flex:1;min-width:0"></div>
         </div>
         <div id="card-model-row" style="display:none">
           <div class="details-row">
@@ -422,12 +412,12 @@
         <div id="card-prompt-section" style="display:none">
           <div class="agent-prompt-header">
             <span class="details-label">Agent prompt</span>
-            <div class="agent-prompt-actions">
-              <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
-              <button class="prompt-toggle-btn" id="card-prompt-toggle">Show ▾</button>
-            </div>
+            <button class="prompt-copy-btn" id="card-modal-copy-btn">Copy</button>
           </div>
-          <textarea id="card-modal-prompt-text" readonly class="agent-prompt-textarea"></textarea>
+          <div class="prompt-toggle-row">
+            <button class="prompt-toggle-btn prompt-toggle-left" id="card-prompt-toggle">Show ▾</button>
+          </div>
+          <textarea id="card-modal-prompt-text" readonly class="agent-prompt-textarea agent-prompt-readonly"></textarea>
         </div>
       </div>
       <div class="sidebar-panel" data-panel="activity" hidden>
@@ -442,7 +432,9 @@
             <span class="branch-badge" id="card-branch-badge"></span>
             <span class="changes-meta" id="card-changes-meta"></span>
             <button class="diff-link-btn" id="card-diff-toggle">Show diff</button>
-            <button class="diff-expand-btn" id="card-diff-expand" title="Expand diff">&#9926;</button>
+            <button class="diff-expand-btn" id="card-diff-expand" title="Expand diff">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M6 14H2v-4M14 2l-5 5M2 14l5-5"/></svg>
+            </button>
           </div>
           <div id="card-diff-view" style="display:none;margin-bottom:8px"></div>
           <div class="card-merge-actions" id="card-merge-actions" style="display:none">
