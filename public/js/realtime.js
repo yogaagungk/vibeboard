@@ -33,9 +33,13 @@ function connectSSE() {
             if (badge) { badge.textContent = col.title; badge.style.background = col.color || '#6b6860'; }
           }
           const bb = document.getElementById('card-modal-branch-badge');
-          if (card.branch) { bb.textContent = card.branch; bb.style.display = ''; }
-          else { bb.style.display = 'none'; }
+          if (card.branch) {
+            bb.textContent = card.branch + (card.merged_at ? ' (merged ' + fmtTime(card.merged_at) + ')' : '');
+            bb.style.display = '';
+          } else { bb.style.display = 'none'; }
           updateRunAgentBtn(card);
+          showChangesSection(card);
+          updateMoveButtons(card, col.title);
         }
         loadCardNotes(modalCardId).then(renderCardNotes);
       }
