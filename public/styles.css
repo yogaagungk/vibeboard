@@ -550,6 +550,27 @@ body.mcp-banner-open #log-sidebar {
 }
 .empty-cta:hover { opacity: 0.85; }
 
+/* ── Error state ── */
+#board-error-state {
+  display: flex; flex: 1;
+  align-items: center; justify-content: center; flex-direction: column;
+  gap: 16px; color: var(--text-muted);
+}
+.error-icon { font-size: 36px; opacity: 0.3; }
+.error-title { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: -0.5px; }
+.error-sub {
+  font-size: 13px; font-weight: 300; color: var(--text-muted);
+  text-align: center; line-height: 1.65; max-width: 260px;
+}
+.error-retry-btn {
+  height: 34px; padding: 0 20px; border: none; border-radius: var(--radius-md);
+  background: var(--accent); color: var(--accent-fg);
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: opacity 0.15s; margin-top: 4px; white-space: nowrap;
+}
+.error-retry-btn:hover { opacity: 0.85; }
+.error-retry-btn:disabled { opacity: 0.4; cursor: default; }
+
 /* ── Columns ── */
 .column {
   flex-shrink: 0; width: var(--col-width);
@@ -1325,6 +1346,21 @@ kbd {
 }
 #mcp-banner-dismiss:hover { background: var(--border); color: var(--text); }
 
+/* ── SSE reconnect banner ── */
+#sse-banner {
+  display: none; align-items: center; gap: 10px;
+  padding: 6px 16px;
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  position: fixed; top: var(--header-h); left: var(--sidebar-w); right: 0; z-index: 89;
+}
+#sse-banner.visible { display: flex; }
+#sse-banner-text { flex: 1; line-height: 1.4; }
+#sse-banner-text::before { content: '⚠\00a0'; }
+body.sidebar-collapsed #sse-banner { left: 0; }
+body.mcp-banner-open #sse-banner { top: calc(var(--header-h) + 41px); }
+
 /* ── MCP setup modal ── */
 #mcp-modal-overlay { z-index: 400; }
 #mcp-modal { width: 480px; }
@@ -1442,6 +1478,7 @@ kbd {
 
   #mcp-banner { left: 0; font-size: 11px; padding: 6px 10px; }
   #mcp-banner-icon { display: none; }
+  #sse-banner { left: 0; font-size: 11px; padding: 4px 10px; }
 
   .modal-box { width: 90vw !important; max-height: 85vh; }
 
