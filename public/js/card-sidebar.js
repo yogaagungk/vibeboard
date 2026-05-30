@@ -892,6 +892,36 @@ document.getElementById('card-merge-btn').addEventListener('click', async functi
   }
 });
 
+// ── Discard changes ─────────────────────────────────────────────────────────
+document.getElementById('card-discard-btn').addEventListener('click', async function() {
+  if (!modalCardId) return;
+  const col = board.columns.find(c => c.id === modalColId);
+  const card = col?.cards.find(c => c.id === modalCardId);
+  if (!card) return;
+  const ok = await vbConfirm(
+    `This will permanently delete branch '${card.branch}' and its worktree. The agent's code changes will be lost. This cannot be undone.`,
+    { confirmText: 'Discard changes', danger: true }
+  );
+  if (!ok) return;
+  this.disabled = true;
+  this.textContent = 'Discarding\u2026';
+  try {
+    const resp = await fetch(`/api/cards/${modalCardId}/discard`, { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Discard failed');
+    card.branch = null;
+    card.worktree_path = null;
+    card.worktreePath = null;
+    showChangesSection(card);
+    renderBoard(board);
+    showToast('Changes discarded', 3000, 'success');
+  } catch (err) {
+    showToast('Discard failed: ' + err.message, 3000, 'error');
+  }
+  this.disabled = false;
+  this.textContent = 'Discard changes';
+});
+
 // ── Create PR ──────────────────────────────────────────────────────────────
 document.getElementById('card-pr-btn').addEventListener('click', async function() {
   if (!modalCardId) return;

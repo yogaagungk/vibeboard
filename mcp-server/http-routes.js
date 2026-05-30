@@ -381,6 +381,37 @@ module.exports = function registerRoutes(app) {
     });
   });
 
+  app.post('/api/cards/:cardId/discard', (req, res) => {
+    const card = db.getCard(req.params.cardId);
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (!card.branch) return res.status(400).json({ error: 'Card has no branch to discard' });
+    const wsId = db.getActiveWorkspaceId();
+    const workspace = db.getWorkspace(wsId);
+    if (!workspace) return res.status(400).json({ error: 'No active workspace' });
+    try {
+      const { execFileSync } = require('child_process');
+      if (card.worktree_path) {
+        try {
+          execFileSync('git', ['worktree', 'remove', '--force', card.worktree_path], { cwd: workspace.path, stdio: 'ignore' });
+        } catch (_) {
+          try { fs.rmSync(card.worktree_path, { recursive: true, force: true }); } catch (_) {}
+        }
+        try { execFileSync('git', ['worktree', 'prune'], { cwd: workspace.path, stdio: 'ignore' }); } catch (_) {}
+      }
+      try {
+        execFileSync('git', ['branch', '-D', card.branch], { cwd: workspace.path, stdio: 'ignore' });
+      } catch (_) {}
+      db.updateCard(card.id, { branch: null, worktreePath: null });
+      const fresh = db.getCard(card.id);
+      emitSSE('card_updated', fresh);
+      const board = db.getBoard(wsId);
+      emitSSE('board_update', board);
+      res.json({ ok: true, card: fresh });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/cards/:cardId/merge', (req, res) => {
     const card = db.getCard(req.params.cardId);
     if (!card?.branch) return res.status(400).json({ error: 'Card has no branch' });
