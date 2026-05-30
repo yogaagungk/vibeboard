@@ -561,6 +561,7 @@ function updatePromptBox(card) {
   if (!card.agent) {
     promptSection.style.display = 'none';
   } else {
+    const wasHidden = promptSection.style.display === 'none';
     const col = board.columns.find(c => c.id === modalColId);
     const desc = card.description ? `\nDescription: ${card.description}` : '';
     const tags = (card.tags||[]).length ? `\nTags: ${card.tags.join(', ')}` : '';
@@ -616,6 +617,11 @@ Column workflow:
 Git rule: ALWAYS run \`git add -A && git commit\` before calling move_card or complete_card.
 This ensures your work is never lost when the card changes state.${card.custom_prompt ? '\n\nAdditional instructions from the user:\n' + card.custom_prompt : ''}`;
     promptSection.style.display = 'block';
+    // Collapse prompt by default when first shown
+    if (wasHidden) {
+      promptText.classList.add('collapsed');
+      promptToggle.textContent = 'Show \u25BE';
+    }
   }
 }
 
@@ -789,6 +795,20 @@ cardModalCopyBtn.addEventListener('click', () => {
     cardModalCopyBtn.textContent = 'Copied!'; cardModalCopyBtn.classList.add('copied');
     setTimeout(() => { cardModalCopyBtn.textContent = 'Copy'; cardModalCopyBtn.classList.remove('copied'); }, 2000);
   });
+});
+
+// ── Agent prompt toggle (collapsed by default) ──────────────────────────────
+const promptToggle = document.getElementById('card-prompt-toggle');
+const promptTextarea = document.getElementById('card-modal-prompt-text');
+promptToggle.addEventListener('click', () => {
+  const collapsed = promptTextarea.classList.contains('collapsed');
+  if (collapsed) {
+    promptTextarea.classList.remove('collapsed');
+    promptToggle.textContent = 'Hide \u25B4';
+  } else {
+    promptTextarea.classList.add('collapsed');
+    promptToggle.textContent = 'Show \u25BE';
+  }
 });
 
 // ── Diff rendering helper ───────────────────────────────────────────────────
