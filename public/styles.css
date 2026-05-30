@@ -1740,7 +1740,7 @@ select:focus-visible,
 .vb-select.open .vb-select-chevron { transform: rotate(180deg); }
 
 .vb-select-pop {
-  position: fixed; z-index: 700;
+  position: fixed; z-index: 1100;
   max-height: 264px; overflow-y: auto;
   background: var(--surface-3); border: 1px solid var(--border-strong);
   border-radius: var(--radius-md); padding: 4px;
@@ -1761,7 +1761,7 @@ select:focus-visible,
 .vb-select-opt.selected { color: var(--text); font-weight: 500; }
 .vb-select-opt.disabled { opacity: 0.4; cursor: default; }
 .vb-select-opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vb-select-opt-hint { font-size: 11px; color: var(--text-muted); font-weight: 400; flex-shrink: 0; }
+.vb-select-opt-hint { font-size: 11px; color: var(--text-muted); font-weight: 400; flex-shrink: 0; margin-left: 8px; }
 .vb-select-opt-check { color: var(--active-ws); font-size: 11px; flex-shrink: 0; }
 .vb-select-trigger:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }
 
