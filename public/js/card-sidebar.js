@@ -13,6 +13,17 @@ const cardModalCopyBtn   = document.getElementById('card-modal-copy-btn');
 let modalCardId = null, modalColId = null, newCardColId = null;
 let ncBlockedBy = []; // blocked_by being assembled in the New Card modal
 
+function sanitizeOutput(str) {
+  if (!str) return str;
+  return str
+    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
+    .replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, '')
+    .replace(/\x1b[^[\]]/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+}
+
 async function loadCardNotes(cardId) {
   try {
     const resp = await fetch(`/api/cards/${cardId}/notes`);
@@ -266,7 +277,7 @@ function openCardModal(cardId, colId) {
     outputToggle.textContent = visible ? 'Show full output' : 'Hide full output';
     if (!visible && runningCards.has(cardId)) {
       fetch(`/api/cards/${cardId}/output`).then(r => r.json()).then(d => {
-        if (d.output) { outputPre.textContent = d.output; outputPre.scrollTop = outputPre.scrollHeight; }
+        if (d.output) { outputPre.textContent = sanitizeOutput(d.output); outputPre.scrollTop = outputPre.scrollHeight; }
       }).catch(() => {});
     }
   };
@@ -274,7 +285,7 @@ function openCardModal(cardId, colId) {
     outputToggle.style.display = 'inline-block';
     outputToggle.textContent = 'Show full output';
     fetch(`/api/cards/${cardId}/output`).then(r => r.json()).then(d => {
-      if (d.output) { outputPre.textContent = d.output; }
+      if (d.output) { outputPre.textContent = sanitizeOutput(d.output); }
     }).catch(() => {});
   }
 
