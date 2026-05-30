@@ -279,45 +279,53 @@
       <input id="nc-title-input" type="text" spellcheck="false" placeholder="Card title" autocomplete="off">
       <button class="modal-close-btn" id="nc-close">×</button>
     </div>
-    <div class="modal-body" style="gap:0">
+    <div class="modal-body">
       <textarea class="modal-textarea" id="nc-desc" placeholder="Describe the task for the agent…"></textarea>
-      <div class="details-row" style="border-top:none">
-        <span class="details-label">Tags</span>
-        <div class="modal-tag-picker" id="nc-tag-picker" style="flex:1"></div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Tags</div>
+        <div class="modal-tag-picker" id="nc-tag-picker"></div>
       </div>
-      <div class="details-row">
-        <span class="details-label">Priority</span>
-        <div id="nc-priority-mount" style="flex:1;min-width:0"></div>
-        <span class="details-label" style="min-width:auto;flex-shrink:0;margin-left:auto">Due</span>
-        <input type="date" class="due-input" id="nc-due-date" style="min-width:130px">
-      </div>
-      <div class="details-row">
-        <span class="details-label">Blocked by</span>
-        <div class="dep-list" id="nc-dep-list" style="flex:1;min-width:0"></div>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Agent</span>
-        <div id="nc-agent-mount" style="flex:1;min-width:0"></div>
-      </div>
-      <div id="nc-model-row" style="display:none">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Schedule</div>
         <div class="details-row">
-          <span class="details-label">Model</span>
-          <div id="nc-model-mount" style="flex:1;min-width:0"></div>
-          <button class="icon-btn" id="nc-model-refresh" title="Refresh models">↻</button>
+          <span class="details-label">Priority</span>
+          <div id="nc-priority-mount" style="flex:1;min-width:0"></div>
+        </div>
+        <div class="details-row">
+          <span class="details-label">Due</span>
+          <input type="date" class="due-input" id="nc-due-date" style="flex:1;min-width:130px">
+        </div>
+        <div class="details-row">
+          <span class="details-label">Blocked by</span>
+          <div class="dep-list" id="nc-dep-list" style="flex:1;min-width:0"></div>
         </div>
       </div>
-      <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
-        <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
-      </div>
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-row-label">Needs review</div>
-          <div class="toggle-row-hint">Agent moves to Review before Done</div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Agent</div>
+        <div class="details-row">
+          <span class="details-label">Agent</span>
+          <div id="nc-agent-mount" style="flex:1;min-width:0"></div>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="nc-needs-review">
-          <span class="toggle-track"></span>
-        </label>
+        <div id="nc-model-row" style="display:none">
+          <div class="details-row">
+            <span class="details-label">Model</span>
+            <div id="nc-model-mount" style="flex:1;min-width:0"></div>
+            <button class="icon-btn" id="nc-model-refresh" title="Refresh models">↻</button>
+          </div>
+        </div>
+        <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
+          <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-row-label">Needs review</div>
+            <div class="toggle-row-hint">Agent moves to Review before Done</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="nc-needs-review">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -350,25 +358,25 @@
     <div id="card-sidebar-body">
       <div class="sidebar-panel" data-panel="details">
         <textarea id="card-modal-desc" placeholder="Describe the task for the agent…"></textarea>
-        <div class="details-row" style="border-top:none">
-          <span class="details-label">Tags</span>
-          <div class="modal-tag-picker" id="card-modal-tag-picker" style="flex:1"></div>
+        <div class="sidebar-group">
+          <div class="sidebar-group-label">Tags</div>
+          <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
           <button class="tag-add-btn" id="card-tag-add-btn" type="button" aria-label="Add tag">+</button>
         </div>
-        <div class="details-row">
-          <span class="details-label">Priority</span>
-          <div class="priority-picker" id="card-priority-picker" style="flex:1">
-            <button class="priority-btn active" data-priority="">None</button>
-            <button class="priority-btn" data-priority="high">High</button>
-            <button class="priority-btn" data-priority="medium">Medium</button>
-            <button class="priority-btn" data-priority="low">Low</button>
+        <div class="sidebar-group">
+          <div class="sidebar-group-label">Schedule</div>
+          <div class="details-row">
+            <span class="details-label">Priority</span>
+            <div id="card-priority-mount" style="flex:1;min-width:0"></div>
           </div>
-          <span class="details-label" style="min-width:auto;flex-shrink:0;margin-left:auto">Due</span>
-          <input type="date" class="due-input" id="card-due-date" style="min-width:130px">
-        </div>
-        <div class="details-row">
-          <span class="details-label">Blocked by</span>
-          <div class="dep-list" id="card-dep-list" style="flex:1;min-width:0"></div>
+          <div class="details-row">
+            <span class="details-label">Due</span>
+            <input type="date" class="due-input" id="card-due-date" style="flex:1;min-width:130px">
+          </div>
+          <div class="details-row">
+            <span class="details-label">Blocked by</span>
+            <div class="dep-list" id="card-dep-list" style="flex:1;min-width:0"></div>
+          </div>
         </div>
       </div>
       <div class="sidebar-panel" data-panel="agent" hidden>
