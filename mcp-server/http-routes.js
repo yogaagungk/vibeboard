@@ -286,6 +286,24 @@ module.exports = function registerRoutes(app) {
     if (!activeId) return res.status(400).json({ error: 'No active workspace' });
 
     const body = req.body;
+
+    // Enforce WIP limits server-side before accepting mutations
+    if (Array.isArray(body.columns)) {
+      const currentBoard = db.getBoard(activeId);
+      if (currentBoard) {
+        for (const col of body.columns) {
+          if (Number.isInteger(col.wip_limit) && col.wip_limit > 0) {
+            const currentCol = currentBoard.columns.find(c => c.id === col.id);
+            const currentCount = currentCol ? currentCol.cards.length : 0;
+            const incomingCount = (col.cards || []).length;
+            if (incomingCount > col.wip_limit && incomingCount > currentCount) {
+              return res.status(400).json({ error: 'WIP limit exceeded', column: col.title, limit: col.wip_limit });
+            }
+          }
+        }
+      }
+    }
+
     if (body.name !== undefined || body.path !== undefined || body.description !== undefined || body.use_worktree !== undefined) {
       try {
         db.updateWorkspace(activeId, { name: body.name, path: body.path, description: body.description, use_worktree: body.use_worktree });
