@@ -260,6 +260,14 @@ function buildCard(card, colId) {
     m.title = 'Merged: ' + fmtTime(card.merged_at);
     cardTop.appendChild(m);
   }
+  const col = board.columns.find(c => c.id === colId);
+  if (col && col.title === 'Done' && card.branch && !card.merged_at) {
+    const n = document.createElement('span');
+    n.className = 'need-merge-badge';
+    n.textContent = 'need merge';
+    n.title = 'Branch ' + card.branch + ' has not been merged';
+    cardTop.appendChild(n);
+  }
   if (runningCards.has(card.id)) {
     const dot = document.createElement('span');
     dot.className = 'card-running-dot';

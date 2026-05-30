@@ -1250,6 +1250,17 @@ kbd {
   background: rgba(22,163,74,0.18);
   color: #4ade80;
 }
+.need-merge-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: rgba(220,38,38,0.12); color: #dc2626;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+:root[data-theme="dark"] .need-merge-badge {
+  background: rgba(220,38,38,0.20);
+  color: #f87171;
+}
 .card-merge-actions .btn-primary { flex: 1; }
 .card-merge-actions .btn-ghost   { flex: 1; }
 
