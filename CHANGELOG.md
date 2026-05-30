@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.8] - 2026-05-30
+
+### Changed
+- **Agent selector converted to dropdown** — both the card sidebar and new card modal now use a compact dropdown instead of wrapping button groups; eliminates "Claude Code" / "Codex CLI" text wrapping.
+- **Priority converted to dropdown in new card modal** — replaces the 4-button group with a compact `vbSelect` dropdown, shares one row with Due Date.
+- **All notes collapsed by default** — every note in Notes & Checkpoints starts collapsed; removed the "latest note starts expanded" exception. Click any note to expand it.
+- **Agent prompt redesigned** — taller textarea (`min-height: 160px`, `max-height: 280px`), read-only styling to distinguish from editable fields, Show/Hide toggle moved below the header row.
+
+### Fixed
+- **Blocked by dropdown filters Done cards** — cards already in Done no longer appear as blocker options since they're already satisfied; shows "No available blockers" when nothing is selectable.
+- **Blocked by dropdown shows column badge** — each item now shows the card's current column name on the right for quick context.
+- **Blocked by dropdown z-index** — dropdown popover in the new card modal now renders above the modal overlay (`position: fixed; z-index: 1100`).
+- **Expand diff button uses proper SVG icon** — replaces the inconsistent `⛶` unicode character with a clean inline SVG expand icon; adds `title="Expand diff"` tooltip.
+
 ## [0.2.7] - 2026-05-30
 
 ### Added
