@@ -329,32 +329,57 @@ function openNewCardModal(colId) {
     picker.appendChild(btn);
   });
 
-  const agentOpts = document.getElementById('nc-agent-opts');
-  agentOpts.querySelectorAll('.agent-btn').forEach(btn => {
-    const agent = btn.dataset.ncAgent;
-    const reason = agentUnavailableReason(agent);
-    btn.disabled = !!reason;
-    btn.classList.toggle('unavailable', !!reason);
-    btn.classList.toggle('active', agent === '');
-    btn.title = reason ? `${AGENT_LABELS[agent] || agent}: ${reason}` : '';
-    btn.onclick = !reason ? () => {
-      agentOpts.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('nc-agent-warning').style.display = agent ? '' : 'none';
-      updateModelDropdown('nc', agent);
-    } : null;
-  });
+  // Priority dropdown
+  const priorityMount = document.getElementById('nc-priority-mount');
+  priorityMount.innerHTML = '';
+  if (!window._ncPrioritySelect) {
+    window._ncPrioritySelect = vbSelect({
+      options: [
+        { value: '', label: 'None' },
+        { value: 'high', label: 'High' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'low', label: 'Low' },
+      ],
+      value: '',
+      placeholder: 'None',
+      ariaLabel: 'Priority',
+    });
+    priorityMount.appendChild(window._ncPrioritySelect.el);
+  } else {
+    window._ncPrioritySelect.setValue('');
+    priorityMount.appendChild(window._ncPrioritySelect.el);
+  }
+
+  // Agent dropdown
+  const agentMount = document.getElementById('nc-agent-mount');
+  agentMount.innerHTML = '';
+  const agentOpts = [
+    { value: '', label: 'None' },
+    ...['claude-code', 'opencode', 'codex'].map(k => ({
+      value: k,
+      label: AGENT_LABELS[k] || k,
+      disabled: !!agentUnavailableReason(k),
+    })),
+  ];
+  if (!window._ncAgentSelect) {
+    window._ncAgentSelect = vbSelect({
+      options: agentOpts,
+      value: '',
+      placeholder: 'None',
+      ariaLabel: 'Agent',
+      onChange: val => {
+        document.getElementById('nc-agent-warning').style.display = val ? '' : 'none';
+        updateModelDropdown('nc', val);
+      },
+    });
+    agentMount.appendChild(window._ncAgentSelect.el);
+  } else {
+    window._ncAgentSelect.setOptions(agentOpts);
+    window._ncAgentSelect.setValue('');
+    agentMount.appendChild(window._ncAgentSelect.el);
+  }
 
   updateModelDropdown('nc', '');
-
-  // Reset priority picker to None
-  document.querySelectorAll('#nc-priority-picker .priority-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.ncPriority === '');
-    btn.onclick = () => {
-      document.querySelectorAll('#nc-priority-picker .priority-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
-  });
 
   document.getElementById('nc-due-date').value = '';
   document.getElementById('nc-needs-review').checked = false;
@@ -379,8 +404,11 @@ function getModalTags() {
 }
 
 function getModalAgent() {
+  // Card sidebar uses button groups
   const active = document.querySelector('.agent-btn.active');
-  return active?.dataset?.agent || undefined;
+  if (active) return active?.dataset?.agent || undefined;
+  // New card modal uses vbSelect
+  return window._ncAgentSelect?.getValue() || undefined;
 }
 
 

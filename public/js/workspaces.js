@@ -246,13 +246,11 @@ function submitNewCard() {
   const col = board.columns.find(c => c.id === newCardColId);
   if (!col) return;
   const tags = Array.from(document.querySelectorAll('#nc-tag-picker .tag-pick-btn.active')).map(b => b.dataset.tag);
-  const activeAgentBtn = document.querySelector('#nc-agent-opts .agent-btn.active');
-  const agent = activeAgentBtn?.dataset.ncAgent || undefined;
+  const agent = window._ncAgentSelect?.getValue() || undefined;
   const model = modelSelects['nc']?.getValue() || undefined;
   const description = document.getElementById('nc-desc').value.trim() || undefined;
   const requires_review = document.getElementById('nc-needs-review').checked;
-  const activePriorityBtn = document.querySelector('#nc-priority-picker .priority-btn.active');
-  const priority = activePriorityBtn?.dataset.ncPriority || undefined;
+  const priority = window._ncPrioritySelect?.getValue() || undefined;
   const due_date = document.getElementById('nc-due-date').value || null;
   col.cards.push({
     id: uid(), title, tags, requires_review, priority: priority || null, due_date,

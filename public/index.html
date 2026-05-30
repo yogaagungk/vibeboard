@@ -287,12 +287,7 @@
       </div>
       <div class="details-row">
         <span class="details-label">Priority</span>
-        <div class="priority-picker" id="nc-priority-picker" style="flex:1">
-          <button class="priority-btn active" data-nc-priority="">None</button>
-          <button class="priority-btn" data-nc-priority="high">High</button>
-          <button class="priority-btn" data-nc-priority="medium">Medium</button>
-          <button class="priority-btn" data-nc-priority="low">Low</button>
-        </div>
+        <div id="nc-priority-mount" style="flex:1;min-width:0"></div>
         <span class="details-label" style="min-width:auto;flex-shrink:0;margin-left:auto">Due</span>
         <input type="date" class="due-input" id="nc-due-date" style="min-width:130px">
       </div>
@@ -302,12 +297,7 @@
       </div>
       <div class="details-row">
         <span class="details-label">Agent</span>
-        <div class="agent-options" id="nc-agent-opts">
-          <button class="agent-btn active" data-nc-agent="">None</button>
-          <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
-          <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
-          <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
-        </div>
+        <div id="nc-agent-mount" style="flex:1;min-width:0"></div>
       </div>
       <div id="nc-model-row" style="display:none">
         <div class="details-row">
