@@ -31,7 +31,7 @@ vibeboard/
 │   ├── styles.css      ← UI styles
 │   └── js/             ← UI logic as ordered classic scripts (no bundler)
 │       ├── bootstrap.js, workspaces.js, board.js, realtime.js,
-│       └── shortcuts-io.js, card-sidebar.js, app.js
+│       └── shortcuts-io.js, md-render.js, datepicker.js, card-sidebar.js, app.js
 ├── .claude/
 │   └── mcp.json        ← MCP config for Claude Code
 ├── README.md           ← User documentation
@@ -66,8 +66,9 @@ token), `app.js` last (it calls `init()`).
 
 ## MCP tools available to agents
 
-get_board          → read full board state (params: workspaceId?)
+get_board          → read full board state (params: workspaceId?, columnsOnly?, excludeLogs?, columnTitle?)
 get_column         → read cards in a specific column by title (params: columnTitle, workspaceId?)
+list_cards         → list cards with filters, more efficient than get_board (params: columnTitle?, tag?, agent?, workspaceId?, limit?, offset?)
 list_workspaces    → list all workspaces
 create_workspace   → create a new workspace (params: name, path, description?)
 switch_workspace   → switch to a different workspace (params: workspaceId)
@@ -79,8 +80,10 @@ complete_card      → move a card to Done (params: cardId)
 delete_card        → remove a card (params: cardId)
 add_card_note      → add a note/checkpoint to a card (params: cardId, content)
 get_card_notes     → get all notes for a card (params: cardId)
+get_agent_status   → check if an agent is running/queued for a card (params: cardId)
 list_models        → list available models per agent type (params: agent?)
 refresh_models     → refresh the model cache from each agent's CLI (no params)
+search_cards       → search cards by query/tag/column/agent (params: query?, tag?, columnTitle?, agent?, workspaceId?, limit?, offset?)
 
 ## Agent spawning system
 
@@ -156,6 +159,9 @@ Add to your OpenCode config:
    (or a new one added to the ordered `<script src>` list, respecting load order).
 6. Server and UI stay separate: never inline JS/CSS back into index.html, and
    never add a build/transpile step to either side.
+7. If you need to run the server to verify your changes, use a different port:
+   `PORT=7342 npm start`. The default port 7341 is already in use by the live
+   instance managing your session — binding to it will cause a conflict.
 
 ## Tech decisions (do not change without discussion)
 
