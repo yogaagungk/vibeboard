@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2026-05-30
+
+### Added
+- **SVG favicon** — kanban columns icon displayed in browser tab; scales perfectly at any size.
+- **"need merge" badge on Done cards** — cards in the Done column with an unmerged branch show a red "need merge" pill (mirrors the green "merged" badge) so unmerged work is visible at a glance.
+- **`search_cards` MCP tool** — agents can now query cards server-side by title/description, tag, column, or agent without fetching the full board; also exposes `GET /api/cards/search`.
+- **`delete_workspace` MCP tool** — agents can delete workspaces programmatically (requires `confirm: true`; blocked if only one workspace remains).
+- **Cascade delete for workspaces** — deleting a workspace now atomically removes all its cards, notes, and agent log entries in a single SQLite transaction; no more orphaned rows.
+- **Cyclic dependency detection** — adding a `blocked_by` relation that would create a cycle (A → B → A) is now rejected in the UI, REST API, and MCP with a clear error message.
+
+### Changed
+- **Card description textarea taller** — min-height increased from 90 px to 200 px in the Details sidebar tab, making better use of the available space.
+
+### Fixed
+- **Board load failure shows error state** — if `GET /board` fails on startup, the UI now shows a "Failed to load board" message with a Retry button instead of a blank screen. SSE disconnects show a non-intrusive reconnecting banner.
+- **WIP limits enforced server-side** — `POST /board` and the `move_card` MCP tool now reject moves that exceed a column's WIP limit; previously only the client enforced this.
+- **Plain card deletion now requires confirmation** — the × delete button on cards without a branch now shows a `vbConfirm` dialog; previously they were deleted immediately with no warning.
+- **+Add card button clipped by taskbar** — added bottom padding to columns so the button remains fully visible above the OS taskbar in Chrome.
+
 ## [0.2.5] - 2026-05-29
 
 ### Added
