@@ -253,12 +253,22 @@ function vbDatePicker(el) {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); trigger.focus(); }
   }
 
+  function onTriggerKeyDown(e) {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (!pop) {
+        e.preventDefault();
+        selectDate('');
+      }
+    }
+  }
+
   function onScroll(e) {
     if (pop && pop.contains(e.target)) return;
     close();
   }
 
   trigger.addEventListener('click', () => { pop ? close() : open(); });
+  trigger.addEventListener('keydown', onTriggerKeyDown);
 
   renderTrigger();
   return { el: wrap, getValue: () => _value, setValue: v => { _value = v || ''; renderTrigger(); }, open, close };

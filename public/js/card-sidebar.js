@@ -114,6 +114,7 @@ function renderCardNotes(notes) {
     const firstLine = clean.split('\n')[0] || clean;
     const truncated = firstLine.length > 80 ? firstLine.slice(0, 80) + '\u2026' : firstLine;
     previewEl.textContent = truncated;
+    previewEl.title = clean;
     
     const contentEl = document.createElement('div');
     contentEl.className = 'card-note-content';

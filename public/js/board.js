@@ -39,6 +39,8 @@ const searchInput = document.getElementById('board-search');
 const searchClear = document.getElementById('board-search-clear');
 const searchCount = document.getElementById('board-search-count');
 
+let searchDebounceTimer = null;
+
 function applySearch() {
   const q = searchInput.value.trim().toLowerCase();
   
@@ -76,7 +78,10 @@ function applySearch() {
   searchCount.textContent = `${visible} of ${total}`;
 }
 
-searchInput.addEventListener('input', applySearch);
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(applySearch, 150);
+});
 searchClear.addEventListener('click', () => { searchInput.value = ''; applySearch(); searchInput.focus(); });
 
 function buildColumn(col) {
@@ -88,6 +93,7 @@ function buildColumn(col) {
 
   const title = document.createElement('input');
   title.className = 'col-title'; title.type = 'text'; title.value = col.title; title.spellcheck = false;
+  title.setAttribute('aria-label', 'Column title');
   title.addEventListener('change', () => { col.title = title.value.trim() || 'Untitled'; title.value = col.title; postBoard(); });
   title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
 
