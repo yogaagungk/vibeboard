@@ -504,3 +504,71 @@ async function checkVersion() {
   } catch (_) {}
 }
 checkVersion();
+
+// ── Workspace AI context files modal ──────────────────────────────────────
+let _contextFiles = [];
+
+async function loadContextPanel(wsId) {
+  const btn = document.getElementById('ws-context-btn');
+  if (!wsId) { if (btn) btn.style.display = 'none'; return; }
+  try {
+    const resp = await fetch(`/api/workspaces/${wsId}/agent-context`);
+    if (resp.ok) {
+      const data = await resp.json();
+      _contextFiles = data.files || [];
+      if (btn) btn.style.display = _contextFiles.length ? '' : 'none';
+      return;
+    }
+  } catch (_) {}
+  _contextFiles = [];
+  if (btn) btn.style.display = 'none';
+}
+
+(function initContextModal() {
+  const btn     = document.getElementById('ws-context-btn');
+  const overlay = document.getElementById('context-modal-overlay');
+  const tabsEl  = document.getElementById('context-modal-tabs');
+  const contentEl = document.getElementById('context-modal-content');
+  const emptyEl   = document.getElementById('context-modal-empty');
+  const closeBtn  = document.getElementById('context-modal-close');
+  if (!btn || !overlay) return;
+
+  function openContextModal() {
+    tabsEl.innerHTML = '';
+    if (!_contextFiles.length) {
+      contentEl.style.display = 'none';
+      emptyEl.style.display = '';
+      overlay.classList.add('open');
+      return;
+    }
+    emptyEl.style.display = 'none';
+    contentEl.style.display = '';
+
+    let active = 0;
+    _contextFiles.forEach((f, i) => {
+      const tab = document.createElement('button');
+      tab.className = 'sidebar-tab' + (i === 0 ? ' active' : '');
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+      tab.textContent = f.filename;
+      tab.addEventListener('click', () => {
+        tabsEl.querySelectorAll('.sidebar-tab').forEach((t, j) => {
+          t.classList.toggle('active', j === i);
+          t.setAttribute('aria-selected', j === i ? 'true' : 'false');
+        });
+        contentEl.innerHTML = renderMarkdown(_contextFiles[i].content);
+        contentEl.scrollTop = 0;
+      });
+      tabsEl.appendChild(tab);
+    });
+    contentEl.innerHTML = renderMarkdown(_contextFiles[0].content);
+    overlay.classList.add('open');
+  }
+
+  btn.addEventListener('click', openContextModal);
+  closeBtn.addEventListener('click', () => overlay.classList.remove('open'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) overlay.classList.remove('open');
+  });
+})();
