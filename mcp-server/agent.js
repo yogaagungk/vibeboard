@@ -27,6 +27,45 @@ try { fs.mkdirSync(AGENT_IO_DIR, { recursive: true }); } catch (_) {}
 const PORT = process.env.PORT || 7341;
 const AGENT_TIMEOUT_MS = parseInt(process.env.AGENT_TIMEOUT_MS || '') || 30 * 60 * 1000;
 
+// Retry wrapper for the agent-done HTTP notify. If the HTTP server is temporarily
+// unavailable, silent swallowing would leave the card stuck in "In Progress" forever.
+async function fetchWithRetry(url, options, attempts = 3) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return;
+    } catch (err) {
+      if (i === attempts - 1) {
+        process.stderr.write(`[agent] agent-done notify failed after ${attempts} attempts: ${err.message}\n`);
+        return;
+      }
+      await new Promise(r => setTimeout(r, 500 * (i + 1)));
+    }
+  }
+}
+
+// Per-card PID files so agents spawned by MCP subprocess instances (which have
+// their own in-process activeAgents map) are still reachable on SIGTERM.
+function getPidFile(cardId) { return path.join(DATA_DIR, `agent-pid-${cardId}`); }
+function writePid(cardId, pid) {
+  try { fs.writeFileSync(getPidFile(cardId), String(pid)); } catch (_) {}
+}
+function removePid(cardId) {
+  try { fs.unlinkSync(getPidFile(cardId)); } catch (_) {}
+}
+function killAllRegisteredPids() {
+  try {
+    const files = fs.readdirSync(DATA_DIR).filter(f => f.startsWith('agent-pid-'));
+    for (const file of files) {
+      try {
+        const pid = parseInt(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'), 10);
+        if (pid > 0) process.kill(pid, 'SIGTERM');
+        fs.unlinkSync(path.join(DATA_DIR, file));
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+
 function isQueued(cardId) { return agentQueue.some(q => q.cardId === cardId); }
 function getQueuedCardIds() { return agentQueue.map(q => q.cardId); }
 function dequeueCard(cardId) {
@@ -173,28 +212,37 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
     shell: true,
   });
 
+  if (child.pid) writePid(cardId, child.pid);
+
   child.stdout.pipe(outStream, { end: false });
   child.stderr.pipe(outStream, { end: false });
 
   child.on('close', (code) => {
     outStream.end();
     try { fs.unlinkSync(promptFile); } catch (_) {}
-    fetch(`http://localhost:${PORT}/api/agent-done/${cardId}`, {
+    // Clear the timeout immediately so it doesn't accumulate if the notify fetch fails.
+    const agentInfo = activeAgents.get(cardId);
+    if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
+    removePid(cardId);
+    fetchWithRetry(`http://localhost:${PORT}/api/agent-done/${cardId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: code ?? 1 }),
-    }).catch(() => {});
+    });
   });
 
   child.on('error', (err) => {
     outStream.write(`\n[error: ${err.message}]\n`);
     outStream.end();
     try { fs.unlinkSync(promptFile); } catch (_) {}
-    fetch(`http://localhost:${PORT}/api/agent-done/${cardId}`, {
+    const agentInfo = activeAgents.get(cardId);
+    if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
+    removePid(cardId);
+    fetchWithRetry(`http://localhost:${PORT}/api/agent-done/${cardId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: 1 }),
-    }).catch(() => {});
+    });
   });
 
   return child;
@@ -298,6 +346,16 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     emitSSE('agent_started', { cardId, agentType, title: card.title });
     process.stderr.write(`Started ${agentType} (background) for card ${cardId}\n`);
   } catch (err) {
+    // If activeAgents was set before the error (e.g. updateCard threw), clean it up
+    // so the map doesn't leak a reference to a running child with no cleanup path.
+    const leaked = activeAgents.get(cardId);
+    if (leaked) {
+      if (leaked.watchInterval) clearInterval(leaked.watchInterval);
+      if (leaked.timeoutId) clearTimeout(leaked.timeoutId);
+      try { leaked.child?.kill(); } catch (_) {}
+      activeAgents.delete(cardId);
+      removePid(cardId);
+    }
     process.stderr.write(`Failed to start agent: ${err.message}\n`);
     addAgentLog(workspaceId, agentType, 'agent_error', `Failed to start: ${err.message}`);
     addCardNote(cardId, `Agent failed to start: ${err.message}`);
@@ -327,6 +385,7 @@ function agentDone(cardId, code, emitSSE) {
   const info = activeAgents.get(cardId);
   if (!info) return;
   activeAgents.delete(cardId);
+  removePid(cardId);
 
   if (info.watchInterval) clearInterval(info.watchInterval);
   if (info.timeoutId) clearTimeout(info.timeoutId);
@@ -406,6 +465,7 @@ function stopAgent(cardId) {
   if (info.timeoutId) clearTimeout(info.timeoutId);
   try { info.child?.kill(); } catch (_) {}
   activeAgents.delete(cardId);
+  removePid(cardId);
   addAgentLog(info.workspaceId, info.agentType, 'agent_stopped', `Stopped agent for card ${cardId}`);
   return true;
 }
@@ -423,6 +483,9 @@ function killAllAgents() {
   activeAgents.clear();
   agentQueue.length = 0;
   pendingRespawn.clear();
+  // Also kill agents spawned by other process instances (e.g. MCP subprocesses)
+  // that aren't in this process's activeAgents map.
+  killAllRegisteredPids();
 }
 
 function isAgentRunning(cardId) {
