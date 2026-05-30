@@ -279,59 +279,55 @@
       <input id="nc-title-input" type="text" spellcheck="false" placeholder="Card title" autocomplete="off">
       <button class="modal-close-btn" id="nc-close">×</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="gap:0">
       <textarea class="modal-textarea" id="nc-desc" placeholder="Describe the task for the agent…"></textarea>
-      <div>
-        <div class="field-label">Tags</div>
-        <div class="modal-tag-picker" id="nc-tag-picker"></div>
+      <div class="details-row" style="border-top:none">
+        <span class="details-label">Tags</span>
+        <div class="modal-tag-picker" id="nc-tag-picker" style="flex:1"></div>
       </div>
-      <div class="nc-meta-row">
-        <div class="nc-meta-col">
-          <div class="field-label">Priority</div>
-          <div class="priority-picker" id="nc-priority-picker">
-            <button class="priority-btn active" data-nc-priority="">None</button>
-            <button class="priority-btn" data-nc-priority="high">High</button>
-            <button class="priority-btn" data-nc-priority="medium">Medium</button>
-            <button class="priority-btn" data-nc-priority="low">Low</button>
-          </div>
+      <div class="details-row">
+        <span class="details-label">Priority</span>
+        <div class="priority-picker" id="nc-priority-picker" style="flex:1">
+          <button class="priority-btn active" data-nc-priority="">None</button>
+          <button class="priority-btn" data-nc-priority="high">High</button>
+          <button class="priority-btn" data-nc-priority="medium">Medium</button>
+          <button class="priority-btn" data-nc-priority="low">Low</button>
         </div>
-        <div class="nc-meta-col">
-          <div class="field-label">Due date</div>
-          <input type="date" class="due-input" id="nc-due-date" style="width:100%">
-        </div>
+        <span class="details-label" style="min-width:auto;flex-shrink:0;margin-left:auto">Due</span>
+        <input type="date" class="due-input" id="nc-due-date" style="min-width:130px">
       </div>
-      <div>
-        <div class="field-label">Blocked by</div>
-        <div class="dep-list" id="nc-dep-list"></div>
+      <div class="details-row">
+        <span class="details-label">Blocked by</span>
+        <div class="dep-list" id="nc-dep-list" style="flex:1;min-width:0"></div>
       </div>
-      <div class="nc-agent-box">
-        <div class="nc-agent-box-label">Agent</div>
+      <div class="details-row">
+        <span class="details-label">Agent</span>
         <div class="agent-options" id="nc-agent-opts">
           <button class="agent-btn active" data-nc-agent="">None</button>
           <button class="agent-btn" data-nc-agent="claude-code">Claude Code</button>
           <button class="agent-btn" data-nc-agent="opencode">OpenCode</button>
           <button class="agent-btn" data-nc-agent="codex">Codex CLI</button>
         </div>
-        <div id="nc-model-row" style="display:none">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div class="field-label" style="margin:0;flex:1">Model</div>
-            <button class="icon-btn" id="nc-model-refresh" title="Refresh models" style="font-size:12px">↻</button>
-          </div>
-          <div id="nc-model-mount"></div>
+      </div>
+      <div id="nc-model-row" style="display:none">
+        <div class="details-row">
+          <span class="details-label">Model</span>
+          <div id="nc-model-mount" style="flex:1;min-width:0"></div>
+          <button class="icon-btn" id="nc-model-refresh" title="Refresh models">↻</button>
         </div>
-        <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
-          <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
+      </div>
+      <div id="nc-agent-warning" style="display:none" class="agent-permission-warning">
+        <span class="agent-warning-icon">⚠</span>Agent runs with full permissions and will read, write, and execute commands in your workspace without prompting. Only use on trusted projects.
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-row-label">Needs review</div>
+          <div class="toggle-row-hint">Agent moves to Review before Done</div>
         </div>
-        <div class="toggle-row">
-          <div>
-            <div class="toggle-row-label">Needs review</div>
-            <div class="toggle-row-hint">Agent moves to Review before Done</div>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="nc-needs-review">
-            <span class="toggle-track"></span>
-          </label>
-        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="nc-needs-review">
+          <span class="toggle-track"></span>
+        </label>
       </div>
     </div>
     <div class="modal-footer">
