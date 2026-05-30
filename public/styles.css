@@ -1010,6 +1010,22 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .sidebar-group .modal-tag-picker {
   margin-bottom: 8px;
 }
+.sidebar-panel[data-panel="details"] .modal-tag-picker {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+.sidebar-panel[data-panel="details"] .sidebar-group {
+  margin-top: 12px;
+}
+.sidebar-panel[data-panel="activity"] .sidebar-group {
+  margin-bottom: 6px;
+}
+.card-priority-col {
+  flex: 1.5 !important;
+}
+#card-custom-prompt-section {
+  margin-top: 16px;
+}
 .sidebar-group .tag-add-btn {
   align-self: flex-start;
 }

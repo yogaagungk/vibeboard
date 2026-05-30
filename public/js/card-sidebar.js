@@ -690,7 +690,6 @@ function showChangesSection(card) {
     return;
   }
 
-  document.getElementById('card-activity-divider').style.display = '';
   section.style.display = 'block';
 
   if (card.merged_at) {
@@ -702,6 +701,7 @@ function showChangesSection(card) {
     diffView.style.display = 'none';
     diffView.innerHTML = '';
     toggleBtn.style.display = 'none';
+    document.getElementById('card-diff-expand').style.display = 'none';
     return;
   }
 
@@ -709,6 +709,7 @@ function showChangesSection(card) {
   const inDone = board.columns.find(c => c.id === modalColId)?.title === 'Done';
   actions.style.display = inDone ? 'flex' : 'none';
   toggleBtn.style.display = '';
+  document.getElementById('card-diff-expand').style.display = '';
   const mergeBtn = document.getElementById('card-merge-btn');
   const prBtn    = document.getElementById('card-pr-btn');
   mergeBtn.disabled = true; mergeBtn.title = 'No commits on this branch yet'; mergeBtn.textContent = 'Merge';

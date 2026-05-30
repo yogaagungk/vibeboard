@@ -356,21 +356,19 @@
     </div>
     <div id="card-sidebar-body">
       <div class="sidebar-panel" data-panel="details">
+        <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
         <textarea id="card-modal-desc" placeholder="Describe the task for the agent…"></textarea>
         <div class="sidebar-group">
-          <div class="sidebar-group-label">Tags</div>
-          <div class="modal-tag-picker" id="card-modal-tag-picker"></div>
-          <button class="tag-add-btn" id="card-tag-add-btn" type="button" aria-label="Add tag">+</button>
-        </div>
-        <div class="sidebar-group">
-          <div class="sidebar-group-label">Schedule</div>
-          <div class="details-row">
-            <span class="details-label">Priority</span>
-            <div id="card-priority-mount" style="flex:1;min-width:0"></div>
-          </div>
-          <div class="details-row">
-            <span class="details-label">Due</span>
-            <input type="date" class="due-input" id="card-due-date" style="flex:1;min-width:130px">
+          <div class="sidebar-group-label">Details</div>
+          <div class="nc-schedule-grid">
+            <div class="nc-schedule-col card-priority-col">
+              <span class="details-label">Priority</span>
+              <div id="card-priority-mount"></div>
+            </div>
+            <div class="nc-schedule-col">
+              <span class="details-label">Due</span>
+              <input type="date" class="due-input" id="card-due-date">
+            </div>
           </div>
           <div class="details-row">
             <span class="details-label">Blocked by</span>
@@ -380,7 +378,7 @@
       </div>
       <div class="sidebar-panel" data-panel="agent" hidden>
         <div class="sidebar-group">
-          <div class="sidebar-group-label">Agent</div>
+          <div class="sidebar-group-label">Assignment</div>
           <div class="details-row">
             <span class="details-label">Agent</span>
             <div id="card-agent-mount" style="flex:1;min-width:0"></div>
@@ -392,6 +390,16 @@
               <button class="icon-btn" id="card-model-refresh" title="Refresh models">↻</button>
             </div>
           </div>
+          <div id="card-review-toggle-row" class="toggle-row" style="display:none">
+            <div>
+              <div class="toggle-row-label">Needs review</div>
+              <div class="toggle-row-hint">Agent moves to Review before Done</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="card-needs-review-toggle" checked>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
         </div>
         <div id="card-agent-run-section" style="display:none">
           <div class="agent-actions-row">
@@ -400,18 +408,8 @@
           </div>
           <div class="agent-last-run" id="card-agent-last-run"></div>
         </div>
-        <div id="card-review-toggle-row" class="toggle-row" style="display:none">
-          <div>
-            <div class="toggle-row-label">Needs review</div>
-            <div class="toggle-row-hint">Agent moves to Review before Done</div>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="card-needs-review-toggle" checked>
-            <span class="toggle-track"></span>
-          </label>
-        </div>
         <div id="card-custom-prompt-section" style="display:none">
-          <div class="details-label" style="margin-bottom:6px">Instructions</div>
+          <div class="details-label" style="margin-bottom:6px">Additional instructions</div>
           <textarea id="card-custom-prompt" placeholder="Extra instructions appended to the agent prompt…"></textarea>
         </div>
         <div id="card-prompt-section" style="display:none">
@@ -426,11 +424,10 @@
         </div>
       </div>
       <div class="sidebar-panel" data-panel="activity" hidden>
-        <div id="card-move-actions" style="display:none">
-          <div class="field-label">Move to</div>
+        <div class="sidebar-group" id="card-move-actions" style="display:none">
+          <div class="sidebar-group-label">Move to</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap" id="card-move-buttons"></div>
         </div>
-        <hr class="sidebar-section-divider" id="card-activity-divider" style="display:none">
         <div id="card-changes-section" style="display:none">
           <div class="changes-header">
             <div class="field-label">Changes</div>
