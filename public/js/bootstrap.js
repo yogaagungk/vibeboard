@@ -85,6 +85,94 @@ function unfinishedBlockersUI(card) {
     .map(e => e.card);
 }
 
+// ── Cycle detection helpers ──────────────────────────────────────────────────
+// Detects if setting cardId's blocked_by to newBlockedBy would create a cycle.
+// Returns the cycle path as an array of card IDs, or null if no cycle.
+function detectCycleUI(cardId, newBlockedBy) {
+  newBlockedBy = (newBlockedBy || []).filter(id => id !== cardId);
+  if (!newBlockedBy.length) return null;
+  if (!board || !board.columns) return null;
+
+  const graph = {};
+  for (const col of board.columns) {
+    for (const card of col.cards) {
+      graph[card.id] = (card.blocked_by || []).filter(id => id !== card.id);
+    }
+  }
+  graph[cardId] = newBlockedBy;
+
+  function dfs(currentId, visited, path) {
+    if (currentId === cardId) return [...path, currentId];
+    if (visited.has(currentId)) return null;
+    visited.add(currentId);
+    for (const blocker of (graph[currentId] || [])) {
+      const result = dfs(blocker, visited, [...path, currentId]);
+      if (result) return result;
+    }
+    return null;
+  }
+
+  for (const blocker of newBlockedBy) {
+    const cyclePath = dfs(blocker, new Set(), []);
+    if (cyclePath) {
+      return [cardId, ...cyclePath];
+    }
+  }
+  return null;
+}
+
+// Translates a cycle path array of card IDs to display-friendly titles.
+function cyclePathTitles(cyclePath) {
+  const cardMap = {};
+  for (const col of (board?.columns || [])) {
+    for (const card of col.cards) {
+      cardMap[card.id] = card.title;
+    }
+  }
+  return cyclePath.map(id => cardMap[id] || id.slice(0, 8));
+}
+
+// Finds all card IDs that are part of a circular dependency in the current board.
+function findCycleCardIds() {
+  const ids = new Set();
+  if (!board || !board.columns) return ids;
+
+  const graph = {};
+  for (const col of board.columns) {
+    for (const card of col.cards) {
+      graph[card.id] = (card.blocked_by || []).filter(id => id !== card.id);
+    }
+  }
+
+  for (const col of board.columns) {
+    for (const card of col.cards) {
+      if (ids.has(card.id)) continue;
+      const visited = new Set();
+      const path = [];
+
+      function dfs(id) {
+        const idx = path.indexOf(id);
+        if (idx !== -1) {
+          for (let i = idx; i < path.length; i++) ids.add(path[i]);
+          return true;
+        }
+        if (visited.has(id)) return false;
+        visited.add(id);
+        path.push(id);
+        for (const blocker of (graph[id] || [])) {
+          if (dfs(blocker)) { path.pop(); return true; }
+        }
+        path.pop();
+        return false;
+      }
+
+      dfs(card.id);
+    }
+  }
+
+  return ids;
+}
+
 // ── DOM ────────────────────────────────────────────────────────────────────
 const boardEl        = document.getElementById('board');
 const boardWrap      = document.getElementById('board-wrap');

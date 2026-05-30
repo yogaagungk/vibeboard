@@ -1,7 +1,10 @@
 'use strict';
 
+let cycleCardIds = new Set();
+
 // ── Render board ───────────────────────────────────────────────────────────
 function renderBoard(b) {
+  cycleCardIds = findCycleCardIds();
   const scrollPositions = new Map();
   boardEl.querySelectorAll('.cards-list').forEach(function(cl) {
     var colId = cl.dataset.colId;
@@ -304,9 +307,17 @@ function buildCard(card, colId) {
   if (blockers.length) {
     const bl = document.createElement('span');
     bl.className = 'blocked-badge';
-    bl.textContent = '🔒 blocked';
+    bl.textContent = '\uD83D\uDD12 blocked';
     bl.title = 'Blocked by: ' + blockers.map(c => c.title).join(', ');
     metaRow.appendChild(bl);
+  }
+
+  if (cycleCardIds.has(card.id)) {
+    const cw = document.createElement('span');
+    cw.className = 'cycle-warn-badge';
+    cw.textContent = '\u26A0 cycle';
+    cw.title = 'This card is part of a circular dependency chain';
+    metaRow.appendChild(cw);
   }
 
   if (tagsRow.children.length) footer.appendChild(tagsRow);

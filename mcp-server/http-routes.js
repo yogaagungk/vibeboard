@@ -311,7 +311,13 @@ module.exports = function registerRoutes(app) {
       } catch (err) { return res.status(400).json({ error: err.message }); }
     }
     if (Array.isArray(body.columns)) {
-      db.syncBoard(activeId, body.columns);
+      try {
+        db.syncBoard(activeId, body.columns);
+      } catch (err) {
+        const freshBefore = db.getBoard(activeId);
+        emitSSE('board_update', { ...freshBefore, _tabId: body._tabId });
+        return res.status(400).json({ error: err.message });
+      }
     }
 
     const fresh = db.getBoard(activeId);

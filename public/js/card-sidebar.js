@@ -345,11 +345,23 @@ function renderBlockedByControl(containerEl, getBlocked, setBlocked, excludeId) 
   chips.className = 'dep-chips';
 
   const ctrl = vbSelect({
-    options: [], value: '', placeholder: '+ Add a blocker…', ariaLabel: 'Add a blocker',
+    options: [], value: '', placeholder: '+ Add a blocker\u2026', ariaLabel: 'Add a blocker',
     onChange: id => {
       if (!id) return;
       const cur = getBlocked();
-      if (!cur.includes(id)) setBlocked([...cur, id]);
+      if (!cur.includes(id)) {
+        const proposed = [...cur, id];
+        if (excludeId) {
+          const cyclePath = detectCycleUI(excludeId, proposed);
+          if (cyclePath) {
+            const titles = cyclePathTitles(cyclePath);
+            showToast('Circular dependency: ' + titles.join(' \u2192 ') + ' \u2014 choose a different blocker', 5000, 'error');
+            ctrl.setValue('');
+            return;
+          }
+        }
+        setBlocked(proposed);
+      }
       ctrl.setValue('');
       repaint();
     },
