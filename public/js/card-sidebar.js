@@ -347,11 +347,10 @@ function openNewCardModal(colId) {
   agentMount.innerHTML = '';
   const agentOpts = [
     { value: '', label: 'None' },
-    ...['claude-code', 'opencode', 'codex'].map(k => ({
-      value: k,
-      label: AGENT_LABELS[k] || k,
-      disabled: !!agentUnavailableReason(k),
-    })),
+    ...['claude-code', 'opencode', 'codex'].map(k => {
+      const reason = agentUnavailableReason(k);
+      return { value: k, label: AGENT_LABELS[k] || k, disabled: !!reason, hint: reason || undefined };
+    }),
   ];
   if (!window._ncAgentSelect) {
     window._ncAgentSelect = vbSelect({

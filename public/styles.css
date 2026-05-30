@@ -1751,6 +1751,7 @@ select:focus-visible,
 .vb-select-opt.active { background: var(--bg); }
 .vb-select-opt.selected { color: var(--text); font-weight: 500; }
 .vb-select-opt.disabled { opacity: 0.4; cursor: default; }
+.vb-select-opt.disabled .vb-select-opt-hint { color: var(--text); }
 .vb-select-opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vb-select-opt-hint { font-size: 11px; color: var(--text-muted); font-weight: 400; flex-shrink: 0; margin-left: 8px; }
 .vb-select-opt-check { color: var(--active-ws); font-size: 11px; flex-shrink: 0; }
