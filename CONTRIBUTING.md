@@ -66,13 +66,36 @@ vibeboard/
 
 ### Testing
 
-Before submitting:
+VibeBoard uses Node.js built-in test runner (`node:test`) to keep zero test dependencies.
 
-1. Test on your platform (Windows/macOS)
-2. Test workspace creation and switching
-3. Test card creation, moving, and deletion
-4. Test MCP tools if you modified them
-5. Verify the UI works without a build step
+**Test files location:** `test/*.test.js`
+
+**Run tests:**
+```bash
+npm test
+```
+
+**Example test structure:**
+```javascript
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const db = require('../mcp-server/db');
+
+test('createCard returns a card with an ID', () => {
+  const card = db.createCard(workspaceId, { title: 'Test card' });
+  assert.ok(card.id);
+  assert.strictEqual(card.title, 'Test card');
+});
+```
+
+**Before submitting:**
+
+1. Run `npm test` and ensure all tests pass
+2. Test on your platform (Windows/macOS)
+3. Test workspace creation and switching
+4. Test card creation, moving, and deletion
+5. Test MCP tools if you modified them
+6. Verify the UI works without a build step
 
 ### Commit Messages
 
@@ -105,7 +128,6 @@ Bad:
 
 ### High Priority
 
-- [ ] Add tests (unit and integration)
 - [ ] Improve error handling
 - [ ] Add card filtering and search
 - [ ] Support custom column workflows

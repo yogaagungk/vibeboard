@@ -7,16 +7,19 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Syntax check
+  test:
+    name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -40,4 +43,13 @@ jobs:
           "
 
       - name: Run tests
-        run: node --test test/*.test.js
+        run: npm test
+
+      - name: Smoke test (start server and verify /board endpoint)
+        run: |
+          timeout 30s node mcp-server/index.js &
+          SERVER_PID=$!
+          sleep 5
+          curl -f http://127.0.0.1:7341/board || (kill $SERVER_PID; exit 1)
+          kill $SERVER_PID
+          echo "Smoke test passed: server started and /board returned 200"
