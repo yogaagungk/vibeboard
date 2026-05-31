@@ -126,8 +126,8 @@ function buildShellCmd(agentType, promptFile, model) {
   switch (agentType) {
     case 'claude-code':
       return win
-        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions --effort medium${modelFlag}`
-        : `claude --print --dangerously-skip-permissions --effort medium${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag}`
+        : `claude --print --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag} < "${promptFile}"`;
     case 'opencode':
       return win
         ? `type "${promptFile}" | opencode run --dangerously-skip-permissions${modelFlag}`
@@ -156,7 +156,32 @@ function stripAnsi(str) {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // control chars except \t \n \r
 }
 
-function startOutputWatcher(cardId, outputFile, emitSSE) {
+// Parse claude --output-format stream-json events into readable lines.
+// Each line is a JSON object; we extract assistant text and tool names.
+// Non-JSON lines (e.g. from stderr) are passed through unchanged.
+function parseClaudeStreamJson(rawLines) {
+  const out = [];
+  for (const line of rawLines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (!t.startsWith('{')) { out.push(line); continue; }
+    try {
+      const ev = JSON.parse(t);
+      if (ev.type === 'assistant' && Array.isArray(ev.message?.content)) {
+        for (const block of ev.message.content) {
+          if (block.type === 'text' && block.text) out.push(...block.text.split('\n'));
+          else if (block.type === 'tool_use') out.push(`[tool: ${block.name}]`);
+        }
+      } else if (ev.type === 'result' && ev.total_cost != null) {
+        out.push(`\nSession cost: $${Number(ev.total_cost).toFixed(4)}`);
+      }
+      // skip system / user / other event types
+    } catch { out.push(line); }
+  }
+  return out.filter(l => l.trim());
+}
+
+function startOutputWatcher(cardId, outputFile, emitSSE, transform) {
   let position = 0;
   return setInterval(() => {
     try {
@@ -167,7 +192,8 @@ function startOutputWatcher(cardId, outputFile, emitSSE) {
       fs.readSync(fd, buf, 0, buf.length, position);
       fs.closeSync(fd);
       position = stat.size;
-      const lines = stripAnsi(buf.toString('utf8')).split('\n').filter(l => l.trim());
+      const raw = stripAnsi(buf.toString('utf8')).split('\n');
+      const lines = transform ? transform(raw) : raw.filter(l => l.trim());
       if (lines.length) emitSSE('agent_output', { cardId, lines });
     } catch (_) {}
   }, 500);
@@ -348,7 +374,8 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
 
   try {
     const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, card.model);
-    const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE);
+    const transform = agentType === 'claude-code' ? parseClaudeStreamJson : null;
+    const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE, transform);
 
     const timeoutId = setTimeout(() => {
       if (!activeAgents.has(cardId)) return;

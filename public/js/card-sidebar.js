@@ -315,19 +315,23 @@ function openCardModal(cardId, colId) {
     const visible = outputSection.style.display === 'block';
     outputSection.style.display = visible ? 'none' : 'block';
     outputToggle.textContent = visible ? 'Show full output' : 'Hide full output';
-    if (!visible && runningCards.has(cardId)) {
-      fetch(`/api/cards/${cardId}/output`).then(r => r.json()).then(d => {
-        if (d.output) { outputPre.textContent = sanitizeOutput(d.output); outputPre.scrollTop = outputPre.scrollHeight; }
-      }).catch(() => {});
-    }
+    if (!visible) outputPre.scrollTop = outputPre.scrollHeight;
   };
-  if (runningCards.has(cardId)) {
-    outputToggle.style.display = 'inline-block';
-    outputToggle.textContent = 'Show full output';
-    fetch(`/api/cards/${cardId}/output`).then(r => r.json()).then(d => {
-      if (d.output) { outputPre.textContent = sanitizeOutput(d.output); }
-    }).catch(() => {});
-  }
+  // Always fetch on card open — restores live output after a card switch or page
+  // reload without relying on runningCards being pre-seeded.
+  fetch(`/api/cards/${cardId}/output`).then(r => r.json()).then(d => {
+    if (d.output && d.output.trim()) {
+      outputPre.textContent = sanitizeOutput(d.output);
+      outputToggle.style.display = 'inline-block';
+      outputToggle.textContent = 'Hide full output';
+      outputSection.style.display = 'block';
+      outputPre.scrollTop = outputPre.scrollHeight;
+    } else if (runningCards.has(cardId)) {
+      outputToggle.style.display = 'inline-block';
+    }
+  }).catch(() => {
+    if (runningCards.has(cardId)) outputToggle.style.display = 'inline-block';
+  });
 
   const savedTab = localStorage.getItem('vb_sidebar_tab');
   switchSidebarTab(savedTab || 'details');
