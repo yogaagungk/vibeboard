@@ -43,7 +43,15 @@ function vbDialog({
       const m = document.createElement('div');
       m.className = 'vb-dialog-message';
       if (messageHtml) {
-        m.innerHTML = messageHtml;
+        const allowedTags = ['b', 'i', 'em', 'strong', 'code', 'br'];
+        const sanitized = messageHtml.replace(/<(\/?)([\w-]+)([^>]*)>/g, (match, slash, tag, attrs) => {
+          const lower = tag.toLowerCase();
+          if (allowedTags.includes(lower)) {
+            return `<${slash}${lower}>`;
+          }
+          return '';
+        });
+        m.innerHTML = sanitized;
       } else {
         m.textContent = message;
       }

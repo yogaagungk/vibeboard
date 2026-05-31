@@ -381,6 +381,12 @@ function moveCard(cardId, toColumnId) {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardId);
   if (!card) return null;
 
+  const toColumn = db.prepare('SELECT workspace_id FROM columns WHERE id = ?').get(toColumnId);
+  if (!toColumn) throw new Error('Destination column not found');
+  if (toColumn.workspace_id !== card.workspace_id) {
+    throw new Error('Cannot move card to a column in a different workspace');
+  }
+
   const fromColumnId = card.column_id;
 
   return db.transaction(() => {
@@ -442,6 +448,10 @@ function addAgentLog(workspaceId, agent, action, detail) {
   `).run(workspaceId, workspaceId, logLimit);
 
   return { id, timestamp: now, agent, action, detail };
+}
+
+function clearLog(workspaceId) {
+  db.prepare('DELETE FROM agent_log WHERE workspace_id = ?').run(workspaceId);
 }
 
 // Serialize concurrent syncBoard calls so two simultaneous POST /board requests
@@ -554,8 +564,8 @@ function searchCards(workspaceId, filters = {}) {
   }
 
   if (tag) {
-    conditions.push("c.tags LIKE ?");
-    params.push(`%"${tag}"%`);
+    conditions.push("EXISTS (SELECT 1 FROM json_each(c.tags) WHERE json_each.value = ?)");
+    params.push(tag);
   }
 
   if (column) {
@@ -680,8 +690,8 @@ function listCards(workspaceId, filters = {}) {
   }
 
   if (tag) {
-    conditions.push("c.tags LIKE ?");
-    params.push(`%"${tag}"%`);
+    conditions.push("EXISTS (SELECT 1 FROM json_each(c.tags) WHERE json_each.value = ?)");
+    params.push(tag);
   }
 
   if (agent) {
@@ -752,6 +762,7 @@ module.exports = {
   addCardNote,
   getCardNotes,
   addAgentLog,
+  clearLog,
   syncBoard,
   getCard,
   getColumn,

@@ -488,7 +488,7 @@ module.exports = function registerRoutes(app) {
   app.delete('/api/agent-log', (_req, res) => {
     const activeId = db.getActiveWorkspaceId();
     if (!activeId) return res.status(400).json({ error: 'No active workspace' });
-    db.db.prepare('DELETE FROM agent_log WHERE workspace_id = ?').run(activeId);
+    db.clearLog(activeId);
     emitSSE('board_update', db.getBoard(activeId));
     res.json({ ok: true });
   });

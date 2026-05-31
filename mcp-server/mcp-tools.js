@@ -126,6 +126,15 @@ module.exports = function registerMcpTools(mcp) {
         const board = db.getBoard(activeId);
         const column = board.columns.find(c => c.title === columnTitle);
         if (!column) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
+        
+        if (blocked_by && blocked_by.length > 0) {
+          const allCards = board.columns.flatMap(c => c.cards);
+          const unknownIds = blocked_by.filter(id => !allCards.some(c => c.id === id));
+          if (unknownIds.length > 0) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown card IDs in blocked_by: ${unknownIds.join(', ')}` }) }] };
+          }
+        }
+        
         const card = db.createCard(activeId, column.id, title, { description, tags, agent, model, priority, due_date, blocked_by });
         db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`);
         emitSSE('board_update', db.getBoard(activeId));
@@ -140,6 +149,16 @@ module.exports = function registerMcpTools(mcp) {
       try {
         const card = db.getCard(cardId);
         if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
+        
+        if (blocked_by !== undefined && blocked_by.length > 0) {
+          const board = db.getBoard(card.workspace_id);
+          const allCards = board.columns.flatMap(c => c.cards);
+          const unknownIds = blocked_by.filter(id => !allCards.some(c => c.id === id));
+          if (unknownIds.length > 0) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown card IDs in blocked_by: ${unknownIds.join(', ')}` }) }] };
+          }
+        }
+        
         const updates = { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined, blocked_by: blocked_by !== undefined ? blocked_by : undefined, requires_review: requires_review !== undefined ? requires_review : undefined, custom_prompt: custom_prompt !== undefined ? custom_prompt : undefined };
         if (merged_at !== undefined) {
           updates.merged_at = merged_at;
