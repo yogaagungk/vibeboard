@@ -8,110 +8,342 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- CI workflow improvements: Node 18, 20, 22 matrix testing and smoke test
-- CHANGELOG.md following Keep a Changelog format
-- Test framework documentation in CONTRIBUTING.md
+- CI workflow: Node 18, 20, 22 matrix testing + smoke test (start server, verify `/board` returns 200)
+- Test framework documented in `CONTRIBUTING.md` using Node.js built-in `node:test` with example
+- CHANGELOG.md now follows Keep a Changelog format with comparison links
+
+### Fixed
+- `opencode run` on Windows now pipes prompt via stdin (`type … | opencode run`) instead of
+  PowerShell `(Get-Content -Raw)`, which was splitting multi-line prompts on newlines and causing
+  `--flag-style` text in card descriptions to be parsed as CLI options
+- `claude-code` spawns now pass `--effort medium` to reduce token consumption
+- `claude-code` output now streams in real-time via `--output-format stream-json`; a
+  `parseClaudeStreamJson` transform extracts readable text (assistant messages, tool names,
+  session cost) from JSON events so the output section updates progressively instead of all at once
+  at the end
+- Full output section now auto-restores after a card switch or page reload — the frontend always
+  fetches `/api/cards/:id/output` on card open instead of relying on `runningCards` being
+  pre-seeded; section auto-expands when content is present
+
+### Changed
+- `actions/checkout` and `actions/setup-node` bumped to v5 for Node.js 24 compatibility
 
 ## [0.2.11] - 2026-05-31
 
 ### Added
-- MCP tools pagination and filtering (`list_cards`, `search_cards` with `limit`/`offset`)
-- Frontend UX and accessibility improvements
+- **`list_cards` MCP tool** — lightweight card listing with `columnTitle`, `tag`, `agent`,
+  `limit`, and `offset` filters; much more efficient than `get_board` when you only need card IDs
+  or a filtered subset.
+- **`get_agent_status` MCP tool** — returns `{ running, queued, lastNote, lastExitCode }` for a
+  card so agents can check peer activity without fetching the full board.
+- **`get_board` filter params** — `columnsOnly` (strips card data), `excludeLogs` (omits agent
+  log), and `columnTitle` (returns a single column) reduce payload size for agents that don't need
+  the full state.
+- **`search_cards` pagination** — `limit` (default 50) and `offset` params added; response now
+  includes `total` count alongside the page.
+- **`move_card` spawn failure visible** — if agent spawn throws after a card is moved, VibeBoard
+  adds a card note `⚠️ Agent spawn failed: …` and emits `agent_spawn_failed` SSE instead of
+  leaving the card silently stuck.
+- **`update_card` logs agent changes** — assigning or clearing a card's agent now writes an
+  explicit agent log entry (`Agent assigned: opencode (was: none)`).
 
 ### Fixed
-- Agent lifecycle: silent failures, timer leaks, and graceful shutdown
-- Concurrency race conditions in board sync and agent respawn
-- Database transaction safety and data integrity
-- Configuration validation and token rotation
-- Frontend bugs: SSE TypeError, stale sidebar state, search empty state
+- **Agent completion never lost** — the internal HTTP notify that marks a card done after an agent
+  exits now retries up to 3 times (500 ms / 1 s / 1.5 s backoff) instead of silently swallowing
+  errors; a failed notify is logged to stderr so it's always visible.
+- **Timer leak on long-running servers** — `clearTimeout` is now called immediately in the agent's
+  `close` and `error` handlers before the async notify fetch, preventing timeout handles from
+  accumulating when the fetch is slow or retrying.
+- **`activeAgents` map leak on spawn error** — if `updateCard` or another step throws after the
+  agent child was already set in the map, the catch block now fully tears down the entry (clears
+  interval/timeout, kills child, removes PID file) so nothing leaks.
+- **PID file registry for cross-process cleanup** — each spawned agent writes an
+  `agent-pid-<cardId>` file to the data directory; `killAllAgents` on SIGTERM now also kills any
+  PIDs registered by MCP subprocess instances that aren't in the current process's `activeAgents`
+  map, so no orphaned agents survive a server shutdown.
+- **Duplicate dead declarations removed** — `agent.js` had two redundant function declarations
+  (`isAgentRunning`, `isAgentActive`) introduced at the top of the file that shadowed the correct
+  implementations lower down; removed.
+
+### Changed
+- **WIP limit badge shows edit affordance** — the card-count badge on column headers now shows a
+  `✎` pencil icon on hover, making the double-click-to-edit interaction discoverable.
+- **Search debounced** — board search input now waits 150 ms after the last keystroke before
+  filtering, preventing layout thrashing on large boards.
+- **Note preview tooltips** — truncated agent checkpoint previews in the activity feed now have a
+  `title` attribute with the full text, accessible on hover and to screen readers.
+- **Column title accessibility** — the inline-edit input for renaming a column now has
+  `aria-label="Column title"`.
+- **Datepicker keyboard clear** — pressing `Delete` or `Backspace` while the datepicker trigger
+  has focus clears the date without opening the calendar popup.
 
 ## [0.2.10] - 2026-05-30
 
 ### Added
-- Agent context file viewer with markdown rendering
-- Minimalist custom datepicker replacing native date input
-
-### Fixed
-- Null-guard card-activity-divider in open/close card modal
-
-## [0.2.9] - 2026-05-29
-
-### Added
-- Group Agent+Model in sidebar-group unit, show prompt by default
-- Show disabled reason hint for unavailable agents in dropdowns
-
-### Fixed
-- Card details sidebar layout and consistency
-- New card modal layout and density
-- Spacing and separator between Changes section and action buttons
-
-## [0.2.8] - 2026-05-28
-
-### Added
-- Polish Agent tab: dropdown selector, better prompt UI
-- Redesign new card modal: Priority and Agent dropdowns
-
-### Fixed
-- Blocked-by dropdown: filter Done cards, add column badge, fix z-index
-- Diff expand icon in Agent tab
-- Collapse all notes functionality
-- ANSI escape codes and control characters in agent output display
+- **Agent context file viewer** — new "Context" button in the board toolbar opens a modal listing
+  all AI context files found in the workspace (`CLAUDE.md`, `AGENTS.md`, `OPENCODE.md`,
+  `CODEX.md`, `DESIGN.md`, `.claude/CLAUDE.md`) with tab navigation between files. Contributed by
+  [@yogaagungk](https://github.com/yogaagungk).
+- **Context tab in card sidebar** — shows the context file relevant to the card's assigned agent
+  (`CLAUDE.md` for claude-code, `AGENTS.md` for others) so you can review what the agent will
+  read before it spawns.
+- **Markdown renderer** (`md-render.js`) — lightweight vanilla renderer supporting headings,
+  bold/italic, inline code, fenced code blocks, tables, ordered/unordered lists, blockquotes, and
+  YAML front matter as a collapsible "Design tokens" block. Inline hex color codes (`#RRGGBB` /
+  `#RGB`) render with a small color swatch chip.
 
 ### Changed
-- Redesign Details tab: flat fields layout with inline labels
-- Apply flat label redesign to new card modal
-- Combine Priority and Due Date onto one row in Details tab
+- **Date picker replaced with custom calendar picker** — native `<input type="date">` replaced
+  with a minimalist floating calendar popup matching the Linear-inspired design system; supports
+  both light and dark themes; shows overdue state in red; Clear and Today shortcuts in the footer.
 
-## [0.2.7] - 2026-05-27
+### Fixed
+- **Card sidebar crash on missing divider** — `closeCardModal` and the notes loader both now
+  null-guard the removed `card-activity-divider` element that was causing "Cannot read properties
+  of null" on close.
+
+## [0.2.9] - 2026-05-30
 
 ### Changed
-- Settings button and settings modal polish
-
-## [0.2.6] - 2026-05-26
-
-### Added
-- Initial workspace and board management features
-
-## [0.2.5] - 2026-05-25
-
-### Added
-- Core MCP integration features
-
-## [0.2.4] - 2026-05-24
+- **New card modal redesigned** — tags moved above description textarea; Priority and Due Date now
+  share a single row; Schedule section renamed to Details; Agent section renamed to Assignment;
+  removed redundant section labels; tighter 8px spacing between fields.
+- **Card details sidebar redesigned** — Details tab matches new card modal layout (tags above
+  textarea, Priority/Due in one row); Agent tab renamed to Assignment with Needs review toggle
+  moved inside the section; Activity tab wraps Move to buttons in a sidebar-group for consistency.
+- **Priority dropdown width increased in card details** — Priority field now uses `flex: 1.5` for
+  better proportion with Due date field (card details only, new card modal unchanged).
+- **Additional instructions label** — "Instructions" field in Agent tab renamed to "Additional
+  instructions" for clarity.
 
 ### Fixed
-- Various stability improvements
+- **Blocked by dropdown width overflow** — long card titles with badges now properly constrain to
+  `max-width: 380px` with ellipsis truncation; dropdown uses `width: max-content` to prevent
+  expanding beyond trigger width.
+- **Date picker styling** — height increased from 28px to 34px and padding/border updated to match
+  priority dropdown styling.
+- **Activity tab divider removed** — eliminated redundant `<hr>` between Move to and Changes
+  sections; Move to now uses sidebar-group wrapper for consistent styling.
+- **Expand diff button hidden when merged** — diff expand button now properly hides alongside the
+  "Show diff" toggle when a card is merged.
 
-## [0.2.3] - 2026-05-23
+## [0.2.8] - 2026-05-30
+
+### Changed
+- **Agent selector converted to dropdown** — both the card sidebar and new card modal now use a
+  compact dropdown instead of wrapping button groups; eliminates "Claude Code" / "Codex CLI" text
+  wrapping.
+- **Priority converted to dropdown in new card modal** — replaces the 4-button group with a
+  compact `vbSelect` dropdown, shares one row with Due Date.
+- **All notes collapsed by default** — every note in Notes & Checkpoints starts collapsed; removed
+  the "latest note starts expanded" exception. Click any note to expand it.
+- **Agent prompt redesigned** — taller textarea (`min-height: 160px`, `max-height: 280px`),
+  read-only styling to distinguish from editable fields, Show/Hide toggle moved below the header
+  row.
 
 ### Fixed
-- Bug fixes and performance improvements
+- **Blocked by dropdown filters Done cards** — cards already in Done no longer appear as blocker
+  options since they're already satisfied; shows "No available blockers" when nothing is
+  selectable.
+- **Blocked by dropdown shows column badge** — each item now shows the card's current column name
+  on the right for quick context.
+- **Blocked by dropdown z-index** — dropdown popover in the new card modal now renders above the
+  modal overlay (`position: fixed; z-index: 1100`).
+- **Expand diff button uses proper SVG icon** — replaces the inconsistent `⛶` unicode character
+  with a clean inline SVG expand icon; adds `title="Expand diff"` tooltip.
 
-## [0.2.2] - 2026-05-22
-
-### Fixed
-- Critical bug fixes
-
-## [0.2.1] - 2026-05-21
-
-### Fixed
-- Post-launch bug fixes
-
-## [0.2.0] - 2026-05-20
+## [0.2.7] - 2026-05-30
 
 ### Added
-- Major feature release with enhanced agent integration
+- **Discard changes button** — Done cards with an unmerged branch now show a "Discard changes"
+  danger button alongside the merge button; confirming deletes the worktree, removes the local
+  branch, and clears the branch reference on the card.
+- **Expand diff dialog** — a ⛶ expand button on the diff view opens the full diff in a wide
+  (80 vw, max 900 px) centered dialog with monospace font and horizontal scroll for long lines.
+- **Theme icons in settings modal** — System / Light / Dark theme buttons now include inline SVG
+  icons (monitor / sun / moon) for faster scanning.
 
-## [0.1.0] - 2026-05-15
+### Changed
+- **Details tab redesigned** — flat layout replaces the bordered "DETAILS" box; all fields (Tags,
+  Priority, Due Date, Blocked by) are now inline label + control rows with thin dividers.
+- **Agent tab redesigned** — same flat label treatment: Agent selector, Model picker,
+  Running+Stop buttons (now side by side), and Additional Instructions all converted to compact
+  inline rows. Agent Prompt is collapsed by default with a Show/Hide toggle.
+- **New card modal redesigned** — Tags, Priority, Due Date, Blocked by, and Agent fields updated
+  to match the flat inline label style.
+- **Notes & Checkpoints collapsed by default** — each note shows timestamp + first-line preview;
+  click to expand. Most recent note starts expanded.
+
+### Fixed
+- **ANSI escape codes stripped from full output** — terminal color/formatting sequences are now
+  sanitized before display; previously rendered as garbage characters.
+- **Card sidebar refreshes when column changes via SSE** — the merge button and move actions now
+  update in place when an agent moves the open card to Done.
+
+## [0.2.6] - 2026-05-30
 
 ### Added
-- Initial public release
-- Basic kanban board functionality
-- MCP integration for Claude Code, OpenCode, and Codex
-- Git worktree isolation
-- Agent spawning and lifecycle management
-- SQLite database storage
-- Light and dark themes
+- **SVG favicon** — kanban columns icon displayed in browser tab.
+- **"need merge" badge on Done cards** — cards in Done with an unmerged branch show a red "need
+  merge" pill.
+- **`search_cards` MCP tool** — agents can query cards server-side by title/description, tag,
+  column, or agent without fetching the full board.
+- **`delete_workspace` MCP tool** — agents can delete workspaces programmatically (requires
+  `confirm: true`; blocked if only one workspace remains).
+- **Cascade delete for workspaces** — deleting a workspace now atomically removes all its cards,
+  notes, and agent log entries in a single SQLite transaction.
+- **Cyclic dependency detection** — adding a `blocked_by` relation that would create a cycle is
+  now rejected in the UI, REST API, and MCP with a clear error message.
+
+### Changed
+- **Card description textarea taller** — min-height increased from 90 px to 200 px.
+
+### Fixed
+- **Board load failure shows error state** — if `GET /board` fails on startup, the UI now shows a
+  "Failed to load board" message with a Retry button. SSE disconnects show a reconnecting banner.
+- **WIP limits enforced server-side** — `POST /board` and the `move_card` MCP tool now reject
+  moves that exceed a column's WIP limit.
+- **Plain card deletion now requires confirmation** — the × delete button on cards without a
+  branch now shows a `vbConfirm` dialog.
+- **+Add card button clipped by taskbar** — added bottom padding to columns.
+
+## [0.2.5] - 2026-05-29
+
+### Added
+- **Card sidebar redesigned** — 3-tab layout (Details / Agent / Activity) replaces the single long
+  scrolling panel; each concern gets focused space with a persistent tab selection stored in
+  `localStorage`.
+- **Description preview toggle** — new setting (off by default) to show/hide the 2-line
+  description on kanban card tiles.
+- **Delete confirmation for unmerged cards** — deleting a card with an active branch shows a
+  warning dialog; confirming cascades cleanup: removes local worktree and local branch.
+- **`workspaceId` param on MCP tools** — `get_board`, `get_column`, and `create_card` now accept
+  an optional `workspaceId` to target a specific workspace without switching the active one.
+
+### Changed
+- **MERGED badge moved above the title** — joins priority and agent badges in the `.card-top` row.
+
+### Fixed
+- **Add card button clipped at viewport bottom** — column `max-height` headroom increased.
+- **Empty column drop zone** — `min-height: 0` on `.cards-list` was collapsing empty columns;
+  restored to `40px` plus `data-empty` attribute expands them to `80px`.
+- **Stop agent button hover** — now shows a light red background tint.
+
+## [0.2.4] - 2026-05-29
+
+### Added
+- **`merged_at` in `update_card` MCP tool** — agents that merge their own branch can set
+  `merged_at` directly; the board pill and sidebar label update immediately via SSE.
+- **`requires_review` badge on kanban card** — cards with human review required show an orange
+  "👁 Review" pill on the tile.
+
+### Fixed
+- **Card reverts to Backlog after drag** — `POST /board` was hitting express's default 100kb body
+  limit; raised to 10mb.
+- **MCP subprocess starts its own dead HTTP server** — subprocess now checks `port.lock` via a
+  health check before binding; if the HTTP server is already running it enters proxy mode.
+- **`complete_card` blocking `agentDone`** — removed `routeStopAgent` call from `complete_card`;
+  agent now exits naturally so exit stats, card notes, and `agent_completed` SSE all fire.
+- **Run agent enabled on Done card after agent completes** — `modalColId` now updates in real-time
+  when a card moves columns while the sidebar is open.
+
+## [0.2.3] - 2026-05-29
+
+### Added
+- **Viewport virtualization for large columns** — columns with 100+ cards mount only visible cards
+  in the DOM; drag-and-drop and search still work across the full list.
+- **`merged_at` field exposed** — DB column added; board and sidebar reflect merge status.
+
+### Fixed
+- **`move_card` re-triggered agent spawn on same-column move** — added `card.column_id !==
+  toColumn.id` guard.
+- **MCP SSE not delivered on custom PORT** — MCP subprocess reads `port.lock` written by the HTTP
+  server at startup.
+- **Stop agent button stuck in "Stopping…"** — success path now calls `updateRunAgentBtn`.
+- **Merge button stuck in "Merging…" on other cards** — button state reset before
+  `closeCardModal()`.
+- **Run agent button enabled in wrong columns** — switched from Done-only blocklist to an explicit
+  `['In Progress', 'Review']` allowlist.
+- **Newest card on top** — cards render in reverse position order (newest first).
+- **Agent log live updates** — fixed `push` → `unshift` so newest entry always appears at top.
+
+## [0.2.2] - 2026-05-29
+
+### Added
+- **`list_models` / `refresh_models` MCP tools** — agents can now discover valid model IDs;
+  `list_models({ agent? })` returns the per-agent model list; `refresh_models()` nudges the cache.
+- **Persistent `merged_at` flag on cards** — pressing Merge stamps a timestamp; cards show a green
+  "merged" pill; sidebar hides Merge/PR/Diff buttons and shows "Merged YYYY-MM-DD" instead.
+- **`requires_review` and `custom_prompt` in `update_card`** — MCP tool now exposes these fields.
+- **Neutral tag fallback** — `.tag` now has a `--surface-2` background so custom tags render
+  legibly.
+- **Textual "Update available" label** in the header, in orange, with `aria-live="polite"`.
+
+### Fixed
+- **Card footer clipped** — removed `overflow: hidden` from `.card`.
+- **Invisible column scrollbar** — scrollbar width bumped from 4px to 8px with hover-darken.
+- **Auto-spawn on Review** — when an active agent calls `move_card` to Review, VibeBoard queues a
+  follow-up spawn that fires after the current agent exits.
+- **Agent writes leaking outside worktree** — `buildPrompt` now includes the worktree path; prompt
+  explicitly tells the agent to work inside the worktree directory.
+- **Run agent button disabled for Done cards** — greyed with explanatory tooltip.
+
+## [0.2.1] - 2026-05-29
+
+### Security
+- **Workspace path validation** — `create_workspace` and `set_workspace` reject filesystem root,
+  home directory, and system dirs (`/etc`, `C:\Windows`, `/System`); cross-platform via
+  `os.homedir()` + per-OS denylist.
+- **Spawn-dir verification** — right before `spawn()`, the agent's working directory is
+  re-checked; symlinks are refused; worktree paths must resolve inside the workspace root.
+- **Prompt-injection hardening** — card title, description, tags, and custom prompt are sanitized
+  (ANSI escapes, ASCII control chars, zero-width and bidi-override characters stripped) and wrapped
+  in a `<card-data>` block treated as untrusted task data.
+
+### Changed
+- MCP-created cards now default to `requires_review = false`.
+
+## [0.2.0] - 2026-05-29
+
+### Security
+- CSRF protection on board mutations (cross-site Origin / spoofed Host requests return 403).
+- Network mode adds a kill-switch endpoint to stop running agents.
+
+### Added
+- Linear-inspired design system: lavender-blue accent, four-step surface ladder, hairline borders.
+- Radius scale tokens, `--surface-4`, `--text-strong`, `--accent-focus`.
+- In-app version badge that polls the npm registry and lights up when an upgrade is available.
+- Collapsible left rail; refreshed dropdowns, card sidebar, agent log.
+- Single source of truth for version: `mcp-server/config.js` reads `version` from `package.json`.
+
+### Fixed
+- Themed dropdowns (`vbSelect`) no longer close when scrolling inside the popup.
+
+## [0.1.0] - 2026-05-29
+
+### Added
+- Kanban board with Backlog, In Progress, Review, and Done columns
+- AI agent integration: auto-spawn Claude Code, OpenCode, or Codex when cards move to In Progress
+- Per-card agent assignment and "Needs review" toggle
+- Git worktree isolation per card (optional, per workspace)
+- Real-time SSE updates across all browser tabs
+- SQLite storage in OS user data directory (Windows / macOS)
+- Multiple workspace support with per-workspace project directory
+- MCP server with bidirectional board control for agents
+- Agent progress notes and activity log
+- Diff viewer and Merge / Create PR actions for worktree branches
+- Native folder picker (PowerShell on Windows, osascript on macOS)
+- MCP auto-configuration for Claude Code, OpenCode, and Codex CLI
+- Dark mode support (follows system preference)
+- Card search/filter
+- Per-column WIP limits with double-click to set
+- Card dependencies (`blocked_by`) with cycle detection
+- Concurrency cap with automatic agent queue (`VB_MAX_AGENTS`)
+- Agent output saved as card note on completion
+- Agent timeout (default 30 min, configurable via `AGENT_TIMEOUT_MS`)
+- Per-card model selection
+- Stop agent button in the card sidebar
+- Run visibility: exit code, duration, and best-effort cost/token usage per run
 
 [Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...HEAD
 [0.2.11]: https://github.com/zanuartri/vibeboard/compare/v0.2.10...v0.2.11
