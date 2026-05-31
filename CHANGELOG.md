@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-05-31
+
+### Added
+- **Side-by-side diff view** — card diff modal now renders a split pane (old left, new right) with word-level highlighting; falls back to unified view on mobile (<768px)
+- **Agent event chip colors in Activity Log** — `agent_started` (blue), `agent_completed` (green), `agent_failed` / `agent_spawn_failed` (red), `agent_warning` (orange); queued/dequeued remain neutral
+- **`command-code` agent badge color** — teal `#0d9488`; documented in DESIGN.md §2 alongside other agent colors
+
+### Fixed
+- **Settings button dark mode** — was showing browser-default white background; added `background: transparent`
+- **Settings button icon** — replaced sun/asterisk SVG with a proper gear/cog icon
+- **Activity Log naming** — header button and HTML comment were "Agent Log"; standardised to "Activity Log" everywhere
+- **MCP modal DESIGN.md violations** — `font-family: monospace` → `'JetBrains Mono', monospace` on path elements; `border-radius: 7px` literals → `var(--radius-md)` on modal rows and log entries
+- **Command Code `--max-turns`** — raised from default 10 to 60; 10 turns was too few for a full task cycle (read → edit → commit → complete)
+- **Command Code taste** — agent prompt now explicitly tells command-code not to run taste commands or create `taste.md`
+
+### Changed
+- **Agent prompts shortened** — UI copy-paste helper and auto-spawn prompt trimmed to remove redundant instructions
+
 ## [0.2.13] - 2026-05-31
 
 ### Added
@@ -90,7 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Queue position note** — queued agent note now shows "Position in queue: N" (removed the
   redundant "of N" which always equalled N).
 
-[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.13...HEAD
+[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.14...HEAD
+[0.2.14]: https://github.com/zanuartri/vibeboard/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/zanuartri/vibeboard/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...v0.2.12
 
