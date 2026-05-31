@@ -112,33 +112,39 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_columns_workspace ON columns(workspace_id);
   CREATE INDEX IF NOT EXISTS idx_cards_column ON cards(column_id);
   CREATE INDEX IF NOT EXISTS idx_cards_workspace ON cards(workspace_id);
+  CREATE INDEX IF NOT EXISTS idx_cards_created_at ON cards(created_at);
+  CREATE INDEX IF NOT EXISTS idx_cards_updated_at ON cards(updated_at);
   CREATE INDEX IF NOT EXISTS idx_card_notes_card ON card_notes(card_id);
   CREATE INDEX IF NOT EXISTS idx_agent_log_workspace ON agent_log(workspace_id);
 `);
 
-// Column migrations for existing databases
+// Column migrations for existing databases — all in one transaction so a
+// mid-run failure doesn't leave the schema half-migrated.
 (function migrate() {
   const cardCols = db.pragma('table_info(cards)').map(r => r.name);
-  if (!cardCols.includes('branch'))          db.exec('ALTER TABLE cards ADD COLUMN branch TEXT');
-  if (!cardCols.includes('worktree_path'))   db.exec('ALTER TABLE cards ADD COLUMN worktree_path TEXT');
-  if (!cardCols.includes('requires_review')) db.exec('ALTER TABLE cards ADD COLUMN requires_review INTEGER DEFAULT 0');
-  if (!cardCols.includes('priority'))        db.exec('ALTER TABLE cards ADD COLUMN priority TEXT');
-  if (!cardCols.includes('custom_prompt'))   db.exec('ALTER TABLE cards ADD COLUMN custom_prompt TEXT');
-  if (!cardCols.includes('due_date'))        db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
-  if (!cardCols.includes('agent_ran_at'))    db.exec('ALTER TABLE cards ADD COLUMN agent_ran_at TEXT');
-  if (!cardCols.includes('model'))           db.exec('ALTER TABLE cards ADD COLUMN model TEXT');
-  if (!cardCols.includes('last_exit_code'))  db.exec('ALTER TABLE cards ADD COLUMN last_exit_code INTEGER');
-  if (!cardCols.includes('last_duration'))   db.exec('ALTER TABLE cards ADD COLUMN last_duration INTEGER');
-  if (!cardCols.includes('last_cost'))       db.exec('ALTER TABLE cards ADD COLUMN last_cost REAL');
-  if (!cardCols.includes('last_tokens'))     db.exec('ALTER TABLE cards ADD COLUMN last_tokens INTEGER');
-   if (!cardCols.includes('blocked_by'))      db.exec('ALTER TABLE cards ADD COLUMN blocked_by TEXT');
-  if (!cardCols.includes('merged_at'))      db.exec('ALTER TABLE cards ADD COLUMN merged_at TEXT');
+  const wsCols   = db.pragma('table_info(workspaces)').map(r => r.name);
+  const colCols  = db.pragma('table_info(columns)').map(r => r.name);
 
-  const wsCols = db.pragma('table_info(workspaces)').map(r => r.name);
-  if (!wsCols.includes('use_worktree')) db.exec('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0');
+  db.transaction(() => {
+    if (!cardCols.includes('branch'))          db.prepare('ALTER TABLE cards ADD COLUMN branch TEXT').run();
+    if (!cardCols.includes('worktree_path'))   db.prepare('ALTER TABLE cards ADD COLUMN worktree_path TEXT').run();
+    if (!cardCols.includes('requires_review')) db.prepare('ALTER TABLE cards ADD COLUMN requires_review INTEGER DEFAULT 0').run();
+    if (!cardCols.includes('priority'))        db.prepare('ALTER TABLE cards ADD COLUMN priority TEXT').run();
+    if (!cardCols.includes('custom_prompt'))   db.prepare('ALTER TABLE cards ADD COLUMN custom_prompt TEXT').run();
+    if (!cardCols.includes('due_date'))        db.prepare('ALTER TABLE cards ADD COLUMN due_date TEXT').run();
+    if (!cardCols.includes('agent_ran_at'))    db.prepare('ALTER TABLE cards ADD COLUMN agent_ran_at TEXT').run();
+    if (!cardCols.includes('model'))           db.prepare('ALTER TABLE cards ADD COLUMN model TEXT').run();
+    if (!cardCols.includes('last_exit_code'))  db.prepare('ALTER TABLE cards ADD COLUMN last_exit_code INTEGER').run();
+    if (!cardCols.includes('last_duration'))   db.prepare('ALTER TABLE cards ADD COLUMN last_duration INTEGER').run();
+    if (!cardCols.includes('last_cost'))       db.prepare('ALTER TABLE cards ADD COLUMN last_cost REAL').run();
+    if (!cardCols.includes('last_tokens'))     db.prepare('ALTER TABLE cards ADD COLUMN last_tokens INTEGER').run();
+    if (!cardCols.includes('blocked_by'))      db.prepare('ALTER TABLE cards ADD COLUMN blocked_by TEXT').run();
+    if (!cardCols.includes('merged_at'))       db.prepare('ALTER TABLE cards ADD COLUMN merged_at TEXT').run();
 
-  const colCols = db.pragma('table_info(columns)').map(r => r.name);
-  if (!colCols.includes('wip_limit')) db.exec('ALTER TABLE columns ADD COLUMN wip_limit INTEGER');
+    if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
+
+    if (!colCols.includes('wip_limit')) db.prepare('ALTER TABLE columns ADD COLUMN wip_limit INTEGER').run();
+  })();
 })();
 
 function getActiveWorkspaceId() {
@@ -299,7 +305,15 @@ function createCard(workspaceId, columnId, title, options = {}) {
   const customPrompt = options.custom_prompt || null;
   const dueDate = options.due_date || null;
   const model = options.model || null;
-  const blockedBy = Array.isArray(options.blocked_by) && options.blocked_by.length ? JSON.stringify(options.blocked_by) : null;
+  const blockedByArr = Array.isArray(options.blocked_by) && options.blocked_by.length ? options.blocked_by : [];
+  if (blockedByArr.length) {
+    const { wouldCreateCycle } = require('./cycle-detection');
+    const allCards = db.prepare('SELECT id, blocked_by FROM cards WHERE workspace_id = ?').all(workspaceId);
+    const parsed = allCards.map(c => ({ id: c.id, blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [] }));
+    const cyclePath = wouldCreateCycle(id, blockedByArr, parsed);
+    if (cyclePath) throw new Error(`Cyclic dependency detected, cycle: [${cyclePath.join(', ')}]`);
+  }
+  const blockedBy = blockedByArr.length ? JSON.stringify(blockedByArr) : null;
   const mergedAt = options.merged_at || null;
 
   db.prepare(`
@@ -366,17 +380,16 @@ function updateCard(cardId, updates) {
 function moveCard(cardId, toColumnId) {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardId);
   if (!card) return null;
-  
+
   const fromColumnId = card.column_id;
-  
-  db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(fromColumnId, card.position);
-  
-  const newPosition = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(toColumnId).pos;
-  
-  db.prepare('UPDATE cards SET column_id = ?, position = ?, updated_at = ? WHERE id = ?')
-    .run(toColumnId, newPosition, new Date().toISOString(), cardId);
-  
-  return { cardId, fromColumnId, toColumnId };
+
+  return db.transaction(() => {
+    db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(fromColumnId, card.position);
+    const newPosition = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(toColumnId).pos;
+    db.prepare('UPDATE cards SET column_id = ?, position = ?, updated_at = ? WHERE id = ?')
+      .run(toColumnId, newPosition, new Date().toISOString(), cardId);
+    return { cardId, fromColumnId, toColumnId };
+  })();
 }
 
 
@@ -384,8 +397,12 @@ function deleteCard(cardId) {
   const card = db.prepare('SELECT column_id, position, worktree_path, workspace_id, branch FROM cards WHERE id = ?').get(cardId);
   if (!card) return false;
 
-  db.prepare('DELETE FROM cards WHERE id = ?').run(cardId);
-  db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(card.column_id, card.position);
+  db.transaction(() => {
+    // Rebalance sibling positions before removing the card so a failed DELETE
+    // doesn't leave a permanent gap in the column order.
+    db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(card.column_id, card.position);
+    db.prepare('DELETE FROM cards WHERE id = ?').run(cardId);
+  })();
 
   if (card.branch || card.worktree_path) {
     const ws = getWorkspace(card.workspace_id);
