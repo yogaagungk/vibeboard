@@ -1609,7 +1609,12 @@ kbd {
   background: var(--surface-2); border-bottom: 1px solid var(--border);
   padding: 5px 14px; font-size: 12px; font-weight: 500; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px;
+  transition: background 0.12s;
 }
+.dsv-file:hover { background: var(--surface-3); }
+.dsv-arrow { font-size: 10px; color: var(--text-muted); flex-shrink: 0; transition: transform 0.15s; }
+.dsv-body-collapsed { display: none; }
 .dsv-hunk {
   padding: 2px 14px; font-size: 11px; font-style: italic;
   color: #5b78c0; background: rgba(37,99,235,0.06);
@@ -1617,7 +1622,7 @@ kbd {
 }
 .dsv-row { display: flex; border-bottom: 1px solid var(--border); min-height: 20px; }
 .dsv-cell {
-  display: flex; align-items: stretch; width: 50%; min-width: 0; overflow: hidden;
+  display: flex; align-items: stretch; width: 50%; min-width: 0; overflow-x: auto;
 }
 .dsv-cell + .dsv-cell { border-left: 2px solid var(--border); }
 .dsv-ln {

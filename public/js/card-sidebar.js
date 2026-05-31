@@ -1032,14 +1032,27 @@ function renderSplitDiff(container, diffStr) {
   files.forEach(file => {
     const fbar = document.createElement('div');
     fbar.className = 'dsv-file';
-    fbar.textContent = diffFilename(file.header);
+    const arrow = document.createElement('span');
+    arrow.className = 'dsv-arrow'; arrow.textContent = '▾';
+    const fname = document.createElement('span');
+    fname.textContent = diffFilename(file.header);
+    fbar.appendChild(arrow); fbar.appendChild(fname);
     view.appendChild(fbar);
+
+    const fbody = document.createElement('div');
+    fbody.className = 'dsv-body';
+    view.appendChild(fbody);
+
+    fbar.addEventListener('click', () => {
+      const collapsed = fbody.classList.toggle('dsv-body-collapsed');
+      arrow.textContent = collapsed ? '▸' : '▾';
+    });
 
     file.hunks.forEach(hunk => {
       const hbar = document.createElement('div');
       hbar.className = 'dsv-hunk';
       hbar.textContent = hunk.header;
-      view.appendChild(hbar);
+      fbody.appendChild(hbar);
 
       let [oLn, nLn] = hunkNums(hunk.header);
 
@@ -1049,7 +1062,7 @@ function renderSplitDiff(container, diffStr) {
           row.appendChild(makeDsvCell('ctx', oLn, ' ', [{ text: g.ctx }]));
           row.appendChild(makeDsvCell('ctx', nLn, ' ', [{ text: g.ctx }]));
           oLn++; nLn++;
-          view.appendChild(row); return;
+          fbody.appendChild(row); return;
         }
         const max = Math.max(g.del.length, g.add.length);
         for (let k = 0; k < max; k++) {
@@ -1068,7 +1081,7 @@ function renderSplitDiff(container, diffStr) {
             row.appendChild(makeDsvCell('empty', '', '', null));
             row.appendChild(makeDsvCell('add', nLn++, '+', [{ text: g.add[k] }]));
           }
-          view.appendChild(row);
+          fbody.appendChild(row);
         }
       });
     });
