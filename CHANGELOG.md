@@ -7,26 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-05-31
+
 ### Added
-- CI workflow: Node 18, 20, 22 matrix testing + smoke test (start server, verify `/board` returns 200)
-- Test framework documented in `CONTRIBUTING.md` using Node.js built-in `node:test` with example
-- CHANGELOG.md now follows Keep a Changelog format with comparison links
+- **Priority-aware agent queue** — queued agents now run in `high → medium → low → unset` order
+  with FIFO as a tiebreaker within the same priority level, instead of strict arrival order.
+- **`cancel_agent` MCP tool** — cancel a queued or running agent for a card; also adds a UI ×
+  button on the kanban card while it is queued.
+- **Stale-while-revalidate model cache** — model lists are returned immediately from disk cache on
+  startup; CLI refresh runs in the background and the cache is persisted to
+  `DATA_DIR/models-cache.json` so it survives restarts.
+- **CI pipeline** — GitHub Actions workflow runs on Node 18, 20, and 22 with a smoke test (starts
+  the server, verifies `/board` returns 200). Actions bumped to v5 for Node.js 24 compatibility.
+- **Test framework documented** — `CONTRIBUTING.md` now shows how to write tests using Node.js
+  built-in `node:test` with a concrete example.
+- **Database transaction safety** — all schema migration `ALTER TABLE` calls wrapped in a single
+  transaction; `moveCard` and `deleteCard` wrapped so partial failures can't corrupt positions.
+- **Database indexes** — `CREATE INDEX` on `cards.created_at` and `cards.updated_at` for faster
+  sort/filter queries on large boards.
+- **`blocked_by` cycle detection at DB layer** — `createCard` now runs the same cycle check that
+  `updateCard` already had, so the invariant is enforced regardless of call site.
+- **XSS fix in dialogs** — `messageHtml` is now sanitized through a strict allowlist
+  (`b, i, em, strong, code, br`) before being set via `innerHTML`.
+- **Tag search uses `json_each()`** — `search_cards` and `list_cards` now match tags with exact
+  SQLite `json_each()` queries instead of `LIKE "%tag%"` which matched substrings.
+- **Cross-workspace column validation** — `moveCard` now verifies the destination column belongs
+  to the same workspace as the card.
+- **`blocked_by` ID validation in MCP** — `create_card` and `update_card` reject unknown card IDs
+  in `blocked_by` with a clear error listing the unknown IDs.
+- **Model regex hardened** — `isSafeModel` now also rejects models containing `..` or consecutive
+  slashes, closing a potential path traversal vector.
+- **PORT validation on startup** — `config.js` validates PORT is in 1–65535 range and exits with
+  a clear message instead of a cryptic bind error.
+- **`port.lock` bounds check** — corrupted `port.lock` files are detected and deleted on startup
+  instead of silently using an invalid port.
+- **Absolute path enforcement** — workspace path inputs in the UI now reject relative paths with
+  an inline error on both the workspace creation form and workspace settings.
+- **Token rotation** — `POST /admin/rotate-token` (network mode only, protected by current token)
+  regenerates the auth token at runtime. `VB_TOKEN` env var sets a fixed token.
+- **`syncBoard` concurrency mutex** — concurrent `POST /board` calls are serialised with a promise
+  queue so two browser tabs can't clobber each other's changes.
+- **Agent respawn queue** — `pendingRespawn` is now a per-card array queue; rapid successive moves
+  while an agent is running no longer silently drop earlier respawn targets.
 
 ### Fixed
-- `opencode run` on Windows now pipes prompt via stdin (`type … | opencode run`) instead of
-  PowerShell `(Get-Content -Raw)`, which was splitting multi-line prompts on newlines and causing
-  `--flag-style` text in card descriptions to be parsed as CLI options
-- `claude-code` spawns now pass `--effort medium` to reduce token consumption
-- `claude-code` output now streams in real-time via `--output-format stream-json`; a
-  `parseClaudeStreamJson` transform extracts readable text (assistant messages, tool names,
-  session cost) from JSON events so the output section updates progressively instead of all at once
-  at the end
-- Full output section now auto-restores after a card switch or page reload — the frontend always
-  fetches `/api/cards/:id/output` on card open instead of relying on `runningCards` being
-  pre-seeded; section auto-expands when content is present
+- **`opencode run` on Windows** — command now pipes prompt via stdin (`type … | opencode run`)
+  instead of PowerShell `(Get-Content -Raw)`, which was splitting multi-line prompts on newlines
+  and causing `--flag-style` text in card descriptions to be parsed as CLI options.
+- **`claude-code` real-time output** — spawns now pass `--output-format stream-json` so output is
+  flushed event-by-event rather than all at once at the end; a `parseClaudeStreamJson` transform
+  extracts readable text from JSON events (assistant messages, tool names, session cost).
+- **Output section persists across card switch/reload** — frontend always fetches
+  `/api/cards/:id/output` on card open and auto-expands the section when content is present,
+  instead of relying on in-memory `runningCards` state that resets on reload.
+- **`cancel_agent` correctly returns success for queued cards** — `stopAgent` now tracks whether
+  it dequeued a card separately from whether it killed a running process, so the MCP tool and UI
+  both receive the correct result.
+- **SSE `board_update` guard** — tab-sync ping payloads that carry only `_tabId` (no `columns`)
+  no longer throw a `TypeError` in the `board_update` handler.
+- **Search empty state** — columns with no visible cards after a search now show a "No results"
+  placeholder instead of appearing blank.
 
 ### Changed
-- `actions/checkout` and `actions/setup-node` bumped to v5 for Node.js 24 compatibility
+- **`claude-code` effort** — spawns now pass `--effort medium` to reduce token consumption without
+  sacrificing task quality.
+- **Queue position note** — queued agent note now shows "Position in queue: N" (removed the
+  redundant "of N" which always equalled N).
+
+[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.12...HEAD
+[0.2.12]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...v0.2.12
 
 ## [0.2.11] - 2026-05-31
 
@@ -345,7 +394,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stop agent button in the card sidebar
 - Run visibility: exit code, duration, and best-effort cost/token usage per run
 
-[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...HEAD
+[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.12...HEAD
+[0.2.12]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/zanuartri/vibeboard/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/zanuartri/vibeboard/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/zanuartri/vibeboard/compare/v0.2.8...v0.2.9
