@@ -1335,9 +1335,10 @@ kbd {
   background: var(--accent); color: var(--accent-fg);
   letter-spacing: 0.3px; text-transform: uppercase; flex-shrink: 0;
 }
-.card-agent-badge.claude-code { background: #d97706; color: #fff; }
-.card-agent-badge.opencode    { background: #7c3aed; color: #fff; }
-.card-agent-badge.codex       { background: #0ea5e9; color: #fff; }
+.card-agent-badge.claude-code  { background: #d97706; color: #fff; }
+.card-agent-badge.opencode     { background: #7c3aed; color: #fff; }
+.card-agent-badge.codex        { background: #0ea5e9; color: #fff; }
+.card-agent-badge.command-code { background: #0d9488; color: #fff; }
 
 .card-review-badge {
   font-size: 10px; font-weight: 600; padding: 1px 5px;
@@ -1798,26 +1799,26 @@ body.mcp-banner-open #sse-banner { top: calc(var(--header-h) + 41px); }
 #mcp-modal { width: 480px; }
 .mcp-status-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 7px;
+  padding: 10px 12px; border-radius: var(--radius-md);
   border: 1px solid var(--border); background: var(--bg); font-size: 13px;
 }
 .mcp-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .mcp-status-dot.ok { background: #16a34a; }
 .mcp-status-dot.warn { background: #d97706; }
 .mcp-config-path {
-  font-family: monospace; font-size: 10px; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--radius-md); padding: 6px 9px; word-break: break-all; line-height: 1.5;
 }
 .mcp-agent-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 7px;
+  padding: 10px 12px; border-radius: var(--radius-md);
   border: 1px solid var(--border); background: var(--bg);
 }
 .mcp-agent-info { flex: 1; min-width: 0; }
 .mcp-agent-name { font-size: 13px; font-weight: 400; color: var(--text); }
 .mcp-agent-path {
-  font-family: monospace; font-size: 10px; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
 }
 .mcp-agent-tag {

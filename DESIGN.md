@@ -84,7 +84,7 @@ add a token rather than a literal.
 ### Semantic color (used by badges/pills; currently hardcoded - prefer tokenizing new ones)
 - **Priority:** high `#dc2626`, medium `#d97706`, low `#2563eb` (badges use a tinted bg + colored text; pickers use solid fill when active).
 - **Tags:** feature `#7c3aed`, bug `#dc2626`, design `#db2777`, infra `#16a34a`, docs `#d97706`, api `#2563eb` (tokenized as `--tag-*`).
-- **Agents:** claude-code `#d97706`, opencode `#7c3aed`, codex `#0ea5e9` (badge labels CC / OC / CX).
+- **Agents:** claude-code `#d97706`, opencode `#7c3aed`, codex `#0ea5e9`, command-code `#0d9488` (badge labels CC / OC / CX / CD).
 - **Status:** success/connected `#16a34a` (`--active-ws`), running/agent `#3b82f6`.
 
 ### Geometry / scale
