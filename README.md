@@ -223,6 +223,8 @@ fork → branch → `npm test` → PR. Please keep Windows/macOS/Linux compatibi
 don't break MCP tool signatures, and stay backward-compatible with existing
 workspaces.
 
+See [`CHANGELOG.md`](CHANGELOG.md) for release history.
+
 ## License
 
 [MIT](LICENSE) © VibeBoard contributors
