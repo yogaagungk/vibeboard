@@ -57,12 +57,12 @@ const MAX_SSE_RECONNECT = 3;
 
 const TAGS = ['feature','bug','design','infra','docs','api'];
 const COL_COLORS = ['#6b6860','#2563eb','#d97706','#16a34a','#7c3aed','#dc2626','#0891b2','#db2777'];
-const AGENT_LABELS = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'codex': 'Codex CLI', '': 'None' };
+const AGENT_LABELS = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'codex': 'Codex CLI', 'command-code': 'Command Code', '': 'None' };
 
-let agentsAvailable = { 'claude-code': true, 'opencode': true, 'codex': true };
+let agentsAvailable = { 'claude-code': true, 'opencode': true, 'codex': true, 'command-code': true };
 fetch('/api/agents/available').then(r => r.json()).then(data => { agentsAvailable = data; }).catch(() => {});
 
-let availableModels = { 'claude-code': [], 'opencode': [], 'codex': [] };
+let availableModels = { 'claude-code': [], 'opencode': [], 'codex': [], 'command-code': [] };
 fetch('/api/models').then(r => r.json()).then(data => { availableModels = data; }).catch(() => {});
 
 const runningCards = new Set();

@@ -250,7 +250,7 @@ function buildCard(card, colId) {
   if (card.agent) {
     const badge = document.createElement('span');
     badge.className = `card-agent-badge ${card.agent}`;
-    badge.textContent = { 'claude-code': 'CC', 'opencode': 'OC', 'codex': 'CX' }[card.agent] || card.agent.slice(0,2).toUpperCase();
+    badge.textContent = { 'claude-code': 'CC', 'opencode': 'OC', 'codex': 'CX', 'command-code': 'CMD' }[card.agent] || card.agent.slice(0,2).toUpperCase();
     badge.title = AGENT_LABELS[card.agent] || card.agent;
     cardTop.appendChild(badge);
   }
