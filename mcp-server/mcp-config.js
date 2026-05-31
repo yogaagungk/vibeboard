@@ -49,6 +49,19 @@ function getAgentMcpConfigs() {
         mcpServers: { ...(cfg.mcpServers || {}), vibeboard: { command: 'node', args: [serverPath] } },
       }),
     },
+    'command-code': {
+      label: 'Command Code',
+      cmd: 'command-code',
+      configPath: path.join(home, '.commandcode', 'mcp.json'),
+      read: cfg => !!(cfg.mcpServers?.vibeboard),
+      write: (_cfg, _configPath) => {
+        const { execSync } = require('child_process');
+        execSync(`command-code mcp add --transport stdio --scope user vibeboard -- node "${serverPath}"`, {
+          stdio: 'pipe', timeout: 10000,
+        });
+        return null;
+      },
+    },
   };
 }
 
