@@ -90,7 +90,11 @@ function dequeueNext(emitSSE) {
 // outside this charset is rejected so a model value can't break out of the shell
 // command string (the command runs with shell: true).
 function isSafeModel(model) {
-  return typeof model === 'string' && /^[A-Za-z0-9._:/-]+$/.test(model);
+  if (typeof model !== 'string') return false;
+  if (!/^[A-Za-z0-9._:/-]+$/.test(model)) return false;
+  if (model.includes('..')) return false;
+  if (/\/\/+/.test(model)) return false;
+  return true;
 }
 
 function buildShellCmd(agentType, promptFile, model) {
