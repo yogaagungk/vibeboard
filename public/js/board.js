@@ -30,6 +30,8 @@ function renderBoard(b) {
     });
   });
 
+  document.body.classList.toggle('vb-show-descriptions', getShowDescriptions());
+
   renderLog(board.agentLog || []);
   applySearch();
 }
