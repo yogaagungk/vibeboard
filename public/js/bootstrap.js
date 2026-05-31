@@ -225,6 +225,13 @@ function fmtTokens(n) {
   return (n / 1_000_000).toFixed(1) + 'M';
 }
 
+function isAbsolutePath(p) {
+  if (!p) return false;
+  if (p.startsWith('/')) return true;
+  if (/^[a-zA-Z]:[/\\]/.test(p)) return true;
+  return false;
+}
+
 // vbSelect controllers for the model dropdowns, keyed by prefix ('nc' | 'card').
 const modelSelects = {};
 
