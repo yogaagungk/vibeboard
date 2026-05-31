@@ -100,7 +100,7 @@ When a card is moved TO "In Progress" (via move_card or the UI):
 - **Claude Code**: Binary `claude`, prompt via stdin
 - **OpenCode**: Binary `opencode`, prompt via stdin
 - **Codex**: Binary `codex`, prompt via stdin
-- **Command Code**: Binary `command-code`, prompt via `-p` flag, uses `--yolo --skip-onboarding` flags
+- **Command Code**: Binary `command-code`, prompt via stdin to `-p` mode, uses `--yolo --skip-onboarding` flags; board updates via REST API (MCP not loaded in `-p` mode)
 
 Constraints enforced on the move into "In Progress":
 - **WIP limit** — a column with a `wip_limit` rejects moves once full (UI + move_card).

@@ -117,21 +117,25 @@ function getCommandCodeModels() {
   try {
     const output = execSync('command-code --list-models', { encoding: 'utf8', timeout: 15000 });
     const models = [];
-    let currentProvider = '';
+    let currentSection = '';
     for (const line of output.split('\n')) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       if (trimmed.startsWith('Available models')) continue;
-      // Provider header: single word, starts with uppercase, no digits or hyphens
-      if (/^[A-Z][a-zA-Z]+$/.test(trimmed)) { currentProvider = trimmed; continue; }
-      // Model line: starts with a lowercase letter or digit, first token is the ID
-      const match = trimmed.match(/^([a-z0-9][a-z0-9/_.-]+)\s+(.*)/);
-      if (!match) continue;
+      // Stop at the footer hint block (not a model section)
+      if (trimmed.startsWith('Pass the full id')) break;
+      // Model lines are formatted as two columns separated by 2+ spaces.
+      // Section headers (e.g. "Anthropic", "Open Source") have no such gap.
+      const match = trimmed.match(/^([A-Za-z0-9][A-Za-z0-9._/-]*)\s{2,}(.+)$/);
+      if (!match) { currentSection = trimmed; continue; }
       const id = match[1];
-      const desc = match[2].trim().replace(/\s*\(recommended\)\s*/i, '').trim();
+      // Derive a readable provider from the model ID prefix, fall back to section name
+      const idProvider = id.includes('/') ? id.split('/')[0] : '';
+      const description = idProvider || currentSection;
       const namePart = id.includes('/') ? id.split('/').slice(1).join('/') : id;
-      const name = namePart.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      models.push({ id, name, description: currentProvider || desc });
+      const name = namePart.split(/[-_]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        .replace(/\s*\(.*\)/, '').trim();
+      models.push({ id, name, description });
     }
     return models;
   } catch (err) {

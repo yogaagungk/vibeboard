@@ -116,7 +116,7 @@ function buildShellCmd(agentType, promptFile, model) {
   let modelFlag = '';
 
   if (model && isSafeModel(model)) {
-    if (agentType === 'claude-code' || agentType === 'opencode' || agentType === 'codex') {
+    if (agentType === 'claude-code' || agentType === 'opencode' || agentType === 'codex' || agentType === 'command-code') {
       modelFlag = ` --model ${model}`;
     }
   } else if (model) {
@@ -136,6 +136,11 @@ function buildShellCmd(agentType, promptFile, model) {
       return win
         ? `type "${promptFile}" | codex --full-auto${modelFlag}`
         : `codex --full-auto${modelFlag} < "${promptFile}"`;
+    case 'command-code':
+      return win
+        ? `type "${promptFile}" | command-code -p --yolo --skip-onboarding${modelFlag}`
+        : `command-code -p --yolo --skip-onboarding${modelFlag} < "${promptFile}"`;
+
     default:
       return win
         ? `type "${promptFile}" | ${agentType}`
@@ -149,7 +154,7 @@ function getOutputFile(cardId) {
 
 function stripAnsi(str) {
   return str
-    .replace(/﻿/g, '')                          // UTF-8/UTF-16 BOM
+    .replace(/\uFEFF/g, '')                          // UTF-8/UTF-16 BOM
     .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')           // CSI sequences
     .replace(/\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)/g, '') // OSC sequences
     .replace(/\x1B[@-_][0-?]*[ -/]*[@-~]/g, '')      // other ESC sequences
@@ -199,7 +204,7 @@ function startOutputWatcher(cardId, outputFile, emitSSE, transform) {
   }, 500);
 }
 
-function buildPrompt(card, column, workspace, branch, worktreePath) {
+function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
   const dataBlock = wrapCardData([
     { label: 'Title',       value: card.title },
     { label: 'Description', value: card.description },
@@ -234,39 +239,32 @@ function buildPrompt(card, column, workspace, branch, worktreePath) {
     ? `\nIMPORTANT: Your shell cwd is a git worktree at ${sanitizeForPrompt(worktreePath)}. Write ALL files there, NOT to the workspace root at ${sanitizeForPrompt(workspace.path)}. The workspace root must remain clean.`
     : '';
 
+  const boardApi = agentType === 'command-code'
+    ? `The vibeboard MCP tools are not available in this mode. Use shell_command to call the vibeboard HTTP API at http://localhost:${PORT} to update the board:
+- Add a progress note: POST http://localhost:${PORT}/api/cards/${card.id}/note   body: {"content":"your note"}
+- Move to a column:    POST http://localhost:${PORT}/api/cards/${card.id}/move    body: {"toColumnTitle":"Done"}
+- Complete the card:   POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
+Call these often to log progress, and call complete at the end.`
+    : `Use vibeboard MCP tools: add_card_note to log progress, move_card / complete_card to change status.`;
+
   return `Task on VibeBoard.
 ${dataBlock ? dataBlock + '\n\n' : ''}Card ID: ${card.id} - Workspace ID: ${workspace.id}
 Work in: ${workIn}
 ${branchLine}
 ${phase}
 ${worktreeWarning}
-Use the vibeboard MCP tools: get_board to read state, add_card_note often to log progress and findings, move_card / complete_card to change status. Commit your work with git as you go.${custom}`;
+${boardApi} Commit with git as you go.${custom}`;
 }
 
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {
   const outStream = fs.createWriteStream(outputFile, { flags: 'w' });
-  let child;
+  const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
+  fs.writeFileSync(promptFile, prompt, 'utf8');
 
-  if (agentType === 'command-code') {
-    const args = ['-p', prompt, '--yolo', '--skip-onboarding'];
-    if (model && isSafeModel(model)) args.push('--model', model);
-    child = spawn('command-code', args, {
-      cwd: workspaceDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: false,
-      windowsHide: true,
-    });
-  } else {
-    const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
-    fs.writeFileSync(promptFile, prompt, 'utf8');
-    const cmd = buildShellCmd(agentType, promptFile, model);
-    child = spawn(cmd, [], {
-      cwd: workspaceDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-      shell: true,
-    });
-  }
+  const cmd = buildShellCmd(agentType, promptFile, model);
+  const child = spawn(cmd, [], {
+    cwd: workspaceDir, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, shell: true,
+  });
 
   if (child.pid) writePid(cardId, child.pid);
 
@@ -275,10 +273,7 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
 
   child.on('close', (code) => {
     outStream.end();
-    if (agentType !== 'command-code') {
-      const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
-      try { fs.unlinkSync(promptFile); } catch (_) {}
-    }
+    try { fs.unlinkSync(promptFile); } catch (_) {}
     const agentInfo = activeAgents.get(cardId);
     if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
     removePid(cardId);
@@ -292,10 +287,7 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
   child.on('error', (err) => {
     outStream.write(`\n[error: ${err.message}]\n`);
     outStream.end();
-    if (agentType !== 'command-code') {
-      const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
-      try { fs.unlinkSync(promptFile); } catch (_) {}
-    }
+    try { fs.unlinkSync(promptFile); } catch (_) {}
     const agentInfo = activeAgents.get(cardId);
     if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
     removePid(cardId);
@@ -383,7 +375,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     return;
   }
 
-  const prompt = buildPrompt(card, column, workspace, branch, worktreePath);
+  const prompt = buildPrompt(card, column, workspace, branch, worktreePath, agentType);
   const outputFile = getOutputFile(cardId);
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
@@ -466,7 +458,7 @@ function agentDone(cardId, code, emitSSE) {
       if (text) {
         usage = parseUsage(text);
         const MAX = 3000;
-        const snippet = text.length > MAX ? '[…output truncated, showing last 3000 chars]\n' + text.slice(-MAX) : text;
+        const snippet = text.length > MAX ? '[\u2026output truncated, showing last 3000 chars]\n' + text.slice(-MAX) : text;
         addCardNote(cardId, `Agent session output (exit ${code}):\n\`\`\`\n${snippet}\n\`\`\``);
       }
     } catch (_) {}

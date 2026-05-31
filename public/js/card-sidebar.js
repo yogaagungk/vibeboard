@@ -667,52 +667,23 @@ function updatePromptBox(card) {
     const colTitle = col?.title || '';
     const needsReview = !!card.requires_review;
     if (colTitle === 'In Progress') {
-      const nextStep = needsReview
-        ? '- When implementation is complete and all changes are committed, call move_card to move to Review'
-        : '- This card does NOT require review - when done, commit all changes, then call complete_card to move directly to Done (skip Review)';
-      columnContext = `\nYou are in the IN PROGRESS phase. Your job is to:
-- Call get_board first to see the full board state
-- Plan and implement the feature/fix
-- Write code and make changes in the project directory
-- Commit ALL changes with git before moving columns: run \`git add -A && git commit -m "...\"\`
-- Use add_card_note to log progress, decisions, and blockers
-${nextStep}
-
-IMPORTANT: Do NOT call move_card or complete_card until you have committed your changes with git commit.`;
+      const next = needsReview ? 'call move_card to Review' : 'call complete_card (no review needed)';
+      columnContext = `\nIN PROGRESS: implement the task, commit all changes, then ${next}.
+- Use add_card_note to log progress
+- Commit before moving: \`git add -A && git commit -m "..."\``;
     } else if (colTitle === 'Review') {
-      columnContext = `\nYou are in the REVIEW phase. Your job is to:
-- Call get_board first to see the full board state
-- Review all code changes made in In Progress
-- Run tests and verify functionality works as expected
-- Check for bugs, edge cases, or issues
-- Add notes about what you found using add_card_note
-- If issues found: commit any fixes, then call move_card to move back to In Progress
-- If everything looks good: ensure all changes are committed, then call complete_card to mark as Done
-
-IMPORTANT: Always commit any fixes before moving columns.`;
+      columnContext = `\nREVIEW: verify changes, run tests, check for bugs.
+- Use add_card_note to log findings
+- Issues found → commit fixes, then move_card to In Progress
+- All good → commit and call complete_card`;
     } else if (colTitle === 'Done') {
-      columnContext = `\nThis card is DONE. The work is complete.
-- All changes should already be committed
-- The user will manually merge or create a PR
-- You may add a final summary note with add_card_note if helpful`;
+      columnContext = `\nDONE: work is complete. User merges manually.`;
     } else {
-      columnContext = `\nCurrent column: ${colTitle}`;
+      columnContext = `\nColumn: ${colTitle}`;
     }
 
-    promptText.value = `You have a task on VibeBoard.
-
-Card: "${card.title||card.text}"${desc}${tags}${columnContext}
-Card ID: ${card.id}
-Workspace ID: ${activeWsId||''}
-
-Column workflow:
-- Backlog → not started
-- In Progress → actively implementing (must commit before moving)
-- Review → testing and verification (must commit fixes before moving)
-- Done → complete, ready for manual merge/PR
-
-Git rule: ALWAYS run \`git add -A && git commit\` before calling move_card or complete_card.
-This ensures your work is never lost when the card changes state.${card.custom_prompt ? '\n\nAdditional instructions from the user:\n' + card.custom_prompt : ''}`;
+    promptText.value = `VibeBoard task: "${card.title||card.text}"${desc}${tags}${columnContext}
+Card ID: ${card.id} | Workspace ID: ${activeWsId||''}${card.custom_prompt ? '\n\n' + card.custom_prompt : ''}`;
     promptSection.style.display = 'block';
     if (wasHidden) {
       promptText.classList.remove('collapsed');

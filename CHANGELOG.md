@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-05-31
+
+### Added
+- **Command Code agent** — new agent type (`command-code` binary); assigned cards spawn Command Code with `--yolo --skip-onboarding` via stdin pipe to `-p` mode
+- **Command Code MCP auto-setup** — `POST /api/mcp-setup` configures `~/.commandcode/mcp.json` via `command-code mcp add --transport stdio --scope user`
+- **Command Code model listing** — `refresh_models` and the UI model selector fetch available models from `command-code --list-models`
+- **REST endpoints for Command Code board updates** — `POST /api/cards/:id/note`, `/api/cards/:id/move`, and `/api/cards/:id/complete` let Command Code update the board via HTTP (`shell_command`) since MCP is not loaded in `-p` mode
+
+### Fixed
+- **Command Code on Windows** — prompt piped via stdin (`type … | command-code -p`) instead of as a `-p` CLI argument, avoiding cmd.exe argument-splitting on double-quote characters
+- **Command Code board updates** — agent prompt now includes REST API instructions with concrete endpoint URLs instead of MCP tool references (MCP is not initialised in `-p` mode)
+
+### Changed
+- **Favicon** — card color updated from green (`#4ade80`) to accent blue (`#5e6ad2`)
+- **Agent prompts shortened** — auto-spawn prompt and UI copy-paste helper trimmed to remove redundant instructions while keeping all key information
+
 ## [0.2.12] - 2026-05-31
 
 ### Added
@@ -74,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Queue position note** — queued agent note now shows "Position in queue: N" (removed the
   redundant "of N" which always equalled N).
 
-[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.12...HEAD
+[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.13...HEAD
+[0.2.13]: https://github.com/zanuartri/vibeboard/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...v0.2.12
 
 ## [0.2.11] - 2026-05-31

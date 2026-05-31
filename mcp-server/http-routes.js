@@ -183,6 +183,41 @@ module.exports = function registerRoutes(app) {
     res.json({ ok: true });
   });
 
+  app.post('/api/cards/:cardId/note', (req, res) => {
+    const card = db.getCard(req.params.cardId);
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const note = db.addCardNote(card.id, req.body?.content || '');
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'add_note', `Added note to '${card.title}'`);
+    emitSSE('board_update', db.getBoard(card.workspace_id));
+    res.json(note);
+  });
+
+  app.post('/api/cards/:cardId/move', (req, res) => {
+    const card = db.getCard(req.params.cardId);
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const { toColumnTitle } = req.body || {};
+    const board = db.getBoard(card.workspace_id);
+    const toColumn = board?.columns.find(c => c.title === toColumnTitle);
+    if (!toColumn) return res.status(404).json({ error: `Column not found: ${toColumnTitle}` });
+    db.moveCard(card.id, toColumn.id);
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
+    emitSSE('board_update', db.getBoard(card.workspace_id));
+    res.json({ ok: true });
+  });
+
+  app.post('/api/cards/:cardId/complete', (req, res) => {
+    const card = db.getCard(req.params.cardId);
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const board = db.getBoard(card.workspace_id);
+    const doneColumn = board?.columns.find(c => c.title === 'Done');
+    if (!doneColumn) return res.status(404).json({ error: 'Done column not found' });
+    db.moveCard(card.id, doneColumn.id);
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`);
+    emitSSE('board_update', db.getBoard(card.workspace_id));
+    emitSSE('trigger', { card, toColumn: 'Done' });
+    res.json({ ok: true });
+  });
+
   app.post('/api/cards/:cardId/run', (req, res) => {
     const { cardId } = req.params;
     const card = db.getCard(cardId);
@@ -207,9 +242,10 @@ module.exports = function registerRoutes(app) {
 
   app.get('/api/agents/available', (_req, res) => {
     res.json({
-      'claude-code': isAgentInstalled('claude'),
-      'opencode':    isAgentInstalled('opencode'),
-      'codex':       isAgentInstalled('codex'),
+      'claude-code':   isAgentInstalled('claude'),
+      'opencode':      isAgentInstalled('opencode'),
+      'codex':         isAgentInstalled('codex'),
+      'command-code':  isAgentInstalled('command-code'),
     });
   });
 
