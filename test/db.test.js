@@ -185,21 +185,21 @@ test('importWorkspace creates workspace with cards', () => {
 
 // ── WIP limits ────────────────────────────────────────────────────────────────
 
-test('syncBoard persists column wip_limit and getBoard returns it', () => {
+test('syncBoard persists column wip_limit and getBoard returns it', async () => {
   const ws = db.createWorkspace('WIP WS', tmpWs('wip'));
   const board = db.getBoard(ws.id);
   board.columns[1].wip_limit = 3; // In Progress
-  db.syncBoard(ws.id, board.columns);
+  await db.syncBoard(ws.id, board.columns);
   const fresh = db.getBoard(ws.id);
   assert.equal(fresh.columns[1].wip_limit, 3);
   assert.equal(fresh.columns[0].wip_limit, null);
 });
 
-test('exportWorkspace/importWorkspace preserve wip_limit', () => {
+test('exportWorkspace/importWorkspace preserve wip_limit', async () => {
   const ws = db.createWorkspace('WIP Export', tmpWs('wipexp'));
   const board = db.getBoard(ws.id);
   board.columns[2].wip_limit = 5; // Review
-  db.syncBoard(ws.id, board.columns);
+  await db.syncBoard(ws.id, board.columns);
   const data = db.exportWorkspace(ws.id);
   const imported = db.importWorkspace(data);
   const ib = db.getBoard(imported.id);
@@ -222,7 +222,7 @@ test('createCard persists blocked_by and getBoard/getCard return it as an array'
   assert.deepEqual(card.blocked_by, [blocker.id]);
 });
 
-test('updateCard records run status fields and they survive a UI sync', () => {
+test('updateCard records run status fields and they survive a UI sync', async () => {
   const ws = db.createWorkspace('Run WS', tmpWs('run'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
@@ -236,13 +236,13 @@ test('updateCard records run status fields and they survive a UI sync', () => {
 
   // A full-board sync from the UI must not clobber agent-written run status.
   const b2 = db.getBoard(ws.id);
-  db.syncBoard(ws.id, b2.columns);
+  await db.syncBoard(ws.id, b2.columns);
   fetched = db.getCard(card.id);
   assert.equal(fetched.last_exit_code, 0);
   assert.equal(fetched.last_tokens, 4500);
 });
 
-test('syncBoard persists blocked_by edited from the UI', () => {
+test('syncBoard persists blocked_by edited from the UI', async () => {
   const ws = db.createWorkspace('Dep Sync WS', tmpWs('depsync'));
   const board = db.getBoard(ws.id);
   const col = board.columns[0];
@@ -251,7 +251,7 @@ test('syncBoard persists blocked_by edited from the UI', () => {
   const fresh = db.getBoard(ws.id);
   const cardB = fresh.columns[0].cards.find(c => c.id === b.id);
   cardB.blocked_by = [a.id];
-  db.syncBoard(ws.id, fresh.columns);
+  await db.syncBoard(ws.id, fresh.columns);
   assert.deepEqual(db.getCard(b.id).blocked_by, [a.id]);
 });
 
