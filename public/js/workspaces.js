@@ -85,6 +85,14 @@ wsCreateSubmit.addEventListener('click', async () => {
     wsCreatePath.focus();
     return;
   }
+  
+  if (!isAbsolutePath(wsPath)) {
+    wsCreatePath.classList.add('error');
+    showToast('Path must be absolute (e.g., C:\\Projects\\myapp or /home/user/myapp)');
+    wsCreatePath.focus();
+    return;
+  }
+  
   wsCreatePath.classList.remove('error');
 
   const name = wsCreateName.value.trim() || folderName(wsPath) || '';
@@ -155,6 +163,12 @@ document.getElementById('ws-modal-save').addEventListener('click', async () => {
   const wsPath = document.getElementById('ws-modal-path').value.trim();
   const description = document.getElementById('ws-modal-desc').value.trim();
   const useWorktree = document.getElementById('ws-modal-use-worktree').checked;
+
+  if (wsPath && !isAbsolutePath(wsPath)) {
+    showToast('Path must be absolute (e.g., C:\\Projects\\myapp or /home/user/myapp)');
+    document.getElementById('ws-modal-path').focus();
+    return;
+  }
 
   try {
     if (editingWsId === activeWsId) {

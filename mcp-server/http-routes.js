@@ -7,7 +7,7 @@ const db = require('./db');
 const wt = require('./worktree');
 const { PUBLIC_DIR, VERSION } = require('./config');
 const { sseClients, emitSSE, broadcast } = require('./events');
-const { authMiddleware } = require('./auth');
+const { authMiddleware, rotateToken, getAuthToken, NETWORK_MODE } = require('./auth');
 const { getAgentMcpConfigs, isAgentInstalled, readAgentMcpStatus } = require('./mcp-config');
 const { refreshAvailableModels, getAvailableModels } = require('./models');
 const {
@@ -532,6 +532,13 @@ module.exports = function registerRoutes(app) {
     const { type, data } = req.body || {};
     if (type) broadcast(type, data);
     res.json({ ok: true });
+  });
+
+  app.post('/admin/rotate-token', (req, res) => {
+    if (!NETWORK_MODE) return res.status(400).json({ error: 'Token rotation only available in network mode' });
+    const newToken = rotateToken();
+    process.stderr.write(`Token rotated: ${newToken}\n`);
+    res.json({ ok: true, token: newToken });
   });
 
   app.get('/events', (req, res) => {

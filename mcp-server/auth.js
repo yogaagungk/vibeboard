@@ -14,6 +14,12 @@ if (NETWORK_MODE && !AUTH_TOKEN) {
 
 function getAuthToken() { return AUTH_TOKEN; }
 
+function rotateToken() {
+  if (!NETWORK_MODE) return null;
+  AUTH_TOKEN = require('crypto').randomBytes(18).toString('hex');
+  return AUTH_TOKEN;
+}
+
 function isLoopbackReq(req) {
   const ip = req.socket?.remoteAddress || req.ip || '';
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
@@ -76,4 +82,4 @@ function authMiddleware(req, res, next) {
   res.status(401).json({ error: 'Unauthorized: missing or invalid token. Append ?token=… to the URL.' });
 }
 
-module.exports = { NETWORK_MODE, getAuthToken, isLoopbackReq, authMiddleware };
+module.exports = { NETWORK_MODE, getAuthToken, rotateToken, isLoopbackReq, authMiddleware };

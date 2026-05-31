@@ -41,13 +41,15 @@ async function startServer() {
   // forward events via HTTP to the running server's /api/sse-emit endpoint.
   try {
     const lockPort = parseInt(fs.readFileSync(path.join(db.DATA_DIR, 'port.lock'), 'utf8'), 10);
-    if (lockPort > 0) {
+    if (isNaN(lockPort) || lockPort < 1 || lockPort > 65535) {
+      fs.unlinkSync(path.join(db.DATA_DIR, 'port.lock'));
+    } else {
       const res = await fetch(`http://localhost:${lockPort}/health`, {
         signal: AbortSignal.timeout(1000),
       });
       if (res.ok) {
         process.stderr.write(`HTTP server detected on port ${lockPort} — running in MCP-only mode\n`);
-        return; // skip app.listen entirely; emitSSE will proxy to lockPort
+        return;
       }
     }
   } catch (_) {}
