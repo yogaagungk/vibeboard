@@ -444,7 +444,18 @@ function addAgentLog(workspaceId, agent, action, detail) {
   return { id, timestamp: now, agent, action, detail };
 }
 
+// Serialize concurrent syncBoard calls so two simultaneous POST /board requests
+// from different tabs can't read stale state and overwrite each other's changes.
+let _syncBoardTail = Promise.resolve();
+
 function syncBoard(workspaceId, columns) {
+  const result = _syncBoardTail.then(() => _syncBoardImpl(workspaceId, columns));
+  // Swallow errors on the chain tail so a failed sync doesn't permanently jam the queue.
+  _syncBoardTail = result.catch(() => {});
+  return result;
+}
+
+function _syncBoardImpl(workspaceId, columns) {
   const { findCycleIds } = require('./cycle-detection');
   const incomingCards = columns.flatMap(c => (c.cards || []).map(card => ({
     id: card.id,

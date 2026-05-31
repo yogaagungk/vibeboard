@@ -282,7 +282,7 @@ module.exports = function registerRoutes(app) {
     }
   });
 
-  app.post('/board', (req, res) => {
+  app.post('/board', async (req, res) => {
     const activeId = db.getActiveWorkspaceId();
     if (!activeId) return res.status(400).json({ error: 'No active workspace' });
 
@@ -312,7 +312,7 @@ module.exports = function registerRoutes(app) {
     }
     if (Array.isArray(body.columns)) {
       try {
-        db.syncBoard(activeId, body.columns);
+        await db.syncBoard(activeId, body.columns);
       } catch (err) {
         const freshBefore = db.getBoard(activeId);
         emitSSE('board_update', { ...freshBefore, _tabId: body._tabId });

@@ -9,9 +9,10 @@ const { sanitizeForPrompt, wrapCardData } = require('./prompt-sanitize');
 const activeAgents = new Map();
 
 // Cards whose agent was moved (via move_card) to a new spawnable column while
-// the agent was still running. When the current agent exits, agentDone checks
-// this map and re-spawns for the new phase.
-const pendingRespawn = new Map(); // cardId -> { workspaceId, agentType }
+// the agent was still running. When the current agent exits, agentDone dequeues
+// the next entry and re-spawns for that phase. Using an array queue per card
+// ensures rapid successive moves don't silently clobber earlier respawn targets.
+const pendingRespawn = new Map(); // cardId -> [{ workspaceId, agentType }, ...]
 
 // Cap on simultaneously running agents. Spawn requests beyond the cap are queued
 // (FIFO) and started automatically as running agents finish. In-memory like
@@ -257,8 +258,13 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     if (card) {
       const col = getColumn(card.column_id);
       if (col && (col.title === 'In Progress' || col.title === 'Review')) {
-        pendingRespawn.set(cardId, { workspaceId, agentType });
-        addAgentLog(workspaceId, agentType, 'agent_pending_respawn', `Will respawn after current agent exits for card ${cardId}`);
+        if (!pendingRespawn.has(cardId)) pendingRespawn.set(cardId, []);
+        const queue = pendingRespawn.get(cardId);
+        if (queue.length > 0) {
+          process.stderr.write(`[agent] Warning: card ${cardId} already has ${queue.length} pending respawn(s); queuing another (previous targets will run first)\n`);
+        }
+        queue.push({ workspaceId, agentType });
+        addAgentLog(workspaceId, agentType, 'agent_pending_respawn', `Queued respawn #${queue.length} after current agent exits for card ${cardId}`);
         emitSSE('agent_pending_respawn', { cardId, agentType });
       }
     }
@@ -443,12 +449,13 @@ function agentDone(cardId, code, emitSSE) {
   // Free capacity may now let a queued agent start.
   dequeueNext(emitSSE);
 
-  // If this card was marked for respawn (e.g. agent moved itself to Review),
-  // start the next phase now.
+  // If this card has queued respawns (e.g. agent moved itself to Review while
+  // the previous agent was running), start the next queued phase now.
   if (pendingRespawn.has(cardId)) {
-    const pending = pendingRespawn.get(cardId);
-    pendingRespawn.delete(cardId);
-    spawnAgent(cardId, pending.workspaceId, pending.agentType, emitSSE);
+    const queue = pendingRespawn.get(cardId);
+    const pending = queue.shift();
+    if (queue.length === 0) pendingRespawn.delete(cardId);
+    if (pending) spawnAgent(cardId, pending.workspaceId, pending.agentType, emitSSE);
   }
 }
 
