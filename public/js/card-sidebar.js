@@ -887,83 +887,123 @@ promptToggle.addEventListener('click', () => {
   }
 });
 
-// ── Diff rendering helper ───────────────────────────────────────────────────
+// ── Diff rendering ─────────────────────────────────────────────────────────
 function parseDiff(diffStr) {
   const files = [];
-  const lines = diffStr.split('\n');
-  let currentFile = null;
-  let currentHunk = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
+  let f = null, h = null;
+  for (const line of diffStr.split('\n')) {
     if (line.startsWith('diff --git')) {
-      if (currentFile) files.push(currentFile);
-      currentFile = { header: [], hunks: [] };
-      currentFile.header.push(line);
-    } else if (currentFile && !currentHunk && /^(index |--- |\+\+\+ )/.test(line)) {
-      currentFile.header.push(line);
+      if (h && f) { f.hunks.push(h); h = null; }
+      if (f) files.push(f);
+      f = { header: [line], hunks: [] };
+    } else if (f && !h && /^(index |--- |\+\+\+ )/.test(line)) {
+      f.header.push(line);
     } else if (line.startsWith('@@')) {
-      if (currentHunk) currentFile.hunks.push(currentHunk);
-      currentHunk = { header: line, lines: [] };
-    } else if (currentHunk) {
-      currentHunk.lines.push(line);
+      if (h && f) f.hunks.push(h);
+      h = { header: line, lines: [] };
+    } else if (h) {
+      h.lines.push(line);
     }
   }
-  
-  if (currentHunk) currentFile.hunks.push(currentHunk);
-  if (currentFile) files.push(currentFile);
-  
+  if (h && f) f.hunks.push(h);
+  if (f) files.push(f);
   return files;
 }
 
-function wordDiff(oldText, newText) {
-  const oldWords = oldText.split(/(\s+)/);
-  const newWords = newText.split(/(\s+)/);
-  const dp = Array(oldWords.length + 1).fill(null).map(() => Array(newWords.length + 1).fill(0));
-  
-  for (let i = 1; i <= oldWords.length; i++) {
-    for (let j = 1; j <= newWords.length; j++) {
-      if (oldWords[i-1] === newWords[j-1]) {
-        dp[i][j] = dp[i-1][j-1] + 1;
+function diffFilename(hdr) {
+  const p = hdr.find(l => l.startsWith('+++ '));
+  if (p && !p.includes('/dev/null')) return p.startsWith('+++ b/') ? p.slice(6) : p.slice(4);
+  const d = hdr.find(l => l.startsWith('diff --git '));
+  if (d) { const m = d.match(/b\/(.+)$/); if (m) return m[1]; }
+  return hdr[0] || '';
+}
+
+function hunkNums(hdr) {
+  const m = hdr.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+  return m ? [+m[1], +m[2]] : [1, 1];
+}
+
+function groupHunk(lines) {
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const c = lines[i] ? lines[i][0] : ' ';
+    if (c === '-') {
+      const del = [], add = [];
+      while (i < lines.length && lines[i][0] === '-') del.push(lines[i++].slice(1));
+      while (i < lines.length && lines[i][0] === '+') add.push(lines[i++].slice(1));
+      out.push({ del, add });
+    } else if (c === '+') {
+      const add = [];
+      while (i < lines.length && lines[i][0] === '+') add.push(lines[i++].slice(1));
+      out.push({ del: [], add });
+    } else {
+      out.push({ ctx: (lines[i++] || ' ').slice(1) });
+    }
+  }
+  return out;
+}
+
+function wordDiff(a, b) {
+  const aw = a.split(/(\s+)/), bw = b.split(/(\s+)/);
+  const dp = Array.from({ length: aw.length + 1 }, () => new Array(bw.length + 1).fill(0));
+  for (let i = 1; i <= aw.length; i++)
+    for (let j = 1; j <= bw.length; j++)
+      dp[i][j] = aw[i-1] === bw[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+  const oR = [], nR = [];
+  let i = aw.length, j = bw.length;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && aw[i-1] === bw[j-1]) {
+      oR.unshift({ text: aw[--i], type: 'same' }); nR.unshift({ text: bw[--j], type: 'same' });
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      nR.unshift({ text: bw[--j], type: 'add' });
+    } else {
+      oR.unshift({ text: aw[--i], type: 'del' });
+    }
+  }
+  return { oldResult: oR, newResult: nR };
+}
+
+function makeDsvCell(type, ln, sign, parts) {
+  const cell = document.createElement('div');
+  cell.className = 'dsv-cell dsv-' + type;
+
+  const lnEl = document.createElement('span');
+  lnEl.className = 'dsv-ln';
+  lnEl.textContent = ln !== '' ? String(ln) : '';
+  cell.appendChild(lnEl);
+
+  const signEl = document.createElement('span');
+  signEl.className = 'dsv-sign';
+  signEl.textContent = sign;
+  cell.appendChild(signEl);
+
+  const codeEl = document.createElement('span');
+  codeEl.className = 'dsv-code';
+  if (parts) {
+    for (const p of parts) {
+      if (p.mark) {
+        const s = document.createElement('span');
+        s.className = 'dsv-w-' + p.mark;
+        s.textContent = p.text;
+        codeEl.appendChild(s);
       } else {
-        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+        codeEl.appendChild(document.createTextNode(p.text));
       }
     }
   }
-  
-  const oldResult = [];
-  const newResult = [];
-  let i = oldWords.length, j = newWords.length;
-  
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && oldWords[i-1] === newWords[j-1]) {
-      oldResult.unshift({ text: oldWords[i-1], type: 'same' });
-      newResult.unshift({ text: newWords[j-1], type: 'same' });
-      i--; j--;
-    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
-      newResult.unshift({ text: newWords[j-1], type: 'add' });
-      j--;
-    } else if (i > 0) {
-      oldResult.unshift({ text: oldWords[i-1], type: 'del' });
-      i--;
-    }
-  }
-  
-  return { oldResult, newResult };
+  cell.appendChild(codeEl);
+  return cell;
 }
 
 function renderDiffInto(container, diffStr) {
   container.innerHTML = '';
   if (!diffStr) {
-    const empty = document.createElement('div'); empty.className = 'diff-empty';
-    empty.textContent = 'No changes yet.'; container.appendChild(empty);
-    return;
+    const e = document.createElement('div');
+    e.className = 'diff-empty'; e.textContent = 'No changes yet.';
+    container.appendChild(e); return;
   }
-  
-  const isSplit = container.classList.contains('diff-expand-body') || window.innerWidth >= 768;
-  
-  if (isSplit) {
+  if (container.classList.contains('diff-expand-body') && window.innerWidth >= 768) {
     renderSplitDiff(container, diffStr);
   } else {
     renderUnifiedDiff(container, diffStr);
@@ -986,134 +1026,55 @@ function renderUnifiedDiff(container, diffStr) {
 
 function renderSplitDiff(container, diffStr) {
   const files = parseDiff(diffStr);
-  const splitView = document.createElement('div');
-  splitView.className = 'diff-split-view';
-  
+  const view = document.createElement('div');
+  view.className = 'dsv';
+
   files.forEach(file => {
-    file.header.forEach(headerLine => {
-      const headerRow = document.createElement('div');
-      headerRow.className = 'diff-split-header';
-      headerRow.textContent = headerLine;
-      splitView.appendChild(headerRow);
-    });
-    
+    const fbar = document.createElement('div');
+    fbar.className = 'dsv-file';
+    fbar.textContent = diffFilename(file.header);
+    view.appendChild(fbar);
+
     file.hunks.forEach(hunk => {
-      const hunkRow = document.createElement('div');
-      hunkRow.className = 'diff-split-hunk';
-      hunkRow.textContent = hunk.header;
-      splitView.appendChild(hunkRow);
-      
-      const changes = [];
-      let i = 0;
-      while (i < hunk.lines.length) {
-        const line = hunk.lines[i];
-        if (line.startsWith('-')) {
-          const delLines = [line];
-          let j = i + 1;
-          while (j < hunk.lines.length && hunk.lines[j].startsWith('-')) {
-            delLines.push(hunk.lines[j]);
-            j++;
-          }
-          const addLines = [];
-          while (j < hunk.lines.length && hunk.lines[j].startsWith('+')) {
-            addLines.push(hunk.lines[j]);
-            j++;
-          }
-          changes.push({ type: 'change', delLines, addLines });
-          i = j;
-        } else if (line.startsWith('+')) {
-          const addLines = [line];
-          let j = i + 1;
-          while (j < hunk.lines.length && hunk.lines[j].startsWith('+')) {
-            addLines.push(hunk.lines[j]);
-            j++;
-          }
-          changes.push({ type: 'add', addLines });
-          i = j;
-        } else {
-          changes.push({ type: 'context', line });
-          i++;
+      const hbar = document.createElement('div');
+      hbar.className = 'dsv-hunk';
+      hbar.textContent = hunk.header;
+      view.appendChild(hbar);
+
+      let [oLn, nLn] = hunkNums(hunk.header);
+
+      groupHunk(hunk.lines).forEach(g => {
+        if ('ctx' in g) {
+          const row = document.createElement('div'); row.className = 'dsv-row';
+          row.appendChild(makeDsvCell('ctx', oLn, ' ', [{ text: g.ctx }]));
+          row.appendChild(makeDsvCell('ctx', nLn, ' ', [{ text: g.ctx }]));
+          oLn++; nLn++;
+          view.appendChild(row); return;
         }
-      }
-      
-      changes.forEach(change => {
-        if (change.type === 'context') {
-          const row = document.createElement('div');
-          row.className = 'diff-split-row';
-          const left = document.createElement('div');
-          left.className = 'diff-split-cell';
-          left.textContent = change.line || ' ';
-          const right = document.createElement('div');
-          right.className = 'diff-split-cell';
-          right.textContent = change.line || ' ';
-          row.appendChild(left);
-          row.appendChild(right);
-          splitView.appendChild(row);
-        } else if (change.type === 'add') {
-          change.addLines.forEach(addLine => {
-            const row = document.createElement('div');
-            row.className = 'diff-split-row';
-            const left = document.createElement('div');
-            left.className = 'diff-split-cell diff-split-empty';
-            const right = document.createElement('div');
-            right.className = 'diff-split-cell diff-split-add';
-            right.textContent = addLine;
-            row.appendChild(left);
-            row.appendChild(right);
-            splitView.appendChild(row);
-          });
-        } else if (change.type === 'change') {
-          const maxLen = Math.max(change.delLines.length, change.addLines.length);
-          for (let k = 0; k < maxLen; k++) {
-            const row = document.createElement('div');
-            row.className = 'diff-split-row';
-            const left = document.createElement('div');
-            left.className = 'diff-split-cell';
-            const right = document.createElement('div');
-            right.className = 'diff-split-cell';
-            
-            if (k < change.delLines.length) {
-              const delLine = change.delLines[k].slice(1);
-              if (k < change.addLines.length) {
-                const addLine = change.addLines[k].slice(1);
-                const { oldResult, newResult } = wordDiff(delLine, addLine);
-                
-                left.className = 'diff-split-cell diff-split-del';
-                oldResult.forEach(part => {
-                  const span = document.createElement('span');
-                  if (part.type === 'del') span.className = 'diff-word-del';
-                  span.textContent = part.text;
-                  left.appendChild(span);
-                });
-                
-                right.className = 'diff-split-cell diff-split-add';
-                newResult.forEach(part => {
-                  const span = document.createElement('span');
-                  if (part.type === 'add') span.className = 'diff-word-add';
-                  span.textContent = part.text;
-                  right.appendChild(span);
-                });
-              } else {
-                left.className = 'diff-split-cell diff-split-del';
-                left.textContent = change.delLines[k];
-                right.className = 'diff-split-cell diff-split-empty';
-              }
-            } else {
-              left.className = 'diff-split-cell diff-split-empty';
-              right.className = 'diff-split-cell diff-split-add';
-              right.textContent = change.addLines[k];
-            }
-            
-            row.appendChild(left);
-            row.appendChild(right);
-            splitView.appendChild(row);
+        const max = Math.max(g.del.length, g.add.length);
+        for (let k = 0; k < max; k++) {
+          const hasDel = k < g.del.length, hasAdd = k < g.add.length;
+          const row = document.createElement('div'); row.className = 'dsv-row';
+          if (hasDel && hasAdd) {
+            const { oldResult, newResult } = wordDiff(g.del[k], g.add[k]);
+            row.appendChild(makeDsvCell('del', oLn++, '−',
+              oldResult.map(p => ({ text: p.text, mark: p.type === 'del' ? 'del' : null }))));
+            row.appendChild(makeDsvCell('add', nLn++, '+',
+              newResult.map(p => ({ text: p.text, mark: p.type === 'add' ? 'add' : null }))));
+          } else if (hasDel) {
+            row.appendChild(makeDsvCell('del', oLn++, '−', [{ text: g.del[k] }]));
+            row.appendChild(makeDsvCell('empty', '', '', null));
+          } else {
+            row.appendChild(makeDsvCell('empty', '', '', null));
+            row.appendChild(makeDsvCell('add', nLn++, '+', [{ text: g.add[k] }]));
           }
+          view.appendChild(row);
         }
       });
     });
   });
-  
-  container.appendChild(splitView);
+
+  container.appendChild(view);
 }
 
 // ── Diff toggle ────────────────────────────────────────────────────────────
