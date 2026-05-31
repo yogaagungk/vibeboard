@@ -6,6 +6,7 @@ let cachedModels = {
   'claude-code': [],
   'opencode': [],
   'codex': [],
+  'command-code': [],
 };
 
 function getCacheFilePath() {
@@ -20,7 +21,7 @@ function loadCacheFromDisk() {
       const data = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
       if (data && typeof data === 'object') {
         cachedModels = { ...cachedModels, ...data };
-        process.stderr.write(`Models cache loaded from disk: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length})\n`);
+        process.stderr.write(`Models cache loaded from disk: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length}), CommandCode (${cachedModels['command-code']?.length || 0})\n`);
       }
     }
   } catch (err) {
@@ -111,12 +112,41 @@ function getOpenCodeModels() {
   }
 }
 
+function getCommandCodeModels() {
+  if (!isAgentInstalled('command-code')) return [];
+  
+  try {
+    const output = execSync('command-code --list-models', { encoding: 'utf8', timeout: 15000 });
+    
+    const models = [];
+    const lines = output.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      if (trimmed.includes('/')) {
+        const [provider, modelName] = trimmed.split('/');
+        const modelId = trimmed;
+        const name = modelName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        models.push({ id: modelId, name, description: provider });
+      }
+    }
+    
+    return models;
+  } catch (err) {
+    process.stderr.write(`Failed to fetch CommandCode models: ${err.message}\n`);
+    return [];
+  }
+}
+
 function refreshAvailableModels() {
   cachedModels['claude-code'] = getClaudeModels();
   cachedModels['opencode'] = getOpenCodeModels();
   cachedModels['codex'] = getCodexModels();
+  cachedModels['command-code'] = getCommandCodeModels();
 
-  process.stderr.write(`Models refreshed: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length})\n`);
+  process.stderr.write(`Models refreshed: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length}), CommandCode (${cachedModels['command-code'].length})\n`);
 
   saveCacheToDisk();
 
@@ -139,7 +169,7 @@ function getAvailableModels() {
 
 loadCacheFromDisk();
 
-if (cachedModels['claude-code'].length === 0 && cachedModels['opencode'].length === 0 && cachedModels['codex'].length === 0) {
+if (cachedModels['claude-code'].length === 0 && cachedModels['opencode'].length === 0 && cachedModels['codex'].length === 0 && cachedModels['command-code'].length === 0) {
   refreshAvailableModels();
 } else {
   refreshAvailableModelsAsync();
