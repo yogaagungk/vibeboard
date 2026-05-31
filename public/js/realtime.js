@@ -15,6 +15,7 @@ function connectSSE() {
     const { type, data } = msg;
 
     if (type === 'board_update') {
+      if (!data.columns) return;
       if (data._tabId === TAB_ID) return;
       const affected = findAffectedCards(board, data);
       board = data; board.agentLog = board.agentLog || [];

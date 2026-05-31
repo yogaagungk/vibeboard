@@ -649,6 +649,14 @@ body.mcp-banner-open #log-sidebar {
 .cards-list:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 .cards-list.drag-over { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: var(--radius-md); }
 
+.search-empty-state {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* ── Virtual spacers ── */
 .virtual-spacer-top,
 .virtual-spacer-bottom {

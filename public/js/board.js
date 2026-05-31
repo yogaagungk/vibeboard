@@ -44,6 +44,8 @@ let searchDebounceTimer = null;
 function applySearch() {
   const q = searchInput.value.trim().toLowerCase();
   
+  boardEl.querySelectorAll('.search-empty-state').forEach(el => el.remove());
+  
   if (!q) {
     virtualizedColumns.forEach((state, colId) => {
       if (state.searchActive) {
@@ -71,6 +73,16 @@ function applySearch() {
     const match = (c.dataset.searchTitle || '').includes(q);
     c.style.display = match ? '' : 'none';
     if (match) visible++;
+  });
+  
+  boardEl.querySelectorAll('.cards-list').forEach(cardsList => {
+    const visibleInCol = Array.from(cardsList.querySelectorAll('.card')).filter(c => c.style.display !== 'none').length;
+    if (visibleInCol === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'search-empty-state';
+      empty.textContent = 'No results';
+      cardsList.appendChild(empty);
+    }
   });
   
   searchClear.style.display = 'inline-block';
