@@ -138,8 +138,8 @@ function buildShellCmd(agentType, promptFile, model) {
         : `codex --full-auto${modelFlag} < "${promptFile}"`;
     case 'command-code':
       return win
-        ? `type "${promptFile}" | command-code -p --yolo --skip-onboarding${modelFlag}`
-        : `command-code -p --yolo --skip-onboarding${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | command-code -p --yolo --skip-onboarding --max-turns 30${modelFlag}`
+        : `command-code -p --yolo --skip-onboarding --max-turns 30${modelFlag} < "${promptFile}"`;
 
     default:
       return win
