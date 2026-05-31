@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`command-code` agent badge color** — teal `#0d9488`; documented in DESIGN.md §2 alongside other agent colors
 
 ### Fixed
+- **Diff modal — unified scroll** — split diff now has a single vertical scrollbar (right pane) synced to left via JS; horizontal scrollbars are one per pane (not per file), bidirectionally synced; mouse wheel over left pane forwards to right pane
+- **Diff modal — row background width** — colored row backgrounds (red/green) now extend the full horizontal scroll width instead of stopping at content edge
+- **Diff modal — sticky scrollbar** — scrollbars remain visible at the dialog edge while scrolling instead of floating mid-content
+- **Diff modal — per-file collapse** — each file can be collapsed/expanded independently; arrow indicator updates correctly
+- **Diff modal — horizontal scroll** — long lines no longer truncate; each pane scrolls independently with sync
+- **Diff modal — line truncation** — lines no longer wrap or clip; collapse arrow size increased for easier clicking
 - **Settings button dark mode** — was showing browser-default white background; added `background: transparent`
 - **Settings button icon** — replaced sun/asterisk SVG with a proper gear/cog icon
 - **Activity Log naming** — header button and HTML comment were "Agent Log"; standardised to "Activity Log" everywhere
