@@ -164,6 +164,7 @@ function buildAgentOptions() {
     { value: 'claude-code', label: 'Claude Code' },
     { value: 'opencode', label: 'OpenCode' },
     { value: 'codex', label: 'Codex CLI' },
+    { value: 'command-code', label: 'Command Code' },
   ];
   return base.map(o => {
     if (!o.value) return { ...o, hint: undefined, disabled: false };
@@ -402,7 +403,7 @@ function openNewCardModal(colId) {
   agentMount.innerHTML = '';
   const agentOpts = [
     { value: '', label: 'None' },
-    ...['claude-code', 'opencode', 'codex'].map(k => {
+    ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
       const reason = agentUnavailableReason(k);
       return { value: k, label: AGENT_LABELS[k] || k, disabled: !!reason, hint: reason || undefined };
     }),

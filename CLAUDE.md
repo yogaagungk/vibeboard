@@ -4,7 +4,7 @@
 
 VibeBoard is a self-hostable open source kanban board built for developers who work with AI coding agents.
 
-**Core concept**: When you move a card with an assigned agent to "In Progress", VibeBoard automatically spawns that agent (Claude Code or OpenCode) in your project directory. The agent can then use MCP tools to add progress notes, move cards, and mark tasks complete.
+**Core concept**: When you move a card with an assigned agent to "In Progress", VibeBoard automatically spawns that agent (Claude Code, OpenCode, Codex, or Command Code) in your project directory. The agent can then use MCP tools to add progress notes, move cards, and mark tasks complete.
 
 **Bidirectional MCP**: Both the human (via UI) and the agent (via MCP) can control the same board in real-time.
 
@@ -88,13 +88,19 @@ search_cards       → search cards by query/tag/column/agent (params: query?, t
 ## Agent spawning system
 
 When a card is moved TO "In Progress" (via move_card or the UI):
-- If the card has an assigned agent (claude-code or opencode)
+- If the card has an assigned agent (claude-code, opencode, codex, or command-code)
 - VibeBoard spawns that agent as a child process in the workspace directory
 - The agent receives a prompt with the card context
 - SSE emits event type "agent_started" with the card context
 - UI shows a toast: "⚡ Agent triggered: [card title]"
 - Agent can call add_card_note to log progress
 - When agent exits, notes are saved and SSE emits "agent_completed"
+
+**Agent-specific details**:
+- **Claude Code**: Binary `claude`, prompt via stdin
+- **OpenCode**: Binary `opencode`, prompt via stdin
+- **Codex**: Binary `codex`, prompt via stdin
+- **Command Code**: Binary `command-code`, prompt via `-p` flag, uses `--yolo --skip-onboarding` flags
 
 Constraints enforced on the move into "In Progress":
 - **WIP limit** — a column with a `wip_limit` rejects moves once full (UI + move_card).

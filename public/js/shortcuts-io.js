@@ -78,7 +78,7 @@ let mcpConfigured = true;
 let mcpBannerDismissed = false;
 let mcpStatusCache = null;
 
-const AGENT_LABELS_MCP = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'codex': 'Codex CLI' };
+const AGENT_LABELS_MCP = { 'claude-code': 'Claude Code', 'opencode': 'OpenCode', 'codex': 'Codex CLI', 'command-code': 'Command Code' };
 
 async function checkMcpStatus() {
   try {
@@ -144,7 +144,7 @@ function renderMcpAgentRows(agents) {
     return;
   }
   container.innerHTML = '';
-  for (const key of ['claude-code', 'opencode', 'codex']) {
+  for (const key of ['claude-code', 'opencode', 'codex', 'command-code']) {
     const a = agents[key] || { installed: false, configured: false, configPath: '' };
     const row = document.createElement('div');
     row.className = 'mcp-agent-row';
