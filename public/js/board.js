@@ -11,6 +11,8 @@ function renderBoard(b) {
     if (colId) scrollPositions.set(colId, cl.scrollTop);
   });
 
+  const currentSearchValue = searchInput.value;
+
   board = b;
   if (Array.isArray(b.runningCards)) {
     runningCards.clear();
@@ -31,6 +33,7 @@ function renderBoard(b) {
   });
 
   renderLog(board.agentLog || []);
+  searchInput.value = currentSearchValue;
   applySearch();
 }
 
