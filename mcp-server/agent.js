@@ -322,8 +322,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
       agentQueue.push({ cardId, workspaceId, agentType });
       addAgentLog(workspaceId, agentType, 'agent_queued', `Queued at capacity (${MAX_CONCURRENT} running) for card ${cardId}`);
       const queuePos = agentQueue.length;
-      const queueTotal = agentQueue.length;
-      addCardNote(cardId, `Agent queued — ${activeAgents.size} agent(s) already running (max ${MAX_CONCURRENT}). Position in queue: ${queuePos} of ${queueTotal} waiting. Starts automatically when a slot frees up.`);
+      addCardNote(cardId, `Agent queued — ${activeAgents.size} agent(s) already running (max ${MAX_CONCURRENT}). Position in queue: ${queuePos}. Starts automatically when a slot frees up.`);
       emitSSE('agent_queued', { cardId, agentType, position: queuePos });
     }
     return;
@@ -508,8 +507,10 @@ function agentDone(cardId, code, emitSSE) {
 
 function stopAgent(cardId, emitSSE) {
   // Drop it from the queue first, in case it was waiting rather than running.
+  let dequeued = false;
   if (isQueued(cardId)) {
     dequeueCard(cardId);
+    dequeued = true;
     const card = getCard(cardId);
     if (card) {
       addAgentLog(card.workspace_id, card.agent || 'system', 'agent_cancelled', `Cancelled queued agent for card ${cardId}`);
@@ -521,7 +522,7 @@ function stopAgent(cardId, emitSSE) {
   pendingRespawn.delete(cardId);
 
   const info = activeAgents.get(cardId);
-  if (!info) return isQueued(cardId);
+  if (!info) return dequeued;
   if (info.watchInterval) clearInterval(info.watchInterval);
   if (info.timeoutId) clearTimeout(info.timeoutId);
   try { info.child?.kill(); } catch (_) {}
