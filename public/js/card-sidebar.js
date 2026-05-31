@@ -888,6 +888,71 @@ promptToggle.addEventListener('click', () => {
 });
 
 // ── Diff rendering helper ───────────────────────────────────────────────────
+function parseDiff(diffStr) {
+  const files = [];
+  const lines = diffStr.split('\n');
+  let currentFile = null;
+  let currentHunk = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    if (line.startsWith('diff --git')) {
+      if (currentFile) files.push(currentFile);
+      currentFile = { header: [], hunks: [] };
+      currentFile.header.push(line);
+    } else if (currentFile && !currentHunk && /^(index |--- |\+\+\+ )/.test(line)) {
+      currentFile.header.push(line);
+    } else if (line.startsWith('@@')) {
+      if (currentHunk) currentFile.hunks.push(currentHunk);
+      currentHunk = { header: line, lines: [] };
+    } else if (currentHunk) {
+      currentHunk.lines.push(line);
+    }
+  }
+  
+  if (currentHunk) currentFile.hunks.push(currentHunk);
+  if (currentFile) files.push(currentFile);
+  
+  return files;
+}
+
+function wordDiff(oldText, newText) {
+  const oldWords = oldText.split(/(\s+)/);
+  const newWords = newText.split(/(\s+)/);
+  const dp = Array(oldWords.length + 1).fill(null).map(() => Array(newWords.length + 1).fill(0));
+  
+  for (let i = 1; i <= oldWords.length; i++) {
+    for (let j = 1; j <= newWords.length; j++) {
+      if (oldWords[i-1] === newWords[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+  
+  const oldResult = [];
+  const newResult = [];
+  let i = oldWords.length, j = newWords.length;
+  
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldWords[i-1] === newWords[j-1]) {
+      oldResult.unshift({ text: oldWords[i-1], type: 'same' });
+      newResult.unshift({ text: newWords[j-1], type: 'same' });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      newResult.unshift({ text: newWords[j-1], type: 'add' });
+      j--;
+    } else if (i > 0) {
+      oldResult.unshift({ text: oldWords[i-1], type: 'del' });
+      i--;
+    }
+  }
+  
+  return { oldResult, newResult };
+}
+
 function renderDiffInto(container, diffStr) {
   container.innerHTML = '';
   if (!diffStr) {
@@ -895,6 +960,17 @@ function renderDiffInto(container, diffStr) {
     empty.textContent = 'No changes yet.'; container.appendChild(empty);
     return;
   }
+  
+  const isSplit = container.classList.contains('diff-expand-body') || window.innerWidth >= 768;
+  
+  if (isSplit) {
+    renderSplitDiff(container, diffStr);
+  } else {
+    renderUnifiedDiff(container, diffStr);
+  }
+}
+
+function renderUnifiedDiff(container, diffStr) {
   const wrap = document.createElement('div'); wrap.className = 'diff-view';
   diffStr.split('\n').forEach(line => {
     const el = document.createElement('span'); el.className = 'diff-line';
@@ -906,6 +982,138 @@ function renderDiffInto(container, diffStr) {
     wrap.appendChild(el);
   });
   container.appendChild(wrap);
+}
+
+function renderSplitDiff(container, diffStr) {
+  const files = parseDiff(diffStr);
+  const splitView = document.createElement('div');
+  splitView.className = 'diff-split-view';
+  
+  files.forEach(file => {
+    file.header.forEach(headerLine => {
+      const headerRow = document.createElement('div');
+      headerRow.className = 'diff-split-header';
+      headerRow.textContent = headerLine;
+      splitView.appendChild(headerRow);
+    });
+    
+    file.hunks.forEach(hunk => {
+      const hunkRow = document.createElement('div');
+      hunkRow.className = 'diff-split-hunk';
+      hunkRow.textContent = hunk.header;
+      splitView.appendChild(hunkRow);
+      
+      const changes = [];
+      let i = 0;
+      while (i < hunk.lines.length) {
+        const line = hunk.lines[i];
+        if (line.startsWith('-')) {
+          const delLines = [line];
+          let j = i + 1;
+          while (j < hunk.lines.length && hunk.lines[j].startsWith('-')) {
+            delLines.push(hunk.lines[j]);
+            j++;
+          }
+          const addLines = [];
+          while (j < hunk.lines.length && hunk.lines[j].startsWith('+')) {
+            addLines.push(hunk.lines[j]);
+            j++;
+          }
+          changes.push({ type: 'change', delLines, addLines });
+          i = j;
+        } else if (line.startsWith('+')) {
+          const addLines = [line];
+          let j = i + 1;
+          while (j < hunk.lines.length && hunk.lines[j].startsWith('+')) {
+            addLines.push(hunk.lines[j]);
+            j++;
+          }
+          changes.push({ type: 'add', addLines });
+          i = j;
+        } else {
+          changes.push({ type: 'context', line });
+          i++;
+        }
+      }
+      
+      changes.forEach(change => {
+        if (change.type === 'context') {
+          const row = document.createElement('div');
+          row.className = 'diff-split-row';
+          const left = document.createElement('div');
+          left.className = 'diff-split-cell';
+          left.textContent = change.line || ' ';
+          const right = document.createElement('div');
+          right.className = 'diff-split-cell';
+          right.textContent = change.line || ' ';
+          row.appendChild(left);
+          row.appendChild(right);
+          splitView.appendChild(row);
+        } else if (change.type === 'add') {
+          change.addLines.forEach(addLine => {
+            const row = document.createElement('div');
+            row.className = 'diff-split-row';
+            const left = document.createElement('div');
+            left.className = 'diff-split-cell diff-split-empty';
+            const right = document.createElement('div');
+            right.className = 'diff-split-cell diff-split-add';
+            right.textContent = addLine;
+            row.appendChild(left);
+            row.appendChild(right);
+            splitView.appendChild(row);
+          });
+        } else if (change.type === 'change') {
+          const maxLen = Math.max(change.delLines.length, change.addLines.length);
+          for (let k = 0; k < maxLen; k++) {
+            const row = document.createElement('div');
+            row.className = 'diff-split-row';
+            const left = document.createElement('div');
+            left.className = 'diff-split-cell';
+            const right = document.createElement('div');
+            right.className = 'diff-split-cell';
+            
+            if (k < change.delLines.length) {
+              const delLine = change.delLines[k].slice(1);
+              if (k < change.addLines.length) {
+                const addLine = change.addLines[k].slice(1);
+                const { oldResult, newResult } = wordDiff(delLine, addLine);
+                
+                left.className = 'diff-split-cell diff-split-del';
+                oldResult.forEach(part => {
+                  const span = document.createElement('span');
+                  if (part.type === 'del') span.className = 'diff-word-del';
+                  span.textContent = part.text;
+                  left.appendChild(span);
+                });
+                
+                right.className = 'diff-split-cell diff-split-add';
+                newResult.forEach(part => {
+                  const span = document.createElement('span');
+                  if (part.type === 'add') span.className = 'diff-word-add';
+                  span.textContent = part.text;
+                  right.appendChild(span);
+                });
+              } else {
+                left.className = 'diff-split-cell diff-split-del';
+                left.textContent = change.delLines[k];
+                right.className = 'diff-split-cell diff-split-empty';
+              }
+            } else {
+              left.className = 'diff-split-cell diff-split-empty';
+              right.className = 'diff-split-cell diff-split-add';
+              right.textContent = change.addLines[k];
+            }
+            
+            row.appendChild(left);
+            row.appendChild(right);
+            splitView.appendChild(row);
+          }
+        }
+      });
+    });
+  });
+  
+  container.appendChild(splitView);
 }
 
 // ── Diff toggle ────────────────────────────────────────────────────────────
