@@ -747,7 +747,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 
 
 
-/* ── Agent Log Sidebar ── */
+/* ── Activity Log ── */
 #log-sidebar {
   position: fixed;
   top: var(--header-h);
@@ -787,7 +787,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 #log-sidebar-body:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 #log-entries { display: flex; flex-direction: column; gap: 6px; }
 .log-entry {
-  padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px;
+  padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-md);
   background: var(--bg); animation: fadeIn 0.3s ease;
   transition: border-color 0.15s;
 }
@@ -808,6 +808,14 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .log-entry[data-action="update_card"] .log-entry-action { background: rgba(37,99,235,0.14); color: #2563eb; }
 .log-entry[data-action="delete_card"] .log-entry-action { background: rgba(220,38,38,0.14); color: #dc2626; }
 .log-entry[data-action="add_card_note"] .log-entry-action { background: rgba(59,130,246,0.14); color: #3b82f6; }
+/* Color agent lifecycle chips. */
+.log-entry[data-action="agent_started"] .log-entry-action { background: rgba(59,130,246,0.14); color: #3b82f6; }
+.log-entry[data-action="agent_completed"] .log-entry-action { background: rgba(22,163,74,0.14); color: #16a34a; }
+.log-entry[data-action="agent_failed"] .log-entry-action,
+.log-entry[data-action="agent_spawn_failed"] .log-entry-action { background: rgba(220,38,38,0.14); color: #dc2626; }
+.log-entry[data-action="agent_warning"] .log-entry-action { background: rgba(217,119,6,0.14); color: #d97706; }
+.log-entry[data-action="agent_queued"] .log-entry-action,
+.log-entry[data-action="agent_dequeued"] .log-entry-action { background: var(--border); color: var(--text-muted); }
 .log-entry-agent { font-size: 10px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
 .log-entry-time { font-size: 10px; color: var(--text-muted); font-weight: 300; margin-left: auto; white-space: nowrap; }
 .log-entry-detail { font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.45; word-break: break-word; }
