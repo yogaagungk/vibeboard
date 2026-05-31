@@ -1590,10 +1590,12 @@ kbd {
 }
 .diff-expand-close:hover { background: var(--bg); color: var(--text); }
 .diff-expand-body {
-  padding: 0; overflow: auto; flex: 1;
+  padding: 0; flex: 1; min-height: 0;
+  overflow: hidden; display: flex; flex-direction: column;
 }
 .diff-expand-body .diff-view {
   font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6;
+  flex: 1; overflow: auto;
 }
 .diff-expand-body .diff-line { white-space: pre; padding: 0 16px; display: block; }
 .diff-expand-body .diff-line.add { background: rgba(22,163,74,0.1); color: #16a34a; }
@@ -1603,14 +1605,14 @@ kbd {
 /* ── VS Code-style split diff ── */
 .dsv {
   font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 20px;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
 }
 .dsv-file {
   background: var(--surface-2); border-bottom: 1px solid var(--border);
   padding: 5px 14px; font-size: 12px; font-weight: 500; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px;
-  transition: background 0.12s;
+  transition: background 0.12s; flex-shrink: 0;
 }
 .dsv-file:hover { background: var(--surface-3); }
 .dsv-arrow { font-size: 14px; color: var(--text-muted); flex-shrink: 0; line-height: 1; }
@@ -1619,16 +1621,16 @@ kbd {
   padding: 2px 14px; font-size: 11px; font-style: italic;
   color: #5b78c0; background: rgba(37,99,235,0.06);
   border-top: 1px solid rgba(37,99,235,0.12); border-bottom: 1px solid rgba(37,99,235,0.12);
+  white-space: nowrap;
 }
-/* Two-pane layout: each pane scrolls as one unit, one scrollbar per pane */
-.dsv-split { display: flex; }
-.dsv-pane { flex: 1; min-width: 0; overflow-x: auto; }
+/* Two-pane layout — panes fill dialog height so scrollbars are always visible */
+.dsv-split { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.dsv-pane { flex: 1; min-width: 0; overflow: auto; } /* both axes */
 .dsv-pane-r { border-left: 2px solid var(--border); }
 /* Row = one line of code within a pane */
 .dsv-row {
   display: flex; align-items: center; min-height: 20px;
-  border-bottom: 1px solid var(--border);
-  min-width: max-content; /* lets the pane determine scroll width */
+  min-width: max-content; /* pane horizontal scroll width = widest row */
 }
 .dsv-ln {
   min-width: 44px; padding: 0 8px; text-align: right;
