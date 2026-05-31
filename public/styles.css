@@ -1623,14 +1623,15 @@ kbd {
   border-top: 1px solid rgba(37,99,235,0.12); border-bottom: 1px solid rgba(37,99,235,0.12);
   white-space: nowrap;
 }
-/* Two-pane layout — panes fill dialog height so scrollbars are always visible */
-.dsv-split { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-.dsv-pane { flex: 1; min-width: 0; overflow: auto; } /* both axes */
-.dsv-pane-r { border-left: 2px solid var(--border); }
+/* Two-pane layout — single vertical scroll (right col), horizontal scroll per col */
+.dsv-layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.dsv-col { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.dsv-col-r { border-left: 2px solid var(--border); overflow-y: auto; }
+.dsv-col-inner { min-width: max-content; } /* all rows fill scroll width → backgrounds extend fully */
 /* Row = one line of code within a pane */
 .dsv-row {
   display: flex; align-items: center; min-height: 20px;
-  min-width: max-content; /* pane horizontal scroll width = widest row */
+  width: 100%; /* fills col-inner so row background covers full scroll width */
 }
 .dsv-ln {
   min-width: 44px; padding: 0 8px; text-align: right;

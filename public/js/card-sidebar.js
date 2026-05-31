@@ -1017,44 +1017,73 @@ function renderSplitDiff(container, diffStr) {
   const view = document.createElement('div');
   view.className = 'dsv';
 
+  // Two global columns spanning all files — single vertical scroll on right, horizontal per pane
+  const layout = document.createElement('div');
+  layout.className = 'dsv-layout';
+
+  const leftCol = document.createElement('div');
+  leftCol.className = 'dsv-col dsv-col-l';
+  const leftInner = document.createElement('div');
+  leftInner.className = 'dsv-col-inner';
+  leftCol.appendChild(leftInner);
+
+  const rightCol = document.createElement('div');
+  rightCol.className = 'dsv-col dsv-col-r';
+  const rightInner = document.createElement('div');
+  rightInner.className = 'dsv-col-inner';
+  rightCol.appendChild(rightInner);
+
+  layout.appendChild(leftCol);
+  layout.appendChild(rightCol);
+  view.appendChild(layout);
+
   files.forEach(file => {
-    // File bar with collapse toggle
-    const fbar = document.createElement('div');
-    fbar.className = 'dsv-file';
-    const arrow = document.createElement('span');
-    arrow.className = 'dsv-arrow'; arrow.textContent = '▾';
-    const fname = document.createElement('span');
-    fname.textContent = diffFilename(file.header);
-    fbar.appendChild(arrow); fbar.appendChild(fname);
-    view.appendChild(fbar);
+    const mkFileBar = () => {
+      const fbar = document.createElement('div');
+      fbar.className = 'dsv-file';
+      const arrow = document.createElement('span');
+      arrow.className = 'dsv-arrow'; arrow.textContent = '▾';
+      const fname = document.createElement('span');
+      fname.textContent = diffFilename(file.header);
+      fbar.appendChild(arrow); fbar.appendChild(fname);
+      return { fbar, arrow };
+    };
 
-    // Two panes side-by-side — each pane scrolls horizontally as one unit
-    const split = document.createElement('div');
-    split.className = 'dsv-split';
-    const lp = document.createElement('div'); lp.className = 'dsv-pane dsv-pane-l';
-    const rp = document.createElement('div'); rp.className = 'dsv-pane dsv-pane-r';
-    split.appendChild(lp); split.appendChild(rp);
-    view.appendChild(split);
+    const { fbar: lbar, arrow: larrow } = mkFileBar();
+    const { fbar: rbar, arrow: rarrow } = mkFileBar();
 
-    fbar.addEventListener('click', () => {
-      const c = split.classList.toggle('dsv-body-collapsed');
-      arrow.textContent = c ? '▸' : '▾';
-    });
+    const lbody = document.createElement('div');
+    lbody.className = 'dsv-file-body';
+    const rbody = document.createElement('div');
+    rbody.className = 'dsv-file-body';
+
+    const toggleCollapse = () => {
+      const c = lbody.classList.toggle('dsv-body-collapsed');
+      rbody.classList.toggle('dsv-body-collapsed', c);
+      larrow.textContent = c ? '▸' : '▾';
+      rarrow.textContent = c ? '▸' : '▾';
+    };
+    lbar.addEventListener('click', toggleCollapse);
+    rbar.addEventListener('click', toggleCollapse);
+
+    leftInner.appendChild(lbar);
+    leftInner.appendChild(lbody);
+    rightInner.appendChild(rbar);
+    rightInner.appendChild(rbody);
 
     file.hunks.forEach(hunk => {
-      // Hunk header appears in both panes so rows stay aligned
       const mkHunk = () => {
         const h = document.createElement('div');
         h.className = 'dsv-hunk'; h.textContent = hunk.header; return h;
       };
-      lp.appendChild(mkHunk()); rp.appendChild(mkHunk());
+      lbody.appendChild(mkHunk()); rbody.appendChild(mkHunk());
 
       let [oLn, nLn] = hunkNums(hunk.header);
 
       groupHunk(hunk.lines).forEach(g => {
         if ('ctx' in g) {
-          lp.appendChild(makeDsvRow('ctx', oLn, ' ', [{ text: g.ctx }]));
-          rp.appendChild(makeDsvRow('ctx', nLn, ' ', [{ text: g.ctx }]));
+          lbody.appendChild(makeDsvRow('ctx', oLn, ' ', [{ text: g.ctx }]));
+          rbody.appendChild(makeDsvRow('ctx', nLn, ' ', [{ text: g.ctx }]));
           oLn++; nLn++;
         } else {
           const max = Math.max(g.del.length, g.add.length);
@@ -1062,27 +1091,35 @@ function renderSplitDiff(container, diffStr) {
             const hasDel = k < g.del.length, hasAdd = k < g.add.length;
             if (hasDel && hasAdd) {
               const { oldResult, newResult } = wordDiff(g.del[k], g.add[k]);
-              lp.appendChild(makeDsvRow('del', oLn++, '−',
+              lbody.appendChild(makeDsvRow('del', oLn++, '−',
                 oldResult.map(p => ({ text: p.text, mark: p.type === 'del' ? 'del' : null }))));
-              rp.appendChild(makeDsvRow('add', nLn++, '+',
+              rbody.appendChild(makeDsvRow('add', nLn++, '+',
                 newResult.map(p => ({ text: p.text, mark: p.type === 'add' ? 'add' : null }))));
             } else if (hasDel) {
-              lp.appendChild(makeDsvRow('del', oLn++, '−', [{ text: g.del[k] }]));
-              rp.appendChild(makeDsvRow('empty', '', '', null));
+              lbody.appendChild(makeDsvRow('del', oLn++, '−', [{ text: g.del[k] }]));
+              rbody.appendChild(makeDsvRow('empty', '', '', null));
             } else {
-              lp.appendChild(makeDsvRow('empty', '', '', null));
-              rp.appendChild(makeDsvRow('add', nLn++, '+', [{ text: g.add[k] }]));
+              lbody.appendChild(makeDsvRow('empty', '', '', null));
+              rbody.appendChild(makeDsvRow('add', nLn++, '+', [{ text: g.add[k] }]));
             }
           }
         }
       });
-
-      // Sync pane horizontal scroll
-      let busy = false;
-      lp.addEventListener('scroll', () => { if (!busy) { busy = true; rp.scrollLeft = lp.scrollLeft; busy = false; } }, { passive: true });
-      rp.addEventListener('scroll', () => { if (!busy) { busy = true; lp.scrollLeft = rp.scrollLeft; busy = false; } }, { passive: true });
     });
   });
+
+  // Single horizontal sync (left↔right) + vertical sync (right→left)
+  leftCol.addEventListener('scroll', () => {
+    rightCol.scrollLeft = leftCol.scrollLeft;
+  }, { passive: true });
+  rightCol.addEventListener('scroll', () => {
+    leftCol.scrollLeft = rightCol.scrollLeft;
+    leftCol.scrollTop = rightCol.scrollTop;
+  }, { passive: true });
+  // Forward vertical wheel on left pane to right pane (left has overflow-y: hidden)
+  leftCol.addEventListener('wheel', e => {
+    if (e.deltaY !== 0) rightCol.scrollTop += e.deltaY;
+  }, { passive: true });
 
   container.appendChild(view);
 }
