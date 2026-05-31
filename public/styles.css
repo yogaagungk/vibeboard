@@ -636,7 +636,11 @@ body.mcp-banner-open #log-sidebar {
 .col-count:hover { background: var(--bg); color: var(--text); }
 .col-count::after { content: '✎'; font-size: 9px; margin-left: 3px; opacity: 0; transition: opacity 0.15s; }
 .col-count:hover::after { opacity: 0.6; }
+.col-count.wip-set { background: var(--bg); color: var(--text); font-weight: 500; }
+.col-count.wip-set::after { content: '⚡'; font-size: 9px; margin-left: 2px; opacity: 0.5; }
+.col-count.wip-set:hover::after { opacity: 1; }
 .col-count.over { color: var(--danger); font-weight: 500; }
+.col-count.wip-set.over { background: rgba(220,38,38,0.10); color: var(--danger); }
 
 
 .cards-list {

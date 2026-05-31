@@ -112,8 +112,9 @@ function buildColumn(col) {
   const count = document.createElement('span'); count.className = 'col-count';
   const limit = Number.isInteger(col.wip_limit) && col.wip_limit > 0 ? col.wip_limit : null;
   count.textContent = limit ? `${col.cards.length}/${limit}` : col.cards.length;
+  if (limit) count.classList.add('wip-set');
   if (limit && col.cards.length > limit) count.classList.add('over');
-  count.title = 'Double-click to set a WIP limit';
+  count.title = limit ? `WIP limit: ${limit} cards` : 'Double-click to set a WIP limit';
   count.addEventListener('dblclick', async () => {
     const cur = limit ? String(limit) : '';
     const input = await vbPrompt(`Set a work-in-progress limit for "${col.title}". Leave blank to clear it.`, {
