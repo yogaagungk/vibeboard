@@ -559,8 +559,8 @@ function searchCards(workspaceId, filters = {}) {
   const params = [workspaceId];
 
   if (query) {
-    conditions.push('(c.title LIKE ? OR c.description LIKE ?)');
-    params.push(`%${query}%`, `%${query}%`);
+    conditions.push('(c.title LIKE ? OR c.description LIKE ? OR EXISTS (SELECT 1 FROM json_each(c.tags) WHERE json_each.value LIKE ?))');
+    params.push(`%${query}%`, `%${query}%`, `%${query}%`);
   }
 
   if (tag) {
