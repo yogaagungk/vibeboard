@@ -22,9 +22,10 @@ function routeSpawnAgent(cardId) {
 
 function routeStopAgent(cardId) {
   if (isHttpRunning()) {
-    if (isAgentActive(cardId)) stopAgent(cardId);
+    return isAgentActive(cardId) ? stopAgent(cardId, emitSSE) : false;
   } else {
     fetch(`http://localhost:${PORT}/api/cards/${cardId}/stop`, { method: 'POST' }).catch(() => {});
+    return true;
   }
 }
 

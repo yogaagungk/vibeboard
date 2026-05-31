@@ -61,6 +61,17 @@ function connectSSE() {
         if (card) updateRunAgentBtn(card);
       }
     }
+    if (type === 'agent_cancelled') {
+      queuedCards.delete(data.cardId);
+      const entry = findCardEntry(data.cardId);
+      if (entry) { showToast(`Cancelled: "${entry.card.title}"`, 2000); }
+      renderBoard(board);
+      if (modalCardId === data.cardId) {
+        const col = board.columns.find(c => c.cards?.some(c2 => c2.id === data.cardId));
+        const card = col?.cards.find(c => c.id === data.cardId);
+        if (card) updateRunAgentBtn(card);
+      }
+    }
     if (type === 'agent_started') {
       runningCards.add(data.cardId);
       queuedCards.delete(data.cardId);

@@ -1354,11 +1354,44 @@ kbd {
   font-size: 10px; font-weight: 400; color: var(--text-muted); flex-shrink: 0;
 }
 
+.card-queued-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .card-queued-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: var(--radius-xs);
-  background: rgba(217,119,6,0.14); color: #d97706;
-  text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: #fef3c7;
+  color: #92400e;
+}
+.card-queued-pill::before {
+  content: '⏳ ';
+}
+
+.card-cancel-queue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.card-cancel-queue-btn:hover {
+  background: #fde68a;
+}
+.card-cancel-queue-btn:active {
+  background: #fcd34d;
 }
 .card-queued-pill::before {
   content: ''; width: 6px; height: 6px; border-radius: 50%;

@@ -434,12 +434,12 @@ function addAgentLog(workspaceId, agent, action, detail) {
   db.prepare('INSERT INTO agent_log (id, workspace_id, timestamp, agent, action, detail) VALUES (?, ?, ?, ?, ?, ?)')
     .run(id, workspaceId, now, agent, action, detail);
 
-  // Cap at 500 rows per workspace — delete oldest beyond the limit
+  const logLimit = parseInt(process.env.VB_LOG_LIMIT || '', 10) || 500;
   db.prepare(`
     DELETE FROM agent_log WHERE workspace_id = ? AND id NOT IN (
-      SELECT id FROM agent_log WHERE workspace_id = ? ORDER BY timestamp DESC LIMIT 500
+      SELECT id FROM agent_log WHERE workspace_id = ? ORDER BY timestamp DESC LIMIT ?
     )
-  `).run(workspaceId, workspaceId);
+  `).run(workspaceId, workspaceId, logLimit);
 
   return { id, timestamp: now, agent, action, detail };
 }

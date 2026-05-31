@@ -1,10 +1,41 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 let cachedModels = {
   'claude-code': [],
   'opencode': [],
   'codex': [],
 };
+
+function getCacheFilePath() {
+  const { DATA_DIR } = require('./db');
+  return path.join(DATA_DIR, 'models-cache.json');
+}
+
+function loadCacheFromDisk() {
+  try {
+    const cacheFile = getCacheFilePath();
+    if (fs.existsSync(cacheFile)) {
+      const data = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      if (data && typeof data === 'object') {
+        cachedModels = { ...cachedModels, ...data };
+        process.stderr.write(`Models cache loaded from disk: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length})\n`);
+      }
+    }
+  } catch (err) {
+    process.stderr.write(`Failed to load models cache from disk: ${err.message}\n`);
+  }
+}
+
+function saveCacheToDisk() {
+  try {
+    const cacheFile = getCacheFilePath();
+    fs.writeFileSync(cacheFile, JSON.stringify(cachedModels, null, 2), 'utf8');
+  } catch (err) {
+    process.stderr.write(`Failed to save models cache to disk: ${err.message}\n`);
+  }
+}
 
 function isAgentInstalled(cmd) {
   try {
@@ -87,14 +118,32 @@ function refreshAvailableModels() {
 
   process.stderr.write(`Models refreshed: Claude (${cachedModels['claude-code'].length}), OpenCode (${cachedModels['opencode'].length}), Codex (${cachedModels['codex'].length})\n`);
 
+  saveCacheToDisk();
+
   return cachedModels;
+}
+
+function refreshAvailableModelsAsync() {
+  setImmediate(() => {
+    try {
+      refreshAvailableModels();
+    } catch (err) {
+      process.stderr.write(`Background model refresh failed: ${err.message}\n`);
+    }
+  });
 }
 
 function getAvailableModels() {
   return cachedModels;
 }
 
-refreshAvailableModels();
+loadCacheFromDisk();
+
+if (cachedModels['claude-code'].length === 0 && cachedModels['opencode'].length === 0 && cachedModels['codex'].length === 0) {
+  refreshAvailableModels();
+} else {
+  refreshAvailableModelsAsync();
+}
 
 module.exports = {
   refreshAvailableModels,
