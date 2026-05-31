@@ -295,11 +295,33 @@ function buildCard(card, colId) {
     dot.title = 'Agent running…';
     metaRow.appendChild(dot);
   } else if (queuedCards.has(card.id)) {
+    const queueWrap = document.createElement('span');
+    queueWrap.className = 'card-queued-wrap';
+    
     const q = document.createElement('span');
     q.className = 'card-queued-pill';
     q.textContent = 'queued';
     q.title = 'Agent queued - waiting for a free slot';
-    metaRow.appendChild(q);
+    queueWrap.appendChild(q);
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'card-cancel-queue-btn';
+    cancelBtn.textContent = '×';
+    cancelBtn.title = 'Cancel queued agent';
+    cancelBtn.onclick = async function(e) {
+      e.stopPropagation();
+      if (!confirm('Cancel this queued agent?')) return;
+      try {
+        const res = await fetch('/api/cards/' + card.id + '/stop', { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to cancel agent');
+        showToast('Agent cancelled', 2000);
+      } catch (err) {
+        showToast('Failed to cancel agent: ' + err.message, 3000, 'error');
+      }
+    };
+    queueWrap.appendChild(cancelBtn);
+    
+    metaRow.appendChild(queueWrap);
   } else if (card.last_exit_code !== null && card.last_exit_code !== undefined) {
     const ok = card.last_exit_code === 0;
     const rs = document.createElement('span');

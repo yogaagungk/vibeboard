@@ -338,4 +338,23 @@ module.exports = function registerMcpTools(mcp) {
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
   );
+
+  mcp.tool('cancel_agent', 'Cancel a queued or running agent for a card',
+    { cardId: z.string() },
+    async ({ cardId }) => {
+      try {
+        const card = db.getCard(cardId);
+        if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
+        
+        const stopped = routeStopAgent(cardId);
+        if (stopped) {
+          db.addCardNote(cardId, 'Agent cancelled by user.');
+          emitSSE('board_update', db.getBoard(card.workspace_id));
+          return { content: [{ type: 'text', text: JSON.stringify({ cancelled: true, cardId }) }] };
+        } else {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: 'No agent running or queued for this card' }) }] };
+        }
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
 };
