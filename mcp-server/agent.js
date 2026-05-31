@@ -244,18 +244,29 @@ Use the vibeboard MCP tools: get_board to read state, add_card_note often to log
 }
 
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {
-  const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
-  fs.writeFileSync(promptFile, prompt, 'utf8');
-
-  const cmd = buildShellCmd(agentType, promptFile, model);
   const outStream = fs.createWriteStream(outputFile, { flags: 'w' });
+  let child;
 
-  const child = spawn(cmd, [], {
-    cwd: workspaceDir,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-    shell: true,
-  });
+  if (agentType === 'command-code') {
+    const args = ['-p', prompt, '--yolo', '--skip-onboarding'];
+    if (model && isSafeModel(model)) args.push('--model', model);
+    child = spawn('command-code', args, {
+      cwd: workspaceDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+      windowsHide: true,
+    });
+  } else {
+    const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
+    fs.writeFileSync(promptFile, prompt, 'utf8');
+    const cmd = buildShellCmd(agentType, promptFile, model);
+    child = spawn(cmd, [], {
+      cwd: workspaceDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      shell: true,
+    });
+  }
 
   if (child.pid) writePid(cardId, child.pid);
 
@@ -264,8 +275,10 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
 
   child.on('close', (code) => {
     outStream.end();
-    try { fs.unlinkSync(promptFile); } catch (_) {}
-    // Clear the timeout immediately so it doesn't accumulate if the notify fetch fails.
+    if (agentType !== 'command-code') {
+      const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
+      try { fs.unlinkSync(promptFile); } catch (_) {}
+    }
     const agentInfo = activeAgents.get(cardId);
     if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
     removePid(cardId);
@@ -279,7 +292,10 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
   child.on('error', (err) => {
     outStream.write(`\n[error: ${err.message}]\n`);
     outStream.end();
-    try { fs.unlinkSync(promptFile); } catch (_) {}
+    if (agentType !== 'command-code') {
+      const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
+      try { fs.unlinkSync(promptFile); } catch (_) {}
+    }
     const agentInfo = activeAgents.get(cardId);
     if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
     removePid(cardId);

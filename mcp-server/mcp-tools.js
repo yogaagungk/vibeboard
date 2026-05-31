@@ -118,7 +118,7 @@ module.exports = function registerMcpTools(mcp) {
   });
 
   mcp.tool('create_card', 'Create a new card in a column (default: Backlog). blocked_by takes card IDs that must reach Done before this card can move to In Progress.',
-    { title: z.string(), workspaceId: z.string().optional(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
+    { title: z.string(), workspaceId: z.string().optional(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional() },
     async ({ title, workspaceId, columnTitle = 'Backlog', tags = [], description, agent, model, priority, due_date, blocked_by }) => {
       try {
         const activeId = workspaceId || db.getActiveWorkspaceId();
@@ -144,7 +144,7 @@ module.exports = function registerMcpTools(mcp) {
   );
 
   mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, priority, due_date, requires_review, custom_prompt, blocked_by, or merged_at",
-    { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional(), requires_review: z.boolean().optional(), custom_prompt: z.string().optional(), merged_at: z.string().datetime().nullable().optional() },
+    { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional(), requires_review: z.boolean().optional(), custom_prompt: z.string().optional(), merged_at: z.string().datetime().nullable().optional() },
     async ({ cardId, title, description, tags, agent, model, priority, due_date, blocked_by, requires_review, custom_prompt, merged_at }) => {
       try {
         const card = db.getCard(cardId);
@@ -308,7 +308,7 @@ module.exports = function registerMcpTools(mcp) {
   });
 
   mcp.tool('list_models', 'List available models for each agent type, optionally filtered by agent',
-    { agent: z.enum(['claude-code', 'opencode', 'codex']).optional() },
+    { agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code']).optional() },
     async ({ agent }) => {
       try {
         const all = models.getAvailableModels();
@@ -335,7 +335,7 @@ module.exports = function registerMcpTools(mcp) {
   );
 
   mcp.tool('list_cards', 'List cards with optional filters (more efficient than get_board for finding card IDs)',
-    { columnTitle: z.string().optional(), tag: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex']).optional(), workspaceId: z.string().optional(), limit: z.number().int().positive().optional(), offset: z.number().int().nonnegative().optional() },
+    { columnTitle: z.string().optional(), tag: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code']).optional(), workspaceId: z.string().optional(), limit: z.number().int().positive().optional(), offset: z.number().int().nonnegative().optional() },
     async ({ columnTitle, tag, agent, workspaceId, limit = 50, offset = 0 }) => {
       try {
         const activeId = workspaceId || db.getActiveWorkspaceId();
