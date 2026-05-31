@@ -964,42 +964,24 @@ function wordDiff(a, b) {
   return { oldResult: oR, newResult: nR };
 }
 
-function makeDsvCell(type, ln, sign, parts) {
-  const cell = document.createElement('div');
-  cell.className = 'dsv-cell dsv-' + type;
-
-  // inner wrapper grows to max-content so the cell can scroll horizontally
-  const inner = document.createElement('div');
-  inner.className = 'dsv-inner';
-
+function makeDsvRow(type, ln, sign, parts) {
+  const row = document.createElement('div');
+  row.className = 'dsv-row dsv-' + type;
   const lnEl = document.createElement('span');
-  lnEl.className = 'dsv-ln';
-  lnEl.textContent = ln !== '' ? String(ln) : '';
-
+  lnEl.className = 'dsv-ln'; lnEl.textContent = ln !== '' ? String(ln) : '';
   const signEl = document.createElement('span');
-  signEl.className = 'dsv-sign';
-  signEl.textContent = sign;
-
+  signEl.className = 'dsv-sign'; signEl.textContent = sign;
   const codeEl = document.createElement('span');
   codeEl.className = 'dsv-code';
-  if (parts) {
-    for (const p of parts) {
-      if (p.mark) {
-        const s = document.createElement('span');
-        s.className = 'dsv-w-' + p.mark;
-        s.textContent = p.text;
-        codeEl.appendChild(s);
-      } else {
-        codeEl.appendChild(document.createTextNode(p.text));
-      }
-    }
+  if (parts) for (const p of parts) {
+    if (p.mark) {
+      const s = document.createElement('span');
+      s.className = 'dsv-w-' + p.mark; s.textContent = p.text;
+      codeEl.appendChild(s);
+    } else codeEl.appendChild(document.createTextNode(p.text));
   }
-
-  inner.appendChild(lnEl);
-  inner.appendChild(signEl);
-  inner.appendChild(codeEl);
-  cell.appendChild(inner);
-  return cell;
+  row.appendChild(lnEl); row.appendChild(signEl); row.appendChild(codeEl);
+  return row;
 }
 
 function renderDiffInto(container, diffStr) {
@@ -1036,6 +1018,7 @@ function renderSplitDiff(container, diffStr) {
   view.className = 'dsv';
 
   files.forEach(file => {
+    // File bar with collapse toggle
     const fbar = document.createElement('div');
     fbar.className = 'dsv-file';
     const arrow = document.createElement('span');
@@ -1045,70 +1028,63 @@ function renderSplitDiff(container, diffStr) {
     fbar.appendChild(arrow); fbar.appendChild(fname);
     view.appendChild(fbar);
 
-    const fbody = document.createElement('div');
-    fbody.className = 'dsv-body';
-    view.appendChild(fbody);
+    // Two panes side-by-side — each pane scrolls horizontally as one unit
+    const split = document.createElement('div');
+    split.className = 'dsv-split';
+    const lp = document.createElement('div'); lp.className = 'dsv-pane dsv-pane-l';
+    const rp = document.createElement('div'); rp.className = 'dsv-pane dsv-pane-r';
+    split.appendChild(lp); split.appendChild(rp);
+    view.appendChild(split);
 
     fbar.addEventListener('click', () => {
-      const collapsed = fbody.classList.toggle('dsv-body-collapsed');
-      arrow.textContent = collapsed ? '▸' : '▾';
+      const c = split.classList.toggle('dsv-body-collapsed');
+      arrow.textContent = c ? '▸' : '▾';
     });
 
     file.hunks.forEach(hunk => {
-      const hbar = document.createElement('div');
-      hbar.className = 'dsv-hunk';
-      hbar.textContent = hunk.header;
-      fbody.appendChild(hbar);
+      // Hunk header appears in both panes so rows stay aligned
+      const mkHunk = () => {
+        const h = document.createElement('div');
+        h.className = 'dsv-hunk'; h.textContent = hunk.header; return h;
+      };
+      lp.appendChild(mkHunk()); rp.appendChild(mkHunk());
 
       let [oLn, nLn] = hunkNums(hunk.header);
 
       groupHunk(hunk.lines).forEach(g => {
         if ('ctx' in g) {
-          const row = document.createElement('div'); row.className = 'dsv-row';
-          row.appendChild(makeDsvCell('ctx', oLn, ' ', [{ text: g.ctx }]));
-          row.appendChild(makeDsvCell('ctx', nLn, ' ', [{ text: g.ctx }]));
+          lp.appendChild(makeDsvRow('ctx', oLn, ' ', [{ text: g.ctx }]));
+          rp.appendChild(makeDsvRow('ctx', nLn, ' ', [{ text: g.ctx }]));
           oLn++; nLn++;
-          fbody.appendChild(row); return;
-        }
-        const max = Math.max(g.del.length, g.add.length);
-        for (let k = 0; k < max; k++) {
-          const hasDel = k < g.del.length, hasAdd = k < g.add.length;
-          const row = document.createElement('div'); row.className = 'dsv-row';
-          if (hasDel && hasAdd) {
-            const { oldResult, newResult } = wordDiff(g.del[k], g.add[k]);
-            row.appendChild(makeDsvCell('del', oLn++, '−',
-              oldResult.map(p => ({ text: p.text, mark: p.type === 'del' ? 'del' : null }))));
-            row.appendChild(makeDsvCell('add', nLn++, '+',
-              newResult.map(p => ({ text: p.text, mark: p.type === 'add' ? 'add' : null }))));
-          } else if (hasDel) {
-            row.appendChild(makeDsvCell('del', oLn++, '−', [{ text: g.del[k] }]));
-            row.appendChild(makeDsvCell('empty', '', '', null));
-          } else {
-            row.appendChild(makeDsvCell('empty', '', '', null));
-            row.appendChild(makeDsvCell('add', nLn++, '+', [{ text: g.add[k] }]));
+        } else {
+          const max = Math.max(g.del.length, g.add.length);
+          for (let k = 0; k < max; k++) {
+            const hasDel = k < g.del.length, hasAdd = k < g.add.length;
+            if (hasDel && hasAdd) {
+              const { oldResult, newResult } = wordDiff(g.del[k], g.add[k]);
+              lp.appendChild(makeDsvRow('del', oLn++, '−',
+                oldResult.map(p => ({ text: p.text, mark: p.type === 'del' ? 'del' : null }))));
+              rp.appendChild(makeDsvRow('add', nLn++, '+',
+                newResult.map(p => ({ text: p.text, mark: p.type === 'add' ? 'add' : null }))));
+            } else if (hasDel) {
+              lp.appendChild(makeDsvRow('del', oLn++, '−', [{ text: g.del[k] }]));
+              rp.appendChild(makeDsvRow('empty', '', '', null));
+            } else {
+              lp.appendChild(makeDsvRow('empty', '', '', null));
+              rp.appendChild(makeDsvRow('add', nLn++, '+', [{ text: g.add[k] }]));
+            }
           }
-          fbody.appendChild(row);
         }
       });
+
+      // Sync pane horizontal scroll
+      let busy = false;
+      lp.addEventListener('scroll', () => { if (!busy) { busy = true; rp.scrollLeft = lp.scrollLeft; busy = false; } }, { passive: true });
+      rp.addEventListener('scroll', () => { if (!busy) { busy = true; lp.scrollLeft = rp.scrollLeft; busy = false; } }, { passive: true });
     });
   });
 
   container.appendChild(view);
-
-  // Sync horizontal scroll: all left cells move together, all right cells move together
-  requestAnimationFrame(() => {
-    const rows = view.querySelectorAll('.dsv-row');
-    const lefts = [], rights = [];
-    rows.forEach(r => { lefts.push(r.children[0]); rights.push(r.children[1]); });
-    let busy = false;
-    function sync(cells, sl) {
-      if (busy) return; busy = true;
-      cells.forEach(c => { if (c) c.scrollLeft = sl; });
-      busy = false;
-    }
-    lefts.forEach(c  => c && c.addEventListener('scroll', e => sync(lefts,  e.target.scrollLeft), { passive: true }));
-    rights.forEach(c => c && c.addEventListener('scroll', e => sync(rights, e.target.scrollLeft), { passive: true }));
-  });
 }
 
 // ── Diff toggle ────────────────────────────────────────────────────────────

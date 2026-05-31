@@ -1620,25 +1620,26 @@ kbd {
   color: #5b78c0; background: rgba(37,99,235,0.06);
   border-top: 1px solid rgba(37,99,235,0.12); border-bottom: 1px solid rgba(37,99,235,0.12);
 }
-.dsv-row { display: flex; border-bottom: 1px solid var(--border); min-height: 20px; }
-.dsv-cell { display: block; width: 50%; min-width: 0; overflow-x: auto; }
-.dsv-cell + .dsv-cell { border-left: 2px solid var(--border); }
-.dsv-inner {
-  display: flex; align-items: center;
-  min-width: max-content; min-height: 20px;
+/* Two-pane layout: each pane scrolls as one unit, one scrollbar per pane */
+.dsv-split { display: flex; }
+.dsv-pane { flex: 1; min-width: 0; overflow-x: auto; }
+.dsv-pane-r { border-left: 2px solid var(--border); }
+/* Row = one line of code within a pane */
+.dsv-row {
+  display: flex; align-items: center; min-height: 20px;
+  border-bottom: 1px solid var(--border);
+  min-width: max-content; /* lets the pane determine scroll width */
 }
 .dsv-ln {
   min-width: 44px; padding: 0 8px; text-align: right;
   color: var(--text-muted); background: var(--surface);
   font-size: 11px; user-select: none; flex-shrink: 0;
   border-right: 1px solid var(--border); opacity: 0.65;
-  display: flex; align-items: center; justify-content: flex-end;
-  align-self: stretch;
+  align-self: stretch; display: flex; align-items: center; justify-content: flex-end;
 }
 .dsv-sign {
   min-width: 20px; padding: 0 3px; text-align: center;
   font-weight: 700; user-select: none; flex-shrink: 0; font-size: 13px;
-  display: flex; align-items: center; justify-content: center;
 }
 .dsv-code { padding: 0 10px; white-space: pre; }
 /* Cell states */
