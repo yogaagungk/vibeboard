@@ -968,15 +968,17 @@ function makeDsvCell(type, ln, sign, parts) {
   const cell = document.createElement('div');
   cell.className = 'dsv-cell dsv-' + type;
 
+  // inner wrapper grows to max-content so the cell can scroll horizontally
+  const inner = document.createElement('div');
+  inner.className = 'dsv-inner';
+
   const lnEl = document.createElement('span');
   lnEl.className = 'dsv-ln';
   lnEl.textContent = ln !== '' ? String(ln) : '';
-  cell.appendChild(lnEl);
 
   const signEl = document.createElement('span');
   signEl.className = 'dsv-sign';
   signEl.textContent = sign;
-  cell.appendChild(signEl);
 
   const codeEl = document.createElement('span');
   codeEl.className = 'dsv-code';
@@ -992,7 +994,11 @@ function makeDsvCell(type, ln, sign, parts) {
       }
     }
   }
-  cell.appendChild(codeEl);
+
+  inner.appendChild(lnEl);
+  inner.appendChild(signEl);
+  inner.appendChild(codeEl);
+  cell.appendChild(inner);
   return cell;
 }
 
@@ -1088,6 +1094,21 @@ function renderSplitDiff(container, diffStr) {
   });
 
   container.appendChild(view);
+
+  // Sync horizontal scroll: all left cells move together, all right cells move together
+  requestAnimationFrame(() => {
+    const rows = view.querySelectorAll('.dsv-row');
+    const lefts = [], rights = [];
+    rows.forEach(r => { lefts.push(r.children[0]); rights.push(r.children[1]); });
+    let busy = false;
+    function sync(cells, sl) {
+      if (busy) return; busy = true;
+      cells.forEach(c => { if (c) c.scrollLeft = sl; });
+      busy = false;
+    }
+    lefts.forEach(c  => c && c.addEventListener('scroll', e => sync(lefts,  e.target.scrollLeft), { passive: true }));
+    rights.forEach(c => c && c.addEventListener('scroll', e => sync(rights, e.target.scrollLeft), { passive: true }));
+  });
 }
 
 // ── Diff toggle ────────────────────────────────────────────────────────────
