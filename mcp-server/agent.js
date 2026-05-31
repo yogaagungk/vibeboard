@@ -126,12 +126,12 @@ function buildShellCmd(agentType, promptFile, model) {
   switch (agentType) {
     case 'claude-code':
       return win
-        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions${modelFlag}`
-        : `claude --print --dangerously-skip-permissions${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions --effort medium${modelFlag}`
+        : `claude --print --dangerously-skip-permissions --effort medium${modelFlag} < "${promptFile}"`;
     case 'opencode':
       return win
-        ? `powershell -NoProfile -NonInteractive -Command "opencode run --dangerously-skip-permissions${modelFlag} (Get-Content -Raw '${promptFile.replace(/'/g, "''")}')"`
-        : `opencode run --dangerously-skip-permissions${modelFlag} "$(cat '${promptFile.replace(/'/g, "'\\''")}')"`;
+        ? `type "${promptFile}" | opencode run --dangerously-skip-permissions${modelFlag}`
+        : `opencode run --dangerously-skip-permissions${modelFlag} < "${promptFile}"`;
     case 'codex':
       return win
         ? `type "${promptFile}" | codex --full-auto${modelFlag}`
