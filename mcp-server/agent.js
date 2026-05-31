@@ -244,7 +244,8 @@ function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
 - Add a progress note: POST http://localhost:${PORT}/api/cards/${card.id}/note   body: {"content":"your note"}
 - Move to a column:    POST http://localhost:${PORT}/api/cards/${card.id}/move    body: {"toColumnTitle":"Done"}
 - Complete the card:   POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
-Call these often to log progress, and call complete at the end.`
+Call these often to log progress, and call complete at the end.
+Do NOT run taste commands or create/update any taste.md files.`
     : `Use vibeboard MCP tools: add_card_note to log progress, move_card / complete_card to change status.`;
 
   return `Task on VibeBoard.
