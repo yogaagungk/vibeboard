@@ -115,7 +115,7 @@ function removeWorktree(workspacePath, worktreePath) {
 
 function getDiff(worktreePath, baseBranch) {
   try {
-    return execFileSync('git', ['diff', `${baseBranch}...HEAD`], {
+    return execFileSync('git', ['diff', `${baseBranch}..HEAD`], {
       cwd: worktreePath, maxBuffer: 5 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'ignore'],
     }).toString();
