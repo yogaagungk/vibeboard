@@ -63,19 +63,8 @@ function updateBoardProgress(b) {
   boardProgressText.textContent = `${done}/${total}`;
   boardProgressFill.style.width = Math.min(100, Math.max(0, Math.round((done / total) * 100))) + '%';
   boardProgressBtn.classList.toggle('complete', done === total);
-  boardProgressBtn.title = `${done} of ${total} cards done — click to jump to Done column`;
-  boardProgressBtn.disabled = !hasDone;
 }
 
-if (boardProgressBtn) {
-  boardProgressBtn.addEventListener('click', () => {
-    if (boardProgressBtn.disabled) return;
-    const doneCol = board?.columns?.find(c => c.title === 'Done');
-    if (!doneCol) return;
-    const el = document.querySelector(`.column[data-col-id="${doneCol.id}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-  });
-}
 
 // ── Card search ─────────────────────────────────────────────────────────────
 const searchInput = document.getElementById('board-search');
@@ -628,17 +617,21 @@ async function checkVersion() {
     badge.title = `VibeBoard v${v.current}`;
     if (v.updateAvailable && v.latest) {
       badge.classList.add('update');
-      badge.title = `Update available: v${v.current} → v${v.latest} - click to copy the upgrade command`;
-      if (label) label.hidden = false;
-      const cmd = `npm install -g ${v.package}@latest`;
-      badge.onclick = () => {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(cmd).then(
-            () => showToast(`Copied · ${cmd}`, 5000, 'success'),
-            () => showToast(`Upgrade with: ${cmd}`, 7000)
-          );
-        } else { showToast(`Upgrade with: ${cmd}`, 7000); }
-      };
+      badge.title = `v${v.current} installed`;
+      const cmd = `npm i -g ${v.package}@latest`;
+      if (label) {
+        label.hidden = false;
+        label.textContent = `v${v.latest} available — ${cmd}`;
+        label.title = 'Click to copy update command';
+        label.onclick = () => {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(cmd).then(
+              () => showToast(`Copied: ${cmd}`, 4000, 'success'),
+              () => showToast(`Run: ${cmd}`, 6000)
+            );
+          } else { showToast(`Run: ${cmd}`, 6000); }
+        };
+      }
     } else {
       if (label) label.hidden = true;
     }

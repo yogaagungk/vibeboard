@@ -22,14 +22,14 @@
   <div class="header-brand">
     <span class="header-wordmark">VibeBoard</span>
     <button id="version-badge" class="version-badge" type="button" title="Version">v-</button>
-    <span id="version-update-label" class="version-update-label" hidden aria-live="polite">Update available</span>
+    <button id="version-update-label" class="version-update-label" hidden aria-live="polite" title="Click to copy update command"></button>
   </div>
   <div id="conn-dot" title="SSE disconnected"></div>
   <div class="header-spacer"></div>
-  <button class="header-btn board-progress-btn" id="board-progress-btn" type="button" aria-label="Board progress" hidden>
+  <div class="board-progress-display" id="board-progress-btn" hidden>
     <span class="board-progress-text" id="board-progress-text"></span>
     <span class="board-progress-bar" aria-hidden="true"><span class="board-progress-fill" id="board-progress-fill"></span></span>
-  </button>
+  </div>
   <button class="header-btn" id="log-toggle-btn">Log</button>
   <button class="header-btn" id="mcp-btn">MCP</button>
   <button class="icon-btn" id="theme-btn" title="Switch theme" aria-label="Switch theme">☀</button>

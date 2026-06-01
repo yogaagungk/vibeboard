@@ -387,15 +387,16 @@ function openNewCardModal(colId) {
   
   renderTagPicker(document.getElementById('nc-tag-picker'), []);
   
+  const ncAgentOpts = [
+    { value: '', label: 'None' },
+    ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
+      const reason = agentUnavailableReason(k);
+      return { value: k, label: AGENT_LABELS[k] || k, disabled: !!reason, hint: reason || undefined };
+    }),
+  ];
   if (!window._ncAgentSelect) {
     window._ncAgentSelect = vbSelect({
-      options: [
-        { value: '', label: 'None' },
-        { value: 'claude-code', label: AGENT_LABELS['claude-code'] },
-        { value: 'opencode', label: AGENT_LABELS['opencode'] },
-        { value: 'codex', label: AGENT_LABELS['codex'] },
-        { value: 'command-code', label: AGENT_LABELS['command-code'] },
-      ],
+      options: ncAgentOpts,
       value: '',
       placeholder: 'Select agent',
       ariaLabel: 'Agent',
@@ -414,6 +415,7 @@ function openNewCardModal(colId) {
     });
     document.getElementById('nc-agent-mount').appendChild(window._ncAgentSelect.el);
   } else {
+    window._ncAgentSelect.setOptions(ncAgentOpts);
     window._ncAgentSelect.setValue('');
   }
   
