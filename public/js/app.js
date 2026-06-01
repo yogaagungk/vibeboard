@@ -160,6 +160,7 @@ async function init() {
   await loadBoard();
   loadContextPanel(activeWsId);
   if (typeof initFilters === 'function') initFilters();
+  if (typeof initSwimlaneControls === 'function') initSwimlaneControls();
 }
 
 init();

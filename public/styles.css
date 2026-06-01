@@ -2510,3 +2510,153 @@ select:focus-visible,
   background: var(--danger); border-color: var(--danger); color: #fff;
 }
 .vb-dialog-confirm-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; opacity: 0.88; }
+ 
+ 
+/* -- Swimlane view -- */
+.swimlane-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+}
+
+.swimlane {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.swimlane:last-child {
+  border-bottom: none;
+}
+
+.swimlane-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.swimlane-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.swimlane-title.tag-feature { background: var(--tag-feature); color: #fff; border-color: var(--tag-feature); }
+.swimlane-title.tag-bug { background: var(--tag-bug); color: #fff; border-color: var(--tag-bug); }
+.swimlane-title.tag-design { background: var(--tag-design); color: #fff; border-color: var(--tag-design); }
+.swimlane-title.tag-infra { background: var(--tag-infra); color: #fff; border-color: var(--tag-infra); }
+.swimlane-title.tag-docs { background: var(--tag-docs); color: #fff; border-color: var(--tag-docs); }
+.swimlane-title.tag-api { background: var(--tag-api); color: #fff; border-color: var(--tag-api); }
+
+.swimlane-title.priority-high { background: #dc2626; color: #fff; border-color: #dc2626; }
+.swimlane-title.priority-medium { background: #d97706; color: #fff; border-color: #d97706; }
+.swimlane-title.priority-low { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+.swimlane-title.agent-claude-code { background: #d97706; color: #fff; border-color: #d97706; }
+.swimlane-title.agent-opencode { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+.swimlane-title.agent-codex { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+.swimlane-title.agent-command-code { background: #0d9488; color: #fff; border-color: #0d9488; }
+
+.swimlane-columns {
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  overflow-x: auto;
+  min-height: 120px;
+}
+
+.swimlane-columns::-webkit-scrollbar { height: 8px; }
+.swimlane-columns::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.swimlane-columns:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
+
+.swimlane-column {
+  flex-shrink: 0;
+  width: var(--col-width);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.swimlane-col-header {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.swimlane-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 60px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.swimlane-cards-list.drag-over {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border-color: var(--accent);
+}
+
+.swimlane-cards-list:empty {
+  min-height: 80px;
+}
+
+#swimlane-group-selector {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.swimlane-group-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.swimlane-group-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.swimlane-group-btn.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--accent);
+  font-weight: 500;
+}
+
+#swimlane-toggle-btn.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--accent);
+  font-weight: 500;
+}
