@@ -105,6 +105,30 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
+  mcp.tool('list_templates', 'List card templates for a workspace',
+    { workspaceId: z.string().optional() },
+    async ({ workspaceId }) => {
+      try {
+        const id = workspaceId || db.getActiveWorkspaceId();
+        if (!id) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(db.listTemplates(id)) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
+
+  mcp.tool('create_template', 'Create a card template for repeatable tasks',
+    { name: z.string(), workspaceId: z.string().optional(), title_pattern: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.string().optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), custom_prompt: z.string().optional() },
+    async ({ name, workspaceId, title_pattern, tags, agent, model, priority, custom_prompt }) => {
+      try {
+        const id = workspaceId || db.getActiveWorkspaceId();
+        if (!id) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+        const tpl = db.createTemplate(id, name, { title_pattern, tags, agent, model, priority, custom_prompt });
+        emitSSE('templates_updated', { workspaceId: id, templates: db.listTemplates(id) });
+        return { content: [{ type: 'text', text: JSON.stringify(tpl) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
+
   mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.string(), workspaceId: z.string().optional() }, async ({ columnTitle, workspaceId }) => {
     try {
       const activeId = workspaceId || db.getActiveWorkspaceId();

@@ -13,24 +13,26 @@
 <body>
 
 <header id="header">
-  <div id="conn-dot" title="SSE disconnected"></div>
   <button class="icon-btn" id="sidebar-toggle-btn" title="Collapse sidebar" aria-label="Toggle workspace sidebar" aria-expanded="true">
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
       <rect x="2" y="3" width="12" height="10" rx="1.5"/><line x1="6.2" y1="3" x2="6.2" y2="13"/>
     </svg>
   </button>
   <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
-  <h1>VibeBoard</h1>
-  <button id="version-badge" class="version-badge" type="button" title="Version">v-</button>
-  <span id="version-update-label" class="version-update-label" hidden aria-live="polite">Update available</span>
+  <div class="header-brand">
+    <span class="header-wordmark">VibeBoard</span>
+    <button id="version-badge" class="version-badge" type="button" title="Version">v-</button>
+    <span id="version-update-label" class="version-update-label" hidden aria-live="polite">Update available</span>
+  </div>
+  <div id="conn-dot" title="SSE disconnected"></div>
   <div class="header-spacer"></div>
-  <button class="header-btn board-progress-btn" id="board-progress-btn" type="button" title="Click to jump to the Done column" aria-label="Board progress">
-    <span class="board-progress-text" id="board-progress-text">0 / 0 done (0%)</span>
+  <button class="header-btn board-progress-btn" id="board-progress-btn" type="button" aria-label="Board progress" hidden>
+    <span class="board-progress-text" id="board-progress-text"></span>
     <span class="board-progress-bar" aria-hidden="true"><span class="board-progress-fill" id="board-progress-fill"></span></span>
   </button>
-  <button class="header-btn" id="log-toggle-btn">Activity Log</button>
-  <button class="header-btn" id="mcp-btn">MCP Setup</button>
-  <button class="header-btn" id="theme-btn" title="Switch theme" style="min-width:32px;padding:0 10px">☀</button>
+  <button class="header-btn" id="log-toggle-btn">Log</button>
+  <button class="header-btn" id="mcp-btn">MCP</button>
+  <button class="icon-btn" id="theme-btn" title="Switch theme" aria-label="Switch theme">☀</button>
 </header>
 
 <div id="toast-container"></div>

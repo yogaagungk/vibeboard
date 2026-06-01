@@ -58,13 +58,12 @@ function updateBoardProgress(b) {
     total += n;
     if (col.title === 'Done') { hasDone = true; done += n; }
   });
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  boardProgressText.textContent = `${done} / ${total} done (${pct}%)`;
-  boardProgressFill.style.width = total > 0 ? Math.min(100, Math.max(0, pct)) + '%' : '0%';
-  boardProgressBtn.classList.toggle('complete', total > 0 && done === total);
-  boardProgressBtn.title = hasDone
-    ? `Click to jump to the Done column (${done} of ${total} cards complete)`
-    : `${done} of ${total} cards complete`;
+  if (total === 0) { boardProgressBtn.hidden = true; return; }
+  boardProgressBtn.hidden = false;
+  boardProgressText.textContent = `${done}/${total}`;
+  boardProgressFill.style.width = Math.min(100, Math.max(0, Math.round((done / total) * 100))) + '%';
+  boardProgressBtn.classList.toggle('complete', done === total);
+  boardProgressBtn.title = `${done} of ${total} cards done — click to jump to Done column`;
   boardProgressBtn.disabled = !hasDone;
 }
 
@@ -182,7 +181,7 @@ function buildColumn(col) {
     renderBoard(board); postBoard();
   });
 
-  hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(count); hdr.appendChild(wipBtn);
+  hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(wipBtn); hdr.appendChild(count);
   colEl.appendChild(hdr);
 
   const cardsList = document.createElement('div');

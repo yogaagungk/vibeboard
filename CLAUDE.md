@@ -84,6 +84,8 @@ get_agent_status   → check if an agent is running/queued for a card (params: c
 list_models        → list available models per agent type (params: agent?)
 refresh_models     → refresh the model cache from each agent's CLI (no params)
 search_cards       → search cards by query/tag/column/agent (params: query?, tag?, columnTitle?, agent?, workspaceId?, limit?, offset?)
+list_templates     → list card templates for a workspace (params: workspaceId?)
+create_template    → create a card template (params: name, workspaceId?, title_pattern?, tags?, agent?, model?, priority?, custom_prompt?)
 
 ## Agent spawning system
 
