@@ -140,8 +140,48 @@ function buildColumn(col) {
     renderBoard(board); postBoard();
   });
 
-  hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(count);
+  const collapseBtn = document.createElement("button");
+  collapseBtn.className = "col-collapse-btn";
+  collapseBtn.innerHTML = "\u25B6";
+  collapseBtn.setAttribute("aria-label", "Collapse column");
+  collapseBtn.title = "Collapse column";
+
+  const COL_COLLAPSE_KEY = "vb_col_collapsed_" + col.id;
+
+  function setCollapsed(collapsed) {
+    if (collapsed) {
+      colEl.classList.add("collapsed");
+      collapseBtn.innerHTML = "\u25C0";
+      collapseBtn.setAttribute("aria-label", "Expand column");
+      collapseBtn.title = "Expand column";
+    } else {
+      colEl.classList.remove("collapsed");
+      collapseBtn.innerHTML = "\u25B6";
+      collapseBtn.setAttribute("aria-label", "Collapse column");
+      collapseBtn.title = "Collapse column";
+    }
+  }
+
+  collapseBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    var next = !colEl.classList.contains("collapsed");
+    setCollapsed(next);
+    try { localStorage.setItem(COL_COLLAPSE_KEY, next ? "1" : "0"); } catch (_) {}
+  });
+
+  hdr.addEventListener("click", function(e) {
+    if (colEl.classList.contains("collapsed") && e.target !== collapseBtn) {
+      setCollapsed(false);
+      try { localStorage.setItem(COL_COLLAPSE_KEY, "0"); } catch (_) {}
+    }
+  });
+
+  hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(count); hdr.appendChild(collapseBtn);
   colEl.appendChild(hdr);
+
+  if (localStorage.getItem(COL_COLLAPSE_KEY) === "1") {
+    setCollapsed(true);
+  }
 
   const cardsList = document.createElement('div');
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
