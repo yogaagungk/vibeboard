@@ -830,6 +830,26 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .card:hover .card-del-btn { opacity: 1; }
 .card-del-btn:hover { background: var(--danger-bg); color: var(--danger); }
 
+/* ── Inline tag picker (hover + chip) ──*/
+.card-add-tag-btn {
+  font-size: 10px; font-weight: 500; padding: 0 6px; height: 18px;
+  border-radius: var(--radius-pill); border: 1px dashed var(--border);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  line-height: 1; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.card:hover .card-add-tag-btn { opacity: 1; }
+.card-add-tag-btn:hover { border-color: var(--text-muted); color: var(--text); border-style: solid; }
+
+.card-inline-tag-dropdown {
+  position: absolute; left: 8px; right: 8px; top: 100%; margin-top: 4px; z-index: 120;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md); padding: 6px;
+  display: flex; flex-wrap: wrap; gap: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
 /* ── Add card ── */
 .add-card-area { padding: 4px 8px 8px; flex-shrink: 0; }
 .add-card-trigger {
