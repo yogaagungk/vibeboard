@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-01
+
+### Added
+- **Landing page revamp** — full redesign matching the ClickUp-inspired design system: sticky white nav with inline SVG logo, centered hero with interactive board mockup (flex columns, colored accents, running-agent pulse), agent pills strip (Claude Code / OpenCode / Codex / Command Code), left-aligned feature/steps/terminal sections, dark terminal block, white CTA section, flat footer link row.
+
+### Fixed
+- **Board mockup overflow** — mockup columns changed from fixed `200px` to `flex: 1` so all four columns fill the container without a horizontal scrollbar.
+
+### Changed
+- Landing page tokens updated to match `styles.css` — `#7C3AED` accent, `#F4F5F8` bg, light/dark theme via `prefers-color-scheme`; all `font-weight: 300` removed, em dashes removed.
+
 ## [0.3.0] - 2026-06-01
 
 ### Added
