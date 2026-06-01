@@ -37,6 +37,44 @@ function renderBoard(b) {
   renderLog(board.agentLog || []);
   searchInput.value = currentSearchValue;
   applySearch();
+  updateBoardProgress(board);
+}
+
+// ── Board progress summary ──────────────────────────────────────────────────
+// At-a-glance "done / total" in the sticky header. Recomputed from the same
+// board object that drives the column render, so any change that flows through
+// renderBoard (initial load, SSE update, drag/move) refreshes it automatically.
+const boardProgressBtn  = document.getElementById('board-progress-btn');
+const boardProgressText = document.getElementById('board-progress-text');
+const boardProgressFill = document.getElementById('board-progress-fill');
+
+function updateBoardProgress(b) {
+  if (!boardProgressBtn || !boardProgressText || !boardProgressFill) return;
+  const cols = (b && b.columns) || [];
+  let total = 0, done = 0, hasDone = false;
+  cols.forEach(col => {
+    const n = (col.cards || []).length;
+    total += n;
+    if (col.title === 'Done') { hasDone = true; done += n; }
+  });
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  boardProgressText.textContent = `${done} / ${total} done (${pct}%)`;
+  boardProgressFill.style.width = total > 0 ? Math.min(100, Math.max(0, pct)) + '%' : '0%';
+  boardProgressBtn.classList.toggle('complete', total > 0 && done === total);
+  boardProgressBtn.title = hasDone
+    ? `Click to jump to the Done column (${done} of ${total} cards complete)`
+    : `${done} of ${total} cards complete`;
+  boardProgressBtn.disabled = !hasDone;
+}
+
+if (boardProgressBtn) {
+  boardProgressBtn.addEventListener('click', () => {
+    if (boardProgressBtn.disabled) return;
+    const doneCol = board?.columns?.find(c => c.title === 'Done');
+    if (!doneCol) return;
+    const el = document.querySelector(`.column[data-col-id="${doneCol.id}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+  });
 }
 
 // ── Card search ─────────────────────────────────────────────────────────────

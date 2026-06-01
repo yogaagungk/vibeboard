@@ -155,6 +155,32 @@ body {
 }
 .header-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
 
+/* Board-level progress summary in the sticky header. Shows a compact count
+   plus a slim bar; updates live via the same render path that paints cards. */
+.board-progress-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 10px 0 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  color: var(--text);
+}
+.board-progress-btn:hover { background: var(--bg); }
+.board-progress-btn:disabled { cursor: default; opacity: 0.6; }
+.board-progress-text { font-size: 11px; font-weight: 500; line-height: 1; }
+.board-progress-bar {
+  position: relative; flex: 0 0 auto;
+  width: 56px; height: 4px; border-radius: var(--radius-pill);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.board-progress-fill {
+  display: block; height: 100%; width: 0%;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.board-progress-btn.complete .board-progress-fill { background: #16a34a; }
+
 #sidebar-toggle-btn { width: 30px; height: 30px; }
 #sidebar-toggle-btn svg { opacity: 0.8; }
 
@@ -2181,6 +2207,9 @@ body.mcp-banner-open #sse-banner { top: calc(var(--header-h) + 41px); }
   #header { padding: 0 10px; gap: 6px; }
   .header-btn { font-size: 10px; height: 24px; padding: 0 6px; }
   .column { min-width: 220px; max-width: 220px; }
+  .board-progress-btn { padding: 0 6px 0 8px; gap: 5px; }
+  .board-progress-text { font-size: 10px; }
+  .board-progress-bar { width: 28px; }
 }
 
 /* ── Keyboard focus rings ── */
