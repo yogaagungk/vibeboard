@@ -1271,6 +1271,33 @@ document.getElementById('card-merge-btn').addEventListener('click', async functi
   }
 });
 
+document.getElementById('card-mark-merged-btn').addEventListener('click', async function() {
+  if (!modalCardId) return;
+  this.disabled = true;
+  const originalText = this.textContent;
+  this.textContent = 'Marking…';
+  try {
+    const resp = await fetch('/board', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_card',
+        cardId: modalCardId,
+        merged_at: new Date().toISOString()
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Failed to mark as merged');
+    showToast('Marked as merged', 3000, 'success');
+    this.disabled = false;
+    this.textContent = originalText;
+  } catch(err) {
+    showToast('Failed: ' + err.message, 3000, 'error');
+    this.disabled = false;
+    this.textContent = originalText;
+  }
+});
+
 // ── Discard changes ─────────────────────────────────────────────────────────
 document.getElementById('card-discard-btn').addEventListener('click', async function() {
   if (!modalCardId) return;
