@@ -317,8 +317,11 @@ body.sidebar-collapsed #header {
 }
 .sidebar-brand-icon { display: none; flex-shrink: 0; border-radius: 6px; overflow: hidden; }
 .sidebar-brand {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-width: 0; width: 100%;
+}
+.sidebar-brand-row {
   display: flex; align-items: center; gap: 8px;
-  flex-wrap: nowrap; min-width: 0; width: 100%;
 }
 .sidebar-wordmark {
   font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
@@ -327,12 +330,6 @@ body.sidebar-collapsed #header {
 #ws-sidebar-header .version-badge {
   font-size: 11px;
   padding: 4px 8px;
-}
-#ws-sidebar-header .version-update-label {
-  flex-shrink: 0;
-  padding: 3px 8px;
-  font-size: 10px;
-  margin-top: 0;
 }
 
 

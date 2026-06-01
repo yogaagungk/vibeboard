@@ -185,6 +185,9 @@ function buildColumn(col) {
 
   if (col.cards.length === 0) cardsList.dataset.empty = '';
 
+  // Must be in colEl before virtualizeColumn calls querySelector('.cards-list')
+  colEl.appendChild(cardsList);
+
   const reversedCards = [...col.cards].reverse();
   if (reversedCards.length >= VIRTUALIZE_THRESHOLD) {
     virtualizeColumn(colEl, reversedCards);
@@ -250,7 +253,6 @@ function buildColumn(col) {
     }
   });
 
-  colEl.appendChild(cardsList);
   const NO_ADD_COLS = ['In Progress', 'Review', 'Done'];
   if (NO_ADD_COLS.includes(col.title)) {
     const spacer = document.createElement('div'); spacer.className = 'add-card-spacer';

@@ -278,7 +278,7 @@ module.exports = function registerMcpTools(mcp) {
       const card = db.getCard(cardId);
       if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
 
-      routeStopAgent(cardId);
+      await routeStopAgent(cardId);
 
       db.deleteCard(cardId);
       db.addAgentLog(card.workspace_id, 'system', 'delete_card', `Deleted '${card.title}'`, cardId);
@@ -388,7 +388,7 @@ module.exports = function registerMcpTools(mcp) {
         const card = db.getCard(cardId);
         if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
         
-        const stopped = routeStopAgent(cardId);
+        const stopped = await routeStopAgent(cardId);
         if (stopped) {
           db.addCardNote(cardId, 'Agent cancelled by user.');
           emitSSE('board_update', db.getBoard(card.workspace_id));

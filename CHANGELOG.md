@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-06-02
+
+### Fixed
+- **Virtualized column blank at 100 cards** — columns with ≥100 cards showed a count badge but no cards. `virtualizeColumn` called `querySelector('.cards-list')` before the element was appended to the column, getting `null` and returning early. Fixed by moving `appendChild(cardsList)` before the virtualize/render branch.
+- **Running agents not stopped on card delete** — deleting a card via the UI (`postBoard` / `syncBoard`) never killed an active agent for that card; the process ran to completion, then `agentDone` tried to write notes and update a now-deleted card (silently failing due to FK violation). `syncBoard` now calls `routeStopAgent` for each card being removed. The MCP `delete_card` tool had the same race: `routeStopAgent` was fire-and-forget (no `await`) so the card was deleted before the stop landed; it is now awaited properly.
+- **"Update available" label wraps to its own row below version chip** — the update-available indicator now stays inline with the version badge instead of breaking to a new line.
+
 ## [0.3.2] - 2026-06-01
 
 ### Added

@@ -521,6 +521,14 @@ function _syncBoardImpl(workspaceId, columns) {
   const existingCards = existingRows.map(r => r.id);
   const incomingCardIds = columns.flatMap(c => (c.cards || []).map(card => card.id));
   const removedWorktrees = existingRows.filter(r => (r.worktree_path || r.branch) && !incomingCardIds.includes(r.id));
+  const removedCardIds = existingCards.filter(id => !incomingCardIds.includes(id));
+
+  // Stop running agents for cards about to be deleted so they don't orphan.
+  if (removedCardIds.length) {
+    let ar = null;
+    try { ar = require('./agent-routing'); } catch (_) {}
+    if (ar) for (const id of removedCardIds) ar.routeStopAgent(id);
+  }
 
   const sync = db.transaction(() => {
     // Update existing columns only (no create/delete — columns are fixed)
