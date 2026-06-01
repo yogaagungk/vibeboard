@@ -187,7 +187,7 @@ module.exports = function registerRoutes(app) {
     const card = db.getCard(req.params.cardId);
     if (!card) return res.status(404).json({ error: 'Card not found' });
     const note = db.addCardNote(card.id, req.body?.content || '');
-    db.addAgentLog(card.workspace_id, card.agent || 'system', 'add_note', `Added note to '${card.title}'`);
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'add_note', `Added note to '${card.title}'`, card.id);
     emitSSE('board_update', db.getBoard(card.workspace_id));
     res.json(note);
   });
@@ -200,7 +200,7 @@ module.exports = function registerRoutes(app) {
     const toColumn = board?.columns.find(c => c.title === toColumnTitle);
     if (!toColumn) return res.status(404).json({ error: `Column not found: ${toColumnTitle}` });
     db.moveCard(card.id, toColumn.id);
-    db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`, card.id);
     emitSSE('board_update', db.getBoard(card.workspace_id));
     res.json({ ok: true });
   });
@@ -212,7 +212,7 @@ module.exports = function registerRoutes(app) {
     const doneColumn = board?.columns.find(c => c.title === 'Done');
     if (!doneColumn) return res.status(404).json({ error: 'Done column not found' });
     db.moveCard(card.id, doneColumn.id);
-    db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`);
+    db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`, card.id);
     emitSSE('board_update', db.getBoard(card.workspace_id));
     emitSSE('trigger', { card, toColumn: 'Done' });
     res.json({ ok: true });
@@ -541,7 +541,7 @@ module.exports = function registerRoutes(app) {
       custom_prompt: card.custom_prompt,
       due_date: card.due_date,
     });
-    db.addAgentLog(card.workspace_id, 'system', 'duplicate_card', `Duplicated '${card.title}'`);
+    db.addAgentLog(card.workspace_id, 'system', 'duplicate_card', `Duplicated '${card.title}'`, copy.id);
     emitSSE('board_update', db.getBoard(card.workspace_id));
     res.json(copy);
   });

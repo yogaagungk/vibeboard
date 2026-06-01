@@ -124,6 +124,7 @@ db.exec(`
   const cardCols = db.pragma('table_info(cards)').map(r => r.name);
   const wsCols   = db.pragma('table_info(workspaces)').map(r => r.name);
   const colCols  = db.pragma('table_info(columns)').map(r => r.name);
+  const logCols  = db.pragma('table_info(agent_log)').map(r => r.name);
 
   db.transaction(() => {
     if (!cardCols.includes('branch'))          db.prepare('ALTER TABLE cards ADD COLUMN branch TEXT').run();
@@ -144,6 +145,8 @@ db.exec(`
     if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
 
     if (!colCols.includes('wip_limit')) db.prepare('ALTER TABLE columns ADD COLUMN wip_limit INTEGER').run();
+
+    if (!logCols.includes('card_id')) db.prepare('ALTER TABLE agent_log ADD COLUMN card_id TEXT').run();
   })();
 })();
 
@@ -433,12 +436,12 @@ function getCardNotes(cardId) {
     .all(cardId);
 }
 
-function addAgentLog(workspaceId, agent, action, detail) {
+function addAgentLog(workspaceId, agent, action, detail, cardId = null) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  db.prepare('INSERT INTO agent_log (id, workspace_id, timestamp, agent, action, detail) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(id, workspaceId, now, agent, action, detail);
+  db.prepare('INSERT INTO agent_log (id, workspace_id, timestamp, agent, action, detail, card_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(id, workspaceId, now, agent, action, detail, cardId);
 
   const logLimit = parseInt(process.env.VB_LOG_LIMIT || '', 10) || 500;
   db.prepare(`
@@ -447,7 +450,7 @@ function addAgentLog(workspaceId, agent, action, detail) {
     )
   `).run(workspaceId, workspaceId, logLimit);
 
-  return { id, timestamp: now, agent, action, detail };
+  return { id, timestamp: now, agent, action, detail, cardId };
 }
 
 function clearLog(workspaceId) {
