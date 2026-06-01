@@ -156,21 +156,24 @@ function buildColumn(col) {
   const hdr = document.createElement('div'); hdr.className = 'col-header';
   const dot = document.createElement('span'); dot.className = 'col-color-dot'; dot.style.background = col.color || '#6b6860';
 
-  const title = document.createElement('input');
-  title.className = 'col-title'; title.type = 'text'; title.value = col.title; title.spellcheck = false;
-  title.setAttribute('aria-label', 'Column title');
-  title.addEventListener('change', () => { col.title = title.value.trim() || 'Untitled'; title.value = col.title; postBoard(); });
-  title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
+  const title = document.createElement('span');
+  title.className = 'col-title';
+  title.textContent = col.title;
 
-  const count = document.createElement('span'); count.className = 'col-count';
   const limit = Number.isInteger(col.wip_limit) && col.wip_limit > 0 ? col.wip_limit : null;
+  const count = document.createElement('span'); count.className = 'col-count';
   count.textContent = limit ? `${col.cards.length}/${limit}` : `(${col.cards.length})`;
   if (limit) count.classList.add('wip-set');
   if (limit && col.cards.length > limit) count.classList.add('over');
-  count.title = limit ? `WIP limit: ${limit} cards` : 'Double-click to set a WIP limit';
-  count.addEventListener('dblclick', async () => {
-    const cur = limit ? String(limit) : '';
-    const input = await vbPrompt(`Set a work-in-progress limit for "${col.title}". Leave blank to clear it.`, {
+  count.title = limit ? `WIP limit: ${limit} cards` : '';
+
+  const wipBtn = document.createElement('button');
+  wipBtn.className = 'col-wip-btn';
+  wipBtn.title = 'Set WIP limit';
+  wipBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M12.5 8a4.5 4.5 0 0 0-.4-1.8l1.5-.9-1-1.7-1.7.4a4.5 4.5 0 0 0-1.4-1.4l.4-1.7-1.7-1-.9 1.5A4.5 4.5 0 0 0 8 1a4.5 4.5 0 0 0-1.8.4L5.3.9l-1.7 1 .4 1.7a4.5 4.5 0 0 0-1.4 1.4l-1.7-.4-1 1.7 1.5.9A4.5 4.5 0 0 0 1 8a4.5 4.5 0 0 0 .4 1.8l-1.5.9 1 1.7 1.7-.4a4.5 4.5 0 0 0 1.4 1.4l-.4 1.7 1.7 1 .9-1.5A4.5 4.5 0 0 0 8 15a4.5 4.5 0 0 0 1.8-.4l.9 1.5 1.7-1-.4-1.7a4.5 4.5 0 0 0 1.4-1.4l1.7.4 1-1.7-1.5-.9A4.5 4.5 0 0 0 12.5 8z"/></svg>';
+  wipBtn.addEventListener('click', async () => {
+    const cur = col.wip_limit ? String(col.wip_limit) : '';
+    const input = await vbPrompt(`Set a WIP limit for "${col.title}". Leave blank to clear it.`, {
       title: 'WIP limit', value: cur, placeholder: 'e.g. 3', confirmText: 'Set limit',
     });
     if (input === null) return;
@@ -179,7 +182,7 @@ function buildColumn(col) {
     renderBoard(board); postBoard();
   });
 
-  hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(count);
+  hdr.appendChild(dot); hdr.appendChild(title); hdr.appendChild(count); hdr.appendChild(wipBtn);
   colEl.appendChild(hdr);
 
   const cardsList = document.createElement('div');
