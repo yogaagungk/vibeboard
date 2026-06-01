@@ -428,11 +428,15 @@ function submitNewCard() {
   const requires_review = document.getElementById('nc-needs-review').checked;
   const priority = window._ncPrioritySelect?.getValue() || undefined;
   const due_date = document.getElementById('nc-due-date').value || null;
+  const review_agent = window._ncReviewAgentSelect?.getValue() || undefined;
+  const review_model = modelSelects['nc-review']?.getValue() || undefined;
   col.cards.push({
     id: uid(), title, tags, requires_review, priority: priority || null, due_date,
     ...(description && { description }),
     ...(agent && { agent }),
     ...(model && { model }),
+    ...(requires_review && review_agent && { review_agent }),
+    ...(requires_review && review_model && { review_model }),
     ...(ncBlockedBy.length && { blocked_by: [...ncBlockedBy] })
   });
   closeNewCardModal();

@@ -406,9 +406,16 @@ function openNewCardModal(colId) {
   document.getElementById('nc-desc').value = '';
   document.getElementById('nc-due-date').value = '';
   document.getElementById('nc-needs-review').checked = false;
-  
+  document.getElementById('nc-review-agent-section').style.display = 'none';
+
   renderTagPicker(document.getElementById('nc-tag-picker'), []);
-  
+
+  function syncNcReviewSection() {
+    const hasAgent = !!window._ncAgentSelect?.getValue();
+    const needsReview = document.getElementById('nc-needs-review').checked;
+    document.getElementById('nc-review-agent-section').style.display = (hasAgent && needsReview) ? '' : 'none';
+  }
+
   const ncAgentOpts = [
     { value: '', label: 'None' },
     ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
@@ -433,6 +440,7 @@ function openNewCardModal(colId) {
           warning.style.display = 'none';
           modelRow.style.display = 'none';
         }
+        syncNcReviewSection();
       },
     });
     document.getElementById('nc-agent-mount').appendChild(window._ncAgentSelect.el);
@@ -440,7 +448,31 @@ function openNewCardModal(colId) {
     window._ncAgentSelect.setOptions(ncAgentOpts);
     window._ncAgentSelect.setValue('');
   }
-  
+
+  const ncReviewAgentOpts = [
+    { value: '', label: 'Same as main agent' },
+    ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
+      const reason = agentUnavailableReason(k);
+      return { value: k, label: AGENT_LABELS[k] || k, disabled: !!reason, hint: reason || undefined };
+    }),
+  ];
+  if (!window._ncReviewAgentSelect) {
+    window._ncReviewAgentSelect = vbSelect({
+      options: ncReviewAgentOpts,
+      value: '',
+      placeholder: 'Same as main agent',
+      ariaLabel: 'Review agent',
+      onChange: val => updateModelDropdown('nc-review', val),
+    });
+    document.getElementById('nc-review-agent-mount').appendChild(window._ncReviewAgentSelect.el);
+  } else {
+    window._ncReviewAgentSelect.setOptions(ncReviewAgentOpts);
+    window._ncReviewAgentSelect.setValue('');
+  }
+
+  document.getElementById('nc-review-model-row').style.display = 'none';
+  document.getElementById('nc-needs-review').onchange = syncNcReviewSection;
+
   if (!window._ncPrioritySelect) {
     window._ncPrioritySelect = vbSelect({
       options: [
