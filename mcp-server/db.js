@@ -269,9 +269,9 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const agentLog = db.prepare(`
-    SELECT id, timestamp, agent, action, detail 
-    FROM agent_log 
-    WHERE workspace_id = ? 
+    SELECT id, timestamp, agent, action, detail, card_id as cardId
+    FROM agent_log
+    WHERE workspace_id = ?
     ORDER BY timestamp DESC
   `).all(workspaceId);
   

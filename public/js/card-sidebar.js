@@ -406,7 +406,7 @@ function openNewCardModal(colId) {
         if (val) {
           warning.style.display = 'flex';
           modelRow.style.display = 'block';
-          updateModelSelect('nc', val);
+          updateModelDropdown('nc', val);
         } else {
           warning.style.display = 'none';
           modelRow.style.display = 'none';
@@ -511,7 +511,7 @@ function applyTemplate(templateId, templates) {
     document.getElementById('nc-agent-warning').style.display = 'flex';
     document.getElementById('nc-model-row').style.display = 'block';
     if (tpl.model) {
-      updateModelSelect('nc', tpl.agent);
+      updateModelDropdown('nc', tpl.agent);
       setTimeout(() => modelSelects['nc']?.setValue(tpl.model), 100);
     }
   }

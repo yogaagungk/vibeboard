@@ -37,7 +37,7 @@
   --radius-pill: 9999px;
   --radius-card: var(--radius-md);
   --radius-col: var(--radius-lg);
-  --col-width: 280px;
+  --col-width: 260px;
   --header-h: 52px;
   --sidebar-w: 220px;
   --tag-feature: #7c3aed;
@@ -611,6 +611,12 @@ body.mcp-banner-open #log-sidebar {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+.filter-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-style: italic;
 }
 #filter-chips {
   display: flex;

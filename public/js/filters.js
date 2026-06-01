@@ -76,14 +76,18 @@ function renderFilterBar() {
   const filterBar = document.getElementById('board-filter-bar');
   const filterChips = document.getElementById('filter-chips');
   const clearAllBtn = document.getElementById('filter-clear-all');
-  
-  if (!hasActiveFilters()) {
-    filterBar.style.display = 'none';
-    return;
-  }
-  
+  const hint = document.getElementById('filter-hint');
+
   filterBar.style.display = '';
   filterChips.innerHTML = '';
+
+  if (!hasActiveFilters()) {
+    if (hint) hint.style.display = '';
+    clearAllBtn.style.display = 'none';
+    return;
+  }
+
+  if (hint) hint.style.display = 'none';
   
   filterState.tags.forEach(tag => {
     const chip = createFilterChip('tag', tag, tag);
@@ -191,65 +195,49 @@ function addFilter(type, value) {
 }
 
 function applyFilters() {
-  if (!hasActiveFilters()) {
-    boardEl.querySelectorAll('.card').forEach(c => {
-      if (!c.style.display || c.style.display === 'none') {
-        const searchActive = searchInput.value.trim().length > 0;
-        if (!searchActive) c.style.display = '';
-      }
-    });
+  const searchActive = searchInput.value.trim().length > 0;
+  const filtersActive = hasActiveFilters();
+
+  if (!filtersActive && !searchActive) {
+    boardEl.querySelectorAll('.card').forEach(c => { c.style.display = ''; });
     updateFilterCount();
     return;
   }
-  
+
+  const q = searchInput.value.trim().toLowerCase();
   const cards = boardEl.querySelectorAll('.card');
-  let total = 0, visible = 0;
-  
+
   cards.forEach(c => {
-    total++;
-    const cardId = c.dataset.cardId;
-    const cardEntry = findCardEntry(cardId);
-    if (!cardEntry) return;
-    
-    const card = cardEntry.card;
     let match = true;
-    
-    if (filterState.tags.length > 0) {
-      const cardTags = card.tags || [];
-      const hasTag = filterState.tags.some(t => cardTags.includes(t));
-      if (!hasTag) match = false;
-    }
-    
-    if (match && filterState.priorities.length > 0) {
-      const cardPriority = card.priority || '';
-      if (!filterState.priorities.includes(cardPriority)) match = false;
-    }
-    
-    if (match && filterState.agents.length > 0) {
-      const cardAgent = card.agent || '';
-      if (!filterState.agents.includes(cardAgent)) match = false;
-    }
-    
-    if (match && filterState.dueDate) {
-      if (filterState.dueDate === 'overdue') {
-        if (!card.due_date || !isOverdue(card.due_date)) match = false;
-      } else if (filterState.dueDate === 'today') {
-        if (!card.due_date || !isDueToday(card.due_date)) match = false;
-      } else if (filterState.dueDate === 'week') {
-        if (!card.due_date || !isDueThisWeek(card.due_date)) match = false;
+
+    if (filtersActive) {
+      const cardEntry = findCardEntry(c.dataset.cardId);
+      if (!cardEntry) { c.style.display = 'none'; return; }
+      const card = cardEntry.card;
+
+      if (filterState.tags.length > 0) {
+        if (!filterState.tags.some(t => (card.tags || []).includes(t))) match = false;
+      }
+      if (match && filterState.priorities.length > 0) {
+        if (!filterState.priorities.includes(card.priority || '')) match = false;
+      }
+      if (match && filterState.agents.length > 0) {
+        if (!filterState.agents.includes(card.agent || '')) match = false;
+      }
+      if (match && filterState.dueDate) {
+        if (filterState.dueDate === 'overdue' && (!card.due_date || !isOverdue(card.due_date))) match = false;
+        else if (filterState.dueDate === 'today' && (!card.due_date || !isDueToday(card.due_date))) match = false;
+        else if (filterState.dueDate === 'week' && (!card.due_date || !isDueThisWeek(card.due_date))) match = false;
       }
     }
-    
-    const searchActive = searchInput.value.trim().length > 0;
-    if (searchActive) {
-      const searchMatch = (c.dataset.searchTitle || '').includes(searchInput.value.trim().toLowerCase());
-      match = match && searchMatch;
+
+    if (match && searchActive) {
+      match = (c.dataset.searchTitle || '').includes(q);
     }
-    
+
     c.style.display = match ? '' : 'none';
-    if (match) visible++;
   });
-  
+
   updateFilterCount();
 }
 
