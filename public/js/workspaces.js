@@ -145,6 +145,128 @@ function openWsModal(wsId) {
     stats.appendChild(hint);
   }
 
+  loadTemplates(wsId);
+
+  document.getElementById('ws-modal-overlay').classList.add('open');
+  document.getElementById('ws-modal-name').focus();
+}
+
+async function loadTemplates(wsId) {
+  try {
+    const resp = await fetch(`/api/workspaces/${wsId}/templates`);
+    if (resp.ok) {
+      const templates = await resp.json();
+      renderTemplates(templates, wsId);
+    }
+  } catch(_){}
+}
+
+function renderTemplates(templates, wsId) {
+  const list = document.getElementById('ws-templates-list');
+  list.innerHTML = '';
+  templates.forEach(tpl => {
+    const item = document.createElement('div');
+    item.className = 'ws-template-item';
+    
+    const name = document.createElement('div');
+    name.className = 'ws-template-name';
+    name.textContent = tpl.name;
+    
+    const meta = document.createElement('div');
+    meta.className = 'ws-template-meta';
+    const parts = [];
+    if (tpl.agent) parts.push(AGENT_LABELS[tpl.agent] || tpl.agent);
+    if (tpl.tags?.length) parts.push(tpl.tags.join(', '));
+    if (tpl.priority) parts.push(tpl.priority);
+    meta.textContent = parts.join(' · ') || 'No defaults';
+    
+    const actions = document.createElement('div');
+    actions.className = 'ws-template-actions';
+    
+    const editBtn = document.createElement('button');
+    editBtn.className = 'ws-template-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => editTemplate(tpl, wsId));
+    
+    const delBtn = document.createElement('button');
+    delBtn.className = 'ws-template-btn delete';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', async () => {
+      const ok = await vbConfirm(`Delete template "${tpl.name}"?`, { title: 'Delete template', confirmText: 'Delete', danger: true });
+      if (!ok) return;
+      try {
+        await fetch(`/api/templates/${tpl.id}`, { method: 'DELETE' });
+        loadTemplates(wsId);
+      } catch(_){}
+    });
+    
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    
+    item.appendChild(name);
+    item.appendChild(meta);
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+async function editTemplate(tpl, wsId) {
+  const name = await vbPrompt('Template name', { value: tpl.name, title: 'Edit template' });
+  if (!name) return;
+  
+  try {
+    await fetch(`/api/templates/${tpl.id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name }),
+    });
+    loadTemplates(wsId);
+  } catch(_){}
+}
+
+document.getElementById('ws-add-template-btn').addEventListener('click', async () => {
+  if (!editingWsId) return;
+  const name = await vbPrompt('Template name (e.g., "Add API endpoint")', { title: 'New template', placeholder: 'Template name' });
+  if (!name) return;
+  
+  try {
+    await fetch(`/api/workspaces/${editingWsId}/templates`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name }),
+    });
+    loadTemplates(editingWsId);
+  } catch(_){}
+});
+
+function openWsModal(wsId) {
+  const ws = workspaces.find(w => w.id === wsId);
+  if (!ws) return;
+  editingWsId = wsId;
+
+  document.getElementById('ws-modal-name').value = ws.name || folderName(ws.path) || '';
+  document.getElementById('ws-modal-path').value = ws.path || '';
+  document.getElementById('ws-modal-desc').value = ws.description || '';
+  document.getElementById('ws-modal-use-worktree').checked = !!(ws.use_worktree || (wsId === activeWsId && board.use_worktree));
+
+  const stats = document.getElementById('ws-modal-stats');
+  stats.innerHTML = '';
+  if (wsId === activeWsId && board.columns?.length) {
+    board.columns.forEach(col => {
+      const chip = document.createElement('div');
+      chip.className = 'ws-stat-chip';
+      chip.innerHTML = `<span class="ws-stat-dot" style="background:${col.color||'#6b6860'}"></span>${col.title}<span class="ws-stat-count">${col.cards.length}</span>`;
+      stats.appendChild(chip);
+    });
+  } else {
+    const hint = document.createElement('p');
+    hint.style.cssText = 'font-size:12px;color:var(--text-muted);font-weight:300';
+    hint.textContent = wsId === activeWsId ? 'No columns yet.' : 'Switch to this workspace to see stats.';
+    stats.appendChild(hint);
+  }
+
+  loadTemplates(wsId);
+
   document.getElementById('ws-modal-overlay').classList.add('open');
   document.getElementById('ws-modal-name').focus();
 }

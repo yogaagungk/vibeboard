@@ -1362,12 +1362,136 @@ kbd {
 /* ── Export/Import ── */
 .ws-io-row { display: flex; gap: 6px; margin-top: 8px; }
 .ws-io-btn {
-  flex: 1; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-md);
-  background: transparent; font-family: 'Inter', sans-serif; font-size: 12px;
-  color: var(--text-muted); cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  padding: 7px 12px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  transition: all 0.15s ease;
 }
 .ws-io-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+
+.ws-template-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  margin-bottom: 8px;
+  transition: all 0.15s ease;
+}
+.ws-template-item:hover {
+  background: var(--hover);
+  border-color: var(--text-muted);
+}
+.ws-template-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.ws-template-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ws-template-actions {
+  display: flex;
+  gap: 4px;
+}
+.ws-template-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ws-template-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.ws-template-btn.delete:hover {
+  background: rgba(220,38,38,0.1);
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+#ws-templates-list:empty::before {
+  content: 'No templates yet';
+  display: block;
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+
+.ws-template-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  margin-bottom: 8px;
+  transition: all 0.15s ease;
+}
+.ws-template-item:hover {
+  background: var(--hover);
+  border-color: var(--text-muted);
+}
+.ws-template-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.ws-template-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ws-template-actions {
+  display: flex;
+  gap: 4px;
+}
+.ws-template-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ws-template-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.ws-template-btn.delete:hover {
+  background: rgba(220,38,38,0.1);
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+#ws-templates-list:empty::before {
+  content: 'No templates yet';
+  display: block;
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 
 /* ── Log clear btn ── */
 #log-clear-btn {

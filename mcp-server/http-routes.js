@@ -557,11 +557,51 @@ module.exports = function registerRoutes(app) {
   });
 
   app.get('/api/cards/search', (req, res) => {
-    const { q, tag, column, agent, status, workspaceId } = req.query;
-    const activeId = workspaceId || db.getActiveWorkspaceId();
-    if (!activeId) return res.json({ count: 0, cards: [] });
-    const cards = db.searchCards(activeId, { query: q, tag, column, agent, status });
-    res.json({ count: cards.length, cards });
+    const workspaceId = db.getActiveWorkspaceId();
+    if (!workspaceId) return res.status(400).json({ error: 'No active workspace' });
+    const result = db.searchCards(workspaceId, req.query);
+    res.json(result);
+  });
+
+  app.get('/api/workspaces/:id/templates', (req, res) => {
+    const { id } = req.params;
+    const templates = db.listTemplates(id);
+    res.json(templates);
+  });
+
+  app.post('/api/workspaces/:id/templates', (req, res) => {
+    const { id } = req.params;
+    const { name, title_pattern, tags, agent, model, priority, custom_prompt } = req.body;
+    if (!name) return res.status(400).json({ error: 'Template name is required' });
+    try {
+      const template = db.createTemplate(id, name, { title_pattern, tags, agent, model, priority, custom_prompt });
+      emitSSE('templates_updated', { workspaceId: id, templates: db.listTemplates(id) });
+      res.json(template);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/templates/:id', (req, res) => {
+    const { id } = req.params;
+    const template = db.getTemplate(id);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
+    try {
+      db.updateTemplate(id, req.body);
+      emitSSE('templates_updated', { workspaceId: template.workspace_id, templates: db.listTemplates(template.workspace_id) });
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.delete('/api/templates/:id', (req, res) => {
+    const { id } = req.params;
+    const template = db.getTemplate(id);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
+    db.deleteTemplate(id);
+    emitSSE('templates_updated', { workspaceId: template.workspace_id, templates: db.listTemplates(template.workspace_id) });
+    res.json({ ok: true });
   });
 
   app.post('/api/sse-emit', (req, res) => {

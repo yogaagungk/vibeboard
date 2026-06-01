@@ -356,34 +356,49 @@ function openCardModal(cardId, colId) {
 }
 
 function openNewCardModal(colId) {
-  logSidebar.classList.remove('open');
-  cardSidebar.classList.remove('open');
   newCardColId = colId;
-
   const col = board.columns.find(c => c.id === colId);
-  const badge = document.getElementById('nc-col-badge');
-  badge.textContent = col.title; badge.style.background = col.color || '#6b6860';
-
+  if (!col) return;
+  
+  document.getElementById('nc-col-badge').textContent = col.title;
+  document.getElementById('nc-col-badge').style.background = col.color || '#6b6860';
   document.getElementById('nc-title-input').value = '';
   document.getElementById('nc-desc').value = '';
-
-  const picker = document.getElementById('nc-tag-picker');
-  picker.innerHTML = '';
-  TAGS.forEach(tag => {
-    const btn = document.createElement('button');
-    btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
-    btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45';
-    btn.addEventListener('click', () => {
-      btn.classList.toggle('active');
-      if (btn.classList.contains('active')) { btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white'; btn.style.opacity = '1'; }
-      else { btn.style.backgroundColor = ''; btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45'; }
+  document.getElementById('nc-due-date').value = '';
+  document.getElementById('nc-needs-review').checked = false;
+  
+  renderTagPicker(document.getElementById('nc-tag-picker'), []);
+  
+  if (!window._ncAgentSelect) {
+    window._ncAgentSelect = vbSelect({
+      options: [
+        { value: '', label: 'None' },
+        { value: 'claude-code', label: AGENT_LABELS['claude-code'] },
+        { value: 'opencode', label: AGENT_LABELS['opencode'] },
+        { value: 'codex', label: AGENT_LABELS['codex'] },
+        { value: 'command-code', label: AGENT_LABELS['command-code'] },
+      ],
+      value: '',
+      placeholder: 'Select agent',
+      ariaLabel: 'Agent',
+      onChange: val => {
+        const warning = document.getElementById('nc-agent-warning');
+        const modelRow = document.getElementById('nc-model-row');
+        if (val) {
+          warning.style.display = 'flex';
+          modelRow.style.display = 'block';
+          updateModelSelect('nc', val);
+        } else {
+          warning.style.display = 'none';
+          modelRow.style.display = 'none';
+        }
+      },
     });
-    picker.appendChild(btn);
-  });
-
-  // Priority dropdown
-  const priorityMount = document.getElementById('nc-priority-mount');
-  priorityMount.innerHTML = '';
+    document.getElementById('nc-agent-mount').appendChild(window._ncAgentSelect.el);
+  } else {
+    window._ncAgentSelect.setValue('');
+  }
+  
   if (!window._ncPrioritySelect) {
     window._ncPrioritySelect = vbSelect({
       options: [
@@ -393,14 +408,105 @@ function openNewCardModal(colId) {
         { value: 'low', label: 'Low' },
       ],
       value: '',
-      placeholder: 'None',
+      placeholder: 'Priority',
       ariaLabel: 'Priority',
     });
-    priorityMount.appendChild(window._ncPrioritySelect.el);
+    document.getElementById('nc-priority-mount').appendChild(window._ncPrioritySelect.el);
   } else {
     window._ncPrioritySelect.setValue('');
-    priorityMount.appendChild(window._ncPrioritySelect.el);
   }
+  
+  document.getElementById('nc-agent-warning').style.display = 'none';
+  document.getElementById('nc-model-row').style.display = 'none';
+  
+  ncBlockedBy = [];
+  renderBlockedByControl(
+    document.getElementById('nc-dep-list'),
+    () => ncBlockedBy,
+    ids => { ncBlockedBy = ids; },
+    null,
+  );
+
+  loadTemplatesForNewCard();
+
+  document.getElementById('nc-modal-overlay').classList.add('open');
+  document.getElementById('nc-title-input').focus();
+  syncAriaPressed(document.getElementById('nc-modal-overlay'));
+}
+
+async function loadTemplatesForNewCard() {
+  if (!board?.id) return;
+  try {
+    const resp = await fetch(`/api/workspaces/${board.id}/templates`);
+    if (resp.ok) {
+      const templates = await resp.json();
+      if (templates.length > 0) {
+        renderTemplateSelect(templates);
+        document.getElementById('nc-template-row').style.display = 'block';
+      } else {
+        document.getElementById('nc-template-row').style.display = 'none';
+      }
+    }
+  } catch(_){
+    document.getElementById('nc-template-row').style.display = 'none';
+  }
+}
+
+function renderTemplateSelect(templates) {
+  if (!window._ncTemplateSelect) {
+    window._ncTemplateSelect = vbSelect({
+      options: [{ value: '', label: 'None' }],
+      value: '',
+      placeholder: 'Select template',
+      ariaLabel: 'Template',
+      onChange: val => {
+        if (val) applyTemplate(val, templates);
+      },
+    });
+    document.getElementById('nc-template-mount').appendChild(window._ncTemplateSelect.el);
+  }
+  
+  const opts = [
+    { value: '', label: 'None' },
+    ...templates.map(t => ({ value: t.id, label: t.name }))
+  ];
+  window._ncTemplateSelect.setOptions(opts);
+  window._ncTemplateSelect.setValue('');
+}
+
+function applyTemplate(templateId, templates) {
+  const tpl = templates.find(t => t.id === templateId);
+  if (!tpl) return;
+  
+  if (tpl.title_pattern) {
+    document.getElementById('nc-title-input').value = tpl.title_pattern;
+  }
+  
+  if (tpl.tags?.length) {
+    renderTagPicker(document.getElementById('nc-tag-picker'), tpl.tags);
+  }
+  
+  if (tpl.agent) {
+    window._ncAgentSelect?.setValue(tpl.agent);
+    document.getElementById('nc-agent-warning').style.display = 'flex';
+    document.getElementById('nc-model-row').style.display = 'block';
+    if (tpl.model) {
+      updateModelSelect('nc', tpl.agent);
+      setTimeout(() => modelSelects['nc']?.setValue(tpl.model), 100);
+    }
+  }
+  
+  if (tpl.priority) {
+    window._ncPrioritySelect?.setValue(tpl.priority);
+  }
+  
+  if (tpl.custom_prompt) {
+    document.getElementById('nc-desc').value = tpl.custom_prompt;
+  }
+  
+  document.getElementById('nc-title-input').focus();
+  document.getElementById('nc-title-input').select();
+}
 
   // Agent dropdown
   const agentMount = document.getElementById('nc-agent-mount');
