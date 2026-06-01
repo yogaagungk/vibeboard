@@ -178,6 +178,11 @@
           <input type="file" id="ws-import-file" accept=".json" style="display:none">
         </div>
       </div>
+      <div>
+        <div class="field-label">Card templates</div>
+        <div id="ws-templates-list"></div>
+        <button class="ws-io-btn" id="ws-add-template-btn" style="margin-top:8px">+ New template</button>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-danger" id="ws-modal-delete">Delete</button>
@@ -288,6 +293,12 @@
       <button class="modal-close-btn" id="nc-close">×</button>
     </div>
     <div class="modal-body">
+      <div id="nc-template-row" style="display:none;margin-bottom:12px">
+        <div class="details-row">
+          <span class="details-label">Template</span>
+          <div id="nc-template-mount" style="flex:1;min-width:0"></div>
+        </div>
+      </div>
       <div class="modal-tag-picker" id="nc-tag-picker"></div>
       <textarea class="modal-textarea" id="nc-desc" placeholder="Describe the task for the agent…"></textarea>
       <div class="sidebar-group">

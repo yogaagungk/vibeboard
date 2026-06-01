@@ -109,6 +109,20 @@ db.exec(`
     value TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS card_templates (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    title_pattern TEXT,
+    tags TEXT,
+    agent TEXT,
+    model TEXT,
+    priority TEXT,
+    custom_prompt TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+  );
+
   CREATE INDEX IF NOT EXISTS idx_columns_workspace ON columns(workspace_id);
   CREATE INDEX IF NOT EXISTS idx_cards_column ON cards(column_id);
   CREATE INDEX IF NOT EXISTS idx_cards_workspace ON cards(workspace_id);
@@ -116,6 +130,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_cards_updated_at ON cards(updated_at);
   CREATE INDEX IF NOT EXISTS idx_card_notes_card ON card_notes(card_id);
   CREATE INDEX IF NOT EXISTS idx_agent_log_workspace ON agent_log(workspace_id);
+  CREATE INDEX IF NOT EXISTS idx_card_templates_workspace ON card_templates(workspace_id);
 `);
 
 // Column migrations for existing databases — all in one transaction so a
@@ -745,6 +760,82 @@ function getAgentStatus(cardId) {
   };
 }
 
+function createTemplate(workspaceId, name, options = {}) {
+  const id = 'tpl-' + crypto.randomUUID();
+  const now = new Date().toISOString();
+  
+  db.prepare(`
+    INSERT INTO card_templates (id, workspace_id, name, title_pattern, tags, agent, model, priority, custom_prompt, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, workspaceId, name,
+    options.title_pattern || null,
+    options.tags ? JSON.stringify(options.tags) : null,
+    options.agent || null,
+    options.model || null,
+    options.priority || null,
+    options.custom_prompt || null,
+    now
+  );
+  
+  return { id, name, ...options, createdAt: now };
+}
+
+function listTemplates(workspaceId) {
+  const rows = db.prepare('SELECT * FROM card_templates WHERE workspace_id = ? ORDER BY created_at').all(workspaceId);
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    title_pattern: r.title_pattern,
+    tags: r.tags ? JSON.parse(r.tags) : [],
+    agent: r.agent,
+    model: r.model,
+    priority: r.priority,
+    custom_prompt: r.custom_prompt,
+    createdAt: r.created_at,
+  }));
+}
+
+function getTemplate(templateId) {
+  const row = db.prepare('SELECT * FROM card_templates WHERE id = ?').get(templateId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    workspace_id: row.workspace_id,
+    name: row.name,
+    title_pattern: row.title_pattern,
+    tags: row.tags ? JSON.parse(row.tags) : [],
+    agent: row.agent,
+    model: row.model,
+    priority: row.priority,
+    custom_prompt: row.custom_prompt,
+    createdAt: row.created_at,
+  };
+}
+
+function updateTemplate(templateId, updates) {
+  const fields = [];
+  const values = [];
+  
+  if (updates.name !== undefined)          { fields.push('name = ?');          values.push(updates.name); }
+  if (updates.title_pattern !== undefined) { fields.push('title_pattern = ?'); values.push(updates.title_pattern || null); }
+  if (updates.tags !== undefined)          { fields.push('tags = ?');          values.push(updates.tags ? JSON.stringify(updates.tags) : null); }
+  if (updates.agent !== undefined)         { fields.push('agent = ?');         values.push(updates.agent || null); }
+  if (updates.model !== undefined)         { fields.push('model = ?');         values.push(updates.model || null); }
+  if (updates.priority !== undefined)      { fields.push('priority = ?');      values.push(updates.priority || null); }
+  if (updates.custom_prompt !== undefined) { fields.push('custom_prompt = ?'); values.push(updates.custom_prompt || null); }
+  
+  if (fields.length === 0) return;
+  
+  values.push(templateId);
+  db.prepare(`UPDATE card_templates SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deleteTemplate(templateId) {
+  const result = db.prepare('DELETE FROM card_templates WHERE id = ?').run(templateId);
+  return result.changes > 0;
+}
+
 module.exports = {
   db,
   DATA_DIR,
@@ -774,4 +865,10 @@ module.exports = {
   importWorkspace,
   listCards,
   getAgentStatus,
+  
+  createTemplate,
+  listTemplates,
+  getTemplate,
+  updateTemplate,
+  deleteTemplate,
 };
