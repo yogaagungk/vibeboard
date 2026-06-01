@@ -47,6 +47,20 @@ function renderWorkspaceList() {
     if (!ws.active) item.addEventListener('click', () => switchWorkspace(ws.id));
     wsListEl.appendChild(item);
   });
+  updateHeaderWorkspace();
+}
+
+function updateHeaderWorkspace() {
+  const activeWs = workspaces.find(w => w.active);
+  if (!activeWs || !headerWorkspace) return;
+  
+  const wsName = activeWs.name || folderName(activeWs.path) || 'Untitled';
+  const initial = wsName.charAt(0).toUpperCase();
+  
+  headerWorkspaceName.textContent = wsName;
+  headerWorkspaceIcon.textContent = initial;
+  headerWorkspace.hidden = false;
+  headerWorkspace.title = `Active workspace: ${wsName}`;
 }
 
 async function switchWorkspace(id) {

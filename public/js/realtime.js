@@ -5,7 +5,16 @@ function connectSSE() {
   if (es) { es.close(); es = null; }
   es = new EventSource(vbUrl('/events'));
   es.onopen = () => {
-    connDot.className = 'connected'; connDot.title = 'SSE connected';
+    if (connDot) { connDot.className = 'connected'; connDot.title = 'SSE connected'; }
+    if (headerConnection) {
+      headerConnection.classList.add('connected');
+      headerConnection.title = 'Connected to server';
+      const label = headerConnection.querySelector('.header-connection-label');
+      if (label) label.textContent = 'Online';
+      console.log('[VibeBoard] Connection status updated: Online');
+    } else {
+      console.warn('[VibeBoard] headerConnection element not found');
+    }
     sseReconnectAttempts = 0;
     const banner = document.getElementById('sse-banner');
     if (banner) banner.classList.remove('visible');
@@ -76,6 +85,7 @@ function connectSSE() {
     if (type === 'agent_started') {
       runningCards.add(data.cardId);
       queuedCards.delete(data.cardId);
+      updateHeaderAgents(runningCards.size);
       const el = document.querySelector(`[data-card-id="${data.cardId}"]`);
       if (el) {
         let meta = el.querySelector('.card-meta');
@@ -95,6 +105,7 @@ function connectSSE() {
     if (type === 'agent_completed' || type === 'agent_error') {
       runningCards.delete(data.cardId);
       queuedCards.delete(data.cardId);
+      updateHeaderAgents(runningCards.size);
       // Reflect the run outcome on the local card immediately (badge), without
       // waiting for a full board reload.
       const entry = findCardEntry(data.cardId);
@@ -156,7 +167,16 @@ function connectSSE() {
     }
   };
   es.onerror = () => {
-    connDot.className = ''; connDot.title = 'SSE disconnected';
+    if (connDot) { connDot.className = ''; connDot.title = 'SSE disconnected'; }
+    if (headerConnection) {
+      headerConnection.classList.remove('connected');
+      headerConnection.title = 'Disconnected from server';
+      const label = headerConnection.querySelector('.header-connection-label');
+      if (label) label.textContent = 'Offline';
+      console.log('[VibeBoard] Connection status updated: Offline');
+    } else {
+      console.warn('[VibeBoard] headerConnection element not found');
+    }
     sseReconnectAttempts++;
     es.close(); es = null;
     if (sseReconnectAttempts >= MAX_SSE_RECONNECT) {

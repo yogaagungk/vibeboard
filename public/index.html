@@ -19,19 +19,31 @@
     </svg>
   </button>
   <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
-  <div class="header-brand">
-    <span class="header-wordmark">VibeBoard</span>
-    <button id="version-badge" class="version-badge" type="button" title="Version">v-</button>
-    <button id="version-update-label" class="version-update-label" hidden aria-live="polite" title="Click to copy update command"></button>
-  </div>
-  <div id="conn-dot" title="SSE disconnected"></div>
+  <button class="header-workspace" id="header-workspace" hidden title="Active workspace">
+    <div class="header-workspace-icon" id="header-workspace-icon">W</div>
+    <span class="header-workspace-name" id="header-workspace-name">Workspace</span>
+  </button>
   <div class="header-spacer"></div>
+  <div class="header-connection" id="header-connection" title="Connection status">
+    <div class="header-connection-dot"></div>
+    <span class="header-connection-label">Offline</span>
+  </div>
+  <div class="header-agents" id="header-agents" hidden title="Active agents">
+    <svg class="header-agents-icon" id="header-agents-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="8" cy="8" r="6"/>
+      <path d="M8 2v4M8 10v4M2 8h4M10 8h4"/>
+    </svg>
+    <span class="header-agents-count" id="header-agents-count">0</span>
+    <span class="header-agents-label">agents</span>
+  </div>
   <div class="board-progress-display" id="board-progress-btn" hidden>
     <span class="board-progress-text" id="board-progress-text"></span>
     <span class="board-progress-bar" aria-hidden="true"><span class="board-progress-fill" id="board-progress-fill"></span></span>
   </div>
+  <div class="header-separator"></div>
   <button class="header-btn" id="log-toggle-btn">Log</button>
   <button class="header-btn" id="mcp-btn">MCP</button>
+  <div class="header-separator"></div>
   <button class="icon-btn" id="theme-btn" title="Switch theme" aria-label="Switch theme">☀</button>
 </header>
 
@@ -63,6 +75,13 @@
 
 <!-- Workspace Sidebar -->
 <aside id="workspace-sidebar">
+  <div id="ws-sidebar-header">
+    <div class="sidebar-brand">
+      <span class="sidebar-wordmark">VibeBoard</span>
+      <button id="version-badge" class="version-badge" type="button" title="Version">v-</button>
+      <button id="version-update-label" class="version-update-label" hidden aria-live="polite" title="Click to copy update command"></button>
+    </div>
+  </div>
   <div id="ws-list"></div>
   <div id="ws-sidebar-bottom">
     <button id="ws-new-btn" class="ws-bottom-btn">

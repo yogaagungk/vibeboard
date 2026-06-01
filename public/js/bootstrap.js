@@ -195,6 +195,15 @@ const wsNewPath   = document.getElementById('ws-new-path');
 const wsNewName   = document.getElementById('ws-new-name');
 const wsListEl    = document.getElementById('ws-list');
 
+// New header elements
+const headerWorkspace     = document.getElementById('header-workspace');
+const headerWorkspaceIcon = document.getElementById('header-workspace-icon');
+const headerWorkspaceName = document.getElementById('header-workspace-name');
+const headerConnection    = document.getElementById('header-connection');
+const headerAgents        = document.getElementById('header-agents');
+const headerAgentsIcon    = document.getElementById('header-agents-icon');
+const headerAgentsCount   = document.getElementById('header-agents-count');
+
 // ── Utilities ──────────────────────────────────────────────────────────────
 function uid() { return crypto.randomUUID(); }
 function stableHash(o) { return JSON.stringify(o); }
@@ -228,6 +237,20 @@ function fmtTokens(n) {
   if (n < 1000) return String(n);
   if (n < 1_000_000) return (n / 1000).toFixed(n < 10_000 ? 1 : 0) + 'k';
   return (n / 1_000_000).toFixed(1) + 'M';
+}
+
+function updateHeaderAgents(count) {
+  if (!headerAgents) return;
+  
+  if (count > 0) {
+    headerAgentsCount.textContent = count;
+    headerAgents.querySelector('.header-agents-label').textContent = count === 1 ? 'agent' : 'agents';
+    headerAgentsIcon.classList.remove('idle');
+    headerAgents.hidden = false;
+    headerAgents.title = `${count} active agent${count === 1 ? '' : 's'}`;
+  } else {
+    headerAgents.hidden = true;
+  }
 }
 
 function isAbsolutePath(p) {

@@ -625,7 +625,7 @@ async function checkVersion() {
       const cmd = `npm i -g ${v.package}@latest`;
       if (label) {
         label.hidden = false;
-        label.textContent = `v${v.latest} available — ${cmd}`;
+        label.textContent = `v${v.latest} available`;
         label.title = 'Click to copy update command';
         label.onclick = () => {
           if (navigator.clipboard) {
