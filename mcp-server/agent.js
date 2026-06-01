@@ -302,7 +302,7 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
   return child;
 }
 
-function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
+function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
   if (activeAgents.has(cardId)) {
     // Card was moved to a new column while the agent was still running.
     // If the target column is one we auto-spawn for, schedule a respawn
@@ -381,7 +381,8 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
   try {
-    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, card.model);
+    const modelToUse = modelOverride !== undefined ? modelOverride : card.model;
+    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
     const transform = agentType === 'claude-code' ? parseClaudeStreamJson : null;
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE, transform);
 
