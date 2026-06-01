@@ -112,8 +112,13 @@
     </div>
     <div id="board-filter-bar">
       <div class="filter-bar-inner">
-        <span class="filter-bar-label">Filters:</span>
-        <span id="filter-hint" class="filter-hint">Click tags, agents, or priorities on cards to filter</span>
+        <div class="filter-add-btns">
+          <button class="filter-add-btn" data-filter-type="tag">Tag</button>
+          <button class="filter-add-btn" data-filter-type="priority">Priority</button>
+          <button class="filter-add-btn" data-filter-type="agent">Agent</button>
+          <button class="filter-add-btn" data-filter-type="due">Due</button>
+        </div>
+        <div class="filter-bar-sep" id="filter-bar-sep" style="display:none"></div>
         <div id="filter-chips"></div>
         <button id="filter-clear-all" class="filter-clear-all-btn" style="display:none">Clear all</button>
       </div>

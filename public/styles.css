@@ -612,12 +612,37 @@ body.mcp-banner-open #log-sidebar {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.filter-hint {
-  font-size: 11px;
-  color: var(--text-muted);
-  opacity: 0.6;
-  font-style: italic;
+.filter-add-btns { display: flex; gap: 4px; }
+.filter-add-btn {
+  height: 22px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--text-muted);
+  font-family: 'Inter', sans-serif; font-size: 11px;
+  cursor: pointer; white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
+.filter-add-btn::after { content: ' ▾'; font-size: 9px; }
+.filter-add-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+.filter-add-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.filter-bar-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; align-self: center; }
+.filter-dropdown {
+  position: fixed; z-index: 500;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  padding: 4px; min-width: 130px;
+  display: flex; flex-direction: column;
+}
+.filter-dropdown-item {
+  height: 28px; padding: 0 10px;
+  border: none; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 12px;
+  text-align: left; cursor: pointer;
+  transition: background 0.1s;
+}
+.filter-dropdown-item:hover { background: var(--bg); }
+.filter-dropdown-item.active { color: var(--accent); font-weight: 500; }
+.filter-dropdown-item.active::after { content: ' ✓'; }
 #filter-chips {
   display: flex;
   gap: 6px;
@@ -1078,6 +1103,47 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 }
 
 /* ── Compact density mode ── */
+/* CSS variable overrides propagate automatically to every calc() that references them */
+body.vb-compact {
+  --header-h: 44px;
+  --col-width: 240px;
+  --sidebar-w: 200px;
+}
+
+/* Header */
+body.vb-compact #header { gap: 6px; padding: 0 12px; }
+body.vb-compact .header-wordmark { font-size: 12px; }
+body.vb-compact .header-btn { height: 26px; padding: 0 9px; font-size: 11px; }
+body.vb-compact .icon-btn { width: 22px; height: 22px; }
+body.vb-compact .version-badge { font-size: 9px; padding: 2px 5px; }
+body.vb-compact .version-update-label { font-size: 9px; padding: 2px 6px; }
+body.vb-compact .board-progress-text { font-size: 10px; }
+body.vb-compact .board-progress-bar { width: 44px; }
+
+/* Board toolbar + filter bar */
+body.vb-compact #board-toolbar { padding: 6px 14px 0; gap: 8px; }
+body.vb-compact #board-search { height: 24px; font-size: 11px; width: 200px; }
+body.vb-compact #board-search-clear { height: 24px; font-size: 10px; }
+body.vb-compact #board-filter-bar { padding: 0 14px 6px; }
+body.vb-compact .filter-add-btn { height: 20px; font-size: 10px; padding: 0 6px; }
+body.vb-compact .filter-chip { height: 18px; font-size: 10px; padding: 0 4px 0 6px; }
+
+/* Workspace sidebar */
+body.vb-compact #ws-sidebar-top { padding: 10px 10px 7px; }
+body.vb-compact .ws-label { font-size: 9px; }
+body.vb-compact #ws-list { gap: 1px; }
+body.vb-compact .ws-item { padding: 5px 10px; }
+body.vb-compact .ws-item-name { font-size: 12px; }
+body.vb-compact .ws-item-path { font-size: 10px; }
+body.vb-compact .ws-item-dot { width: 6px; height: 6px; }
+
+/* Columns */
+body.vb-compact .col-header { padding: 7px 8px 4px; }
+body.vb-compact .col-title { font-size: 12px; }
+body.vb-compact .col-count { font-size: 10px; }
+body.vb-compact .add-card-trigger { font-size: 11px; padding: 5px 10px; }
+
+/* Cards */
 body.vb-compact .cards-list { gap: 4px; }
 body.vb-compact .card { padding: 7px 8px 6px 9px; }
 body.vb-compact .card-top { margin-bottom: 2px; }
@@ -1087,8 +1153,30 @@ body.vb-compact .card-footer { gap: 4px; margin-top: 6px; }
 body.vb-compact .card-tags { gap: 3px; }
 body.vb-compact .card-meta { gap: 4px; }
 body.vb-compact .tag { font-size: 9px; padding: 0 6px; }
-body.vb-compact .col-header { padding: 8px 8px 4px; }
 body.vb-compact .card-del-btn { width: 16px; height: 16px; font-size: 11px; }
+
+/* Log sidebar */
+body.vb-compact #log-sidebar-header { padding: 8px 12px; }
+body.vb-compact #log-sidebar-header .modal-header-title { font-size: 12px; }
+body.vb-compact .log-entry { padding: 6px 12px; gap: 2px; }
+body.vb-compact .log-entry-action { font-size: 10px; }
+body.vb-compact .log-entry-detail { font-size: 11px; }
+body.vb-compact .log-entry-time { font-size: 10px; }
+
+/* Card sidebar */
+body.vb-compact #card-sidebar { --sidebar-w: 440px; }
+body.vb-compact .sidebar-tab { font-size: 11px; padding: 6px 10px; }
+body.vb-compact .modal-header { padding: 10px 14px; }
+body.vb-compact .modal-header-title { font-size: 12px; }
+body.vb-compact .modal-body { padding: 12px; gap: 12px; }
+body.vb-compact .form-row { gap: 5px; }
+body.vb-compact .form-label { font-size: 10px; }
+body.vb-compact .form-input,
+body.vb-compact .form-textarea { font-size: 12px; }
+
+/* Settings / MCP modals */
+body.vb-compact .settings-row { padding: 7px 0; }
+body.vb-compact .settings-label { font-size: 12px; }
 
 .btn-danger {
   height: 32px; padding: 0 14px;
