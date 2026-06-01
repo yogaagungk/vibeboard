@@ -223,7 +223,21 @@ function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
       : 'call complete_card (this card skips Review)';
     phase = `Phase: IN PROGRESS - implement the task, then commit ALL changes with git and ${next}.`;
   } else if (colTitle === 'Review') {
-    phase = `Phase: REVIEW - verify the changes and run tests. If you find issues, commit fixes and move_card back to "In Progress"; if it's good, call complete_card.`;
+    const diffCmd = branch
+      ? `git log --oneline main..HEAD && git diff main..HEAD`
+      : card.in_progress_base_sha
+        ? `git log --oneline ${card.in_progress_base_sha}..HEAD && git diff ${card.in_progress_base_sha}..HEAD`
+        : `git log --oneline -10 && git diff HEAD~1`;
+    phase = `Phase: REVIEW - verify the implementation completed during In Progress.
+
+Your job:
+1. Start by running: ${diffCmd}
+2. Confirm the implementation satisfies the original task (title + description above).
+3. Run any existing tests.
+4. If trivial issues found (typo, missing return, off-by-one): fix them, commit, then call complete_card.
+5. If significant issues found (wrong logic, missing feature, broken tests): call update_card(cardId, { review_issue: true }) then add_card_note describing exactly what is wrong and what needs to change, then stop. Do NOT call complete_card.
+6. If everything looks correct: call complete_card.
+Do NOT re-implement from scratch.`;
   } else if (colTitle === 'Done') {
     phase = `Phase: DONE - work is complete; ensure everything is committed. The user merges manually.`;
   } else {
@@ -302,7 +316,7 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
   return child;
 }
 
-function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
+function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
   if (activeAgents.has(cardId)) {
     // Card was moved to a new column while the agent was still running.
     // If the target column is one we auto-spawn for, schedule a respawn
@@ -341,6 +355,16 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   if (!card) { process.stderr.write(`Card ${cardId} not found\n`); return; }
 
   const column = getColumn(card.column_id);
+
+  // For Review column, prefer card.review_agent/review_model when defined.
+  // This makes all spawn paths (direct, queued, pending respawn) consistent.
+  if (column?.title === 'Review' && card.review_agent) {
+    agentType = card.review_agent;
+  }
+  const modelToUse = (column?.title === 'Review' && card.review_agent)
+    ? (card.review_model || card.model)
+    : (modelOverride !== undefined ? modelOverride : card.model);
+
   const workspace = getWorkspace(workspaceId);
   if (!workspace?.path) { process.stderr.write(`Workspace ${workspaceId} has no path\n`); return; }
 
@@ -361,6 +385,12 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
       process.stderr.write(`Worktree creation failed (running in workspace dir): ${err.message}\n`);
       addCardNote(cardId, `Worktree creation failed: ${err.message}. Agent running in workspace directory.`);
     }
+  } else if (column?.title === 'In Progress') {
+    // No worktree — snapshot HEAD so the Review agent can diff exactly what changed.
+    try {
+      const sha = execSync('git rev-parse HEAD', { cwd: workspace.path, encoding: 'utf8', timeout: 3000 }).trim();
+      if (sha) updateCard(cardId, { in_progress_base_sha: sha });
+    } catch (_) {}
   }
 
   // Verify the spawn directory immediately before launching: catches deleted
@@ -381,7 +411,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
   try {
-    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, card.model);
+    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
     const transform = agentType === 'claude-code' ? parseClaudeStreamJson : null;
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE, transform);
 

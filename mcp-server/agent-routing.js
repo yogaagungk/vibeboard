@@ -9,14 +9,24 @@ const { spawnAgent, stopAgent, isAgentRunning, isAgentActive } = require('./agen
 // completion callback (which POSTs to the HTTP server) would land in a process
 // whose activeAgents map never had the card, leaking timeouts and dropping the
 // session-output note.
-function routeSpawnAgent(cardId) {
+function routeSpawnAgent(cardId, columnTitle) {
   if (isHttpRunning()) {
     const card = db.getCard(cardId);
-    if (card?.agent) {
-      spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    if (!card) return;
+    
+    let agentType = card.agent;
+    let model = card.model;
+    
+    if (columnTitle === 'Review' && card.review_agent) {
+      agentType = card.review_agent;
+      model = card.review_model || card.model;
+    }
+    
+    if (agentType) {
+      spawnAgent(cardId, card.workspace_id, agentType, emitSSE, model);
     }
   } else {
-    fetch(`http://localhost:${PORT}/api/cards/${cardId}/run`, { method: 'POST' }).catch(() => {});
+    fetch(`http://localhost:${PORT}/api/cards/${cardId}/spawn-or-queue`, { method: 'POST' }).catch(() => {});
   }
 }
 

@@ -245,7 +245,29 @@ function openCardModal(cardId, colId) {
     card.requires_review = reviewToggle.checked;
     updatePromptBox(card);
     saveModal(card);
+    const reviewAgentSection = document.getElementById('card-review-agent-section');
+    reviewAgentSection.style.display = (card.agent && reviewToggle.checked) ? '' : 'none';
   };
+
+  const reviewAgentSection = document.getElementById('card-review-agent-section');
+  reviewAgentSection.style.display = (card.agent && card.requires_review) ? '' : 'none';
+
+  const reviewAgentMount = document.getElementById('card-review-agent-mount');
+  reviewAgentMount.innerHTML = '';
+  reviewAgentMount._reviewAgentSelect = vbSelect({
+    options: buildAgentOptions(),
+    value: card.review_agent || '',
+    placeholder: 'Same as main agent',
+    ariaLabel: 'Review agent',
+    onChange: value => {
+      card.review_agent = value || undefined;
+      saveModal(card);
+      updateModelDropdown('card-review', card.review_agent || '', card.review_model);
+    },
+  });
+  reviewAgentMount.appendChild(reviewAgentMount._reviewAgentSelect.el);
+
+  updateModelDropdown('card-review', card.review_agent || '', card.review_model);
 
   // Priority dropdown
   const cardPriorityMount = document.getElementById('card-priority-mount');
@@ -384,9 +406,16 @@ function openNewCardModal(colId) {
   document.getElementById('nc-desc').value = '';
   document.getElementById('nc-due-date').value = '';
   document.getElementById('nc-needs-review').checked = false;
-  
+  document.getElementById('nc-review-agent-section').style.display = 'none';
+
   renderTagPicker(document.getElementById('nc-tag-picker'), []);
-  
+
+  function syncNcReviewSection() {
+    const hasAgent = !!window._ncAgentSelect?.getValue();
+    const needsReview = document.getElementById('nc-needs-review').checked;
+    document.getElementById('nc-review-agent-section').style.display = (hasAgent && needsReview) ? '' : 'none';
+  }
+
   const ncAgentOpts = [
     { value: '', label: 'None' },
     ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
@@ -411,6 +440,7 @@ function openNewCardModal(colId) {
           warning.style.display = 'none';
           modelRow.style.display = 'none';
         }
+        syncNcReviewSection();
       },
     });
     document.getElementById('nc-agent-mount').appendChild(window._ncAgentSelect.el);
@@ -418,7 +448,31 @@ function openNewCardModal(colId) {
     window._ncAgentSelect.setOptions(ncAgentOpts);
     window._ncAgentSelect.setValue('');
   }
-  
+
+  const ncReviewAgentOpts = [
+    { value: '', label: 'Same as main agent' },
+    ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
+      const reason = agentUnavailableReason(k);
+      return { value: k, label: AGENT_LABELS[k] || k, disabled: !!reason, hint: reason || undefined };
+    }),
+  ];
+  if (!window._ncReviewAgentSelect) {
+    window._ncReviewAgentSelect = vbSelect({
+      options: ncReviewAgentOpts,
+      value: '',
+      placeholder: 'Same as main agent',
+      ariaLabel: 'Review agent',
+      onChange: val => updateModelDropdown('nc-review', val),
+    });
+    document.getElementById('nc-review-agent-mount').appendChild(window._ncReviewAgentSelect.el);
+  } else {
+    window._ncReviewAgentSelect.setOptions(ncReviewAgentOpts);
+    window._ncReviewAgentSelect.setValue('');
+  }
+
+  document.getElementById('nc-review-model-row').style.display = 'none';
+  document.getElementById('nc-needs-review').onchange = syncNcReviewSection;
+
   if (!window._ncPrioritySelect) {
     window._ncPrioritySelect = vbSelect({
       options: [

@@ -1079,6 +1079,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 }
 .add-card-trigger:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--surface)); }
 .add-card-trigger:hover::before { opacity: 1; }
+.add-card-spacer { height: 43px; flex-shrink: 0; }
 .tag-pick-btn {
   font-size: 10px; font-weight: 500;
   padding: 2px 8px; border-radius: var(--radius-pill);
@@ -1260,6 +1261,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 
 /* â”€â”€ Toggle switch â”€â”€ */
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.review-phase-section { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .toggle-row-label { font-size: 13px; color: var(--text); }
 .toggle-row-hint { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 .toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
@@ -2175,6 +2177,13 @@ kbd {
   background: rgba(234,179,8,0.15); color: #ca8a04;
 }
 :root[data-theme="dark"] .need-merge-badge { background: rgba(234,179,8,0.18); color: #fbbf24; }
+.review-issue-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 500; padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(239,68,68,0.12); color: #dc2626;
+}
+:root[data-theme="dark"] .review-issue-badge { background: rgba(239,68,68,0.18); color: #f87171; }
 .card-merge-actions .btn-primary { flex: 1; }
 .card-merge-actions .btn-ghost   { flex: 1; }
 .card-merge-actions .btn-danger  { flex: 1; }
@@ -2287,7 +2296,7 @@ kbd {
 }
 #sse-banner.visible { display: flex; }
 #sse-banner-text { flex: 1; line-height: 1.4; }
-#sse-banner-text::before { content: 'a0\00a0'; }
+#sse-banner-text::before { content: '\26A0\00a0'; }
 body.sidebar-collapsed #sse-banner { left: 0; }
 body.mcp-banner-open #sse-banner { top: calc(var(--header-h) + 41px); }
 

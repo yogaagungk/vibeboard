@@ -228,6 +228,18 @@ module.exports = function registerRoutes(app) {
     res.json({ ok: true });
   });
 
+  // Called by routeSpawnAgent in MCP-subprocess mode after a move_card.
+  // Unlike /run, this does NOT reject when the agent is already active — it
+  // lets spawnAgent queue a pendingRespawn so the review phase starts as soon
+  // as the current agent exits.
+  app.post('/api/cards/:cardId/spawn-or-queue', (req, res) => {
+    const { cardId } = req.params;
+    const card = db.getCard(cardId);
+    if (!card || !card.agent) return res.json({ ok: true });
+    spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    res.json({ ok: true });
+  });
+
   app.post('/api/cards/:cardId/stop', (req, res) => {
     const { cardId } = req.params;
     if (!isAgentActive(cardId)) return res.status(409).json({ error: 'No agent running or queued' });

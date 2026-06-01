@@ -251,7 +251,13 @@ function buildColumn(col) {
   });
 
   colEl.appendChild(cardsList);
-  colEl.appendChild(buildAddCardArea(col));
+  const NO_ADD_COLS = ['In Progress', 'Review', 'Done'];
+  if (NO_ADD_COLS.includes(col.title)) {
+    const spacer = document.createElement('div'); spacer.className = 'add-card-spacer';
+    colEl.appendChild(spacer);
+  } else {
+    colEl.appendChild(buildAddCardArea(col));
+  }
   return colEl;
 }
 
@@ -363,6 +369,13 @@ function buildCard(card, colId) {
     if (col && col.title === 'Done') {
       const n = document.createElement('span'); n.className = 'need-merge-badge'; n.textContent = '! merge'; n.title = 'Branch ' + card.branch + ' has not been merged';
       metaRow.appendChild(n);
+    }
+  }
+  if (card.review_issue) {
+    const col = board.columns.find(c => c.id === colId);
+    if (col && col.title === 'Review') {
+      const b = document.createElement('span'); b.className = 'review-issue-badge'; b.textContent = '! issue'; b.title = 'Review agent found issues — check card notes';
+      metaRow.appendChild(b);
     }
   }
 
