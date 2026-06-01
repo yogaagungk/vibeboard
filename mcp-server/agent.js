@@ -234,9 +234,10 @@ Your job:
 1. Start by running: ${diffCmd}
 2. Confirm the implementation satisfies the original task (title + description above).
 3. Run any existing tests.
-4. If issues found: fix them, commit with git, then move_card back to "In Progress".
-5. If everything looks correct: call complete_card.
-Do NOT re-implement from scratch. Only review, test, and fix targeted issues.`;
+4. If trivial issues found (typo, missing return, off-by-one): fix them, commit, then call complete_card.
+5. If significant issues found (wrong logic, missing feature, broken tests): add_card_note explaining what is wrong and what needs to change, then move_card back to "In Progress".
+6. If everything looks correct: call complete_card.
+Do NOT re-implement from scratch. Only verify and fix trivial issues.`;
   } else if (colTitle === 'Done') {
     phase = `Phase: DONE - work is complete; ensure everything is committed. The user merges manually.`;
   } else {
