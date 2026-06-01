@@ -596,7 +596,7 @@ body.mcp-banner-open #log-sidebar {
 #board-search-count { font-size: 11px; color: var(--text-muted); display: none; }
 
 #board-filter-bar {
-  padding: 0 20px 10px 20px;
+  padding: 8px 20px 10px 20px;
   flex-shrink: 0;
 }
 .filter-bar-inner {
@@ -1103,14 +1103,14 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 }
 
 /* ── Compact density mode ── */
-/* CSS variable overrides propagate automatically to every calc() that references them */
+/* CSS variable overrides propagate automatically to every calc() that uses them */
 body.vb-compact {
   --header-h: 44px;
   --col-width: 240px;
   --sidebar-w: 200px;
 }
 
-/* Header */
+/* ── Header ── */
 body.vb-compact #header { gap: 6px; padding: 0 12px; }
 body.vb-compact .header-wordmark { font-size: 12px; }
 body.vb-compact .header-btn { height: 26px; padding: 0 9px; font-size: 11px; }
@@ -1118,18 +1118,22 @@ body.vb-compact .icon-btn { width: 22px; height: 22px; }
 body.vb-compact .version-badge { font-size: 9px; padding: 2px 5px; }
 body.vb-compact .version-update-label { font-size: 9px; padding: 2px 6px; }
 body.vb-compact .board-progress-text { font-size: 10px; }
-body.vb-compact .board-progress-bar { width: 44px; }
+body.vb-compact .board-progress-bar { width: 44px; height: 3px; }
 
-/* Board toolbar + filter bar */
+/* ── Board toolbar + filter bar ── */
 body.vb-compact #board-toolbar { padding: 6px 14px 0; gap: 8px; }
 body.vb-compact #board-search { height: 24px; font-size: 11px; width: 200px; }
 body.vb-compact #board-search-clear { height: 24px; font-size: 10px; }
-body.vb-compact #board-filter-bar { padding: 0 14px 6px; }
+body.vb-compact #board-filter-bar { padding: 5px 14px 6px; }
 body.vb-compact .filter-add-btn { height: 20px; font-size: 10px; padding: 0 6px; }
-body.vb-compact .filter-chip { height: 18px; font-size: 10px; padding: 0 4px 0 6px; }
+body.vb-compact .filter-chip { font-size: 10px; }
 
-/* Workspace sidebar */
-body.vb-compact #ws-sidebar-top { padding: 10px 10px 7px; }
+/* ── Board canvas ── */
+body.vb-compact #board-inner { padding: 10px 0 14px 14px; }
+body.vb-compact #board { gap: 8px; }
+
+/* ── Workspace sidebar ── */
+body.vb-compact #ws-sidebar-top { padding: 9px 10px 6px; }
 body.vb-compact .ws-label { font-size: 9px; }
 body.vb-compact #ws-list { gap: 1px; }
 body.vb-compact .ws-item { padding: 5px 10px; }
@@ -1137,13 +1141,13 @@ body.vb-compact .ws-item-name { font-size: 12px; }
 body.vb-compact .ws-item-path { font-size: 10px; }
 body.vb-compact .ws-item-dot { width: 6px; height: 6px; }
 
-/* Columns */
+/* ── Columns ── */
 body.vb-compact .col-header { padding: 7px 8px 4px; }
 body.vb-compact .col-title { font-size: 12px; }
 body.vb-compact .col-count { font-size: 10px; }
 body.vb-compact .add-card-trigger { font-size: 11px; padding: 5px 10px; }
 
-/* Cards */
+/* ── Cards ── */
 body.vb-compact .cards-list { gap: 4px; }
 body.vb-compact .card { padding: 7px 8px 6px 9px; }
 body.vb-compact .card-top { margin-bottom: 2px; }
@@ -1155,28 +1159,43 @@ body.vb-compact .card-meta { gap: 4px; }
 body.vb-compact .tag { font-size: 9px; padding: 0 6px; }
 body.vb-compact .card-del-btn { width: 16px; height: 16px; font-size: 11px; }
 
-/* Log sidebar */
+/* ── Activity log sidebar ── */
 body.vb-compact #log-sidebar-header { padding: 8px 12px; }
 body.vb-compact #log-sidebar-header .modal-header-title { font-size: 12px; }
-body.vb-compact .log-entry { padding: 6px 12px; gap: 2px; }
-body.vb-compact .log-entry-action { font-size: 10px; }
+body.vb-compact #log-sidebar-body { padding: 0; }
+body.vb-compact .log-entry { padding: 6px 12px; }
+body.vb-compact .log-entry-top { margin-bottom: 3px; gap: 5px; }
+body.vb-compact .log-entry-action { font-size: 10px; padding: 1px 5px; }
 body.vb-compact .log-entry-detail { font-size: 11px; }
 body.vb-compact .log-entry-time { font-size: 10px; }
+body.vb-compact .log-entry-agent { font-size: 10px; }
 
-/* Card sidebar */
-body.vb-compact #card-sidebar { --sidebar-w: 440px; }
-body.vb-compact .sidebar-tab { font-size: 11px; padding: 6px 10px; }
+/* ── Card sidebar ── */
+body.vb-compact #card-sidebar-header { padding: 10px 12px 9px; gap: 8px; }
+body.vb-compact #card-sidebar-body { padding: 12px; }
+body.vb-compact #card-sidebar-footer { padding: 9px 12px; }
+body.vb-compact .sidebar-tab { font-size: 11px; padding: 5px 10px; }
+body.vb-compact .sidebar-group { padding: 10px; gap: 8px; }
+body.vb-compact .sidebar-group-label { font-size: 10px; }
+body.vb-compact .sidebar-group .details-row + .details-row { margin-top: 6px; }
+body.vb-compact .details-row { padding: 9px 0; }
+body.vb-compact .details-label { font-size: 10px; min-width: 64px; }
+body.vb-compact .field-label { font-size: 10px; margin-bottom: 4px; }
+body.vb-compact .modal-textarea { font-size: 12px; padding: 6px 8px; }
+body.vb-compact .modal-path-input { font-size: 11px; padding: 5px 8px; }
+
+/* ── Modals (new card, workspace, MCP) ── */
 body.vb-compact .modal-header { padding: 10px 14px; }
 body.vb-compact .modal-header-title { font-size: 12px; }
 body.vb-compact .modal-body { padding: 12px; gap: 12px; }
-body.vb-compact .form-row { gap: 5px; }
-body.vb-compact .form-label { font-size: 10px; }
-body.vb-compact .form-input,
-body.vb-compact .form-textarea { font-size: 12px; }
+body.vb-compact .modal-footer { padding: 9px 12px; }
 
-/* Settings / MCP modals */
-body.vb-compact .settings-row { padding: 7px 0; }
-body.vb-compact .settings-label { font-size: 12px; }
+/* ── Settings modal ── */
+body.vb-compact .settings-section { gap: 8px; }
+body.vb-compact .settings-section-title { font-size: 12px; }
+body.vb-compact .toggle-row { gap: 6px; }
+body.vb-compact .toggle-row-label { font-size: 12px; }
+body.vb-compact .toggle-row-hint { font-size: 10px; }
 
 .btn-danger {
   height: 32px; padding: 0 14px;
