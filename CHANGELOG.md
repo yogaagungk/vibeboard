@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Board-level progress summary in header** — sticky header now shows `X / Y done (Z%)` with a slim progress bar; updates live with every board render (initial load, SSE updates, drag/move). Click the indicator to scroll the board to the Done column. Disabled when no Done column exists.
+
 ## [0.2.14] - 2026-05-31
 
 ### Added
