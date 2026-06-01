@@ -1354,8 +1354,11 @@ document.getElementById('card-mark-merged-btn').addEventListener('click', async 
   this.textContent = 'Marking…';
   try {
     const resp = await fetch(`/api/cards/${modalCardId}/mark-merged`, { method: 'POST' });
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(resp.status === 404 ? 'Endpoint not found — restart the server' : (JSON.parse(text).error || text));
+    }
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'Failed to mark as merged');
     const col = board.columns.find(c => c.id === modalColId);
     const card = col?.cards.find(c => c.id === modalCardId);
     if (card) { card.merged_at = new Date().toISOString(); card.worktree_path = null; }
