@@ -43,15 +43,6 @@ function setShowDescriptions(val) {
 }
 document.body.classList.toggle('vb-show-descriptions', getShowDescriptions());
 
-// ── Compact density toggle ────────────────────────────────────────────────
-function getCompactDensity() {
-  return localStorage.getItem('vb_compact_density') === 'true';
-}
-function setCompactDensity(val) {
-  localStorage.setItem('vb_compact_density', val ? 'true' : 'false');
-}
-document.body.classList.toggle('vb-compact', getCompactDensity());
-
 // ── State ──────────────────────────────────────────────────────────────────
 const TAB_ID = crypto.randomUUID();
 let board = { columns: [], agentLog: [] };

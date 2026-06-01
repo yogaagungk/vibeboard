@@ -279,12 +279,13 @@ function buildCard(card, colId) {
 
   const text = document.createElement('div'); text.className = 'card-text'; text.textContent = card.title || card.text;
 
-  // Footer is split into two tiers: a tags row (what kind of work) and a meta
-  // row (status, agent, priority, dates) so a busy card stays scannable.
+  // Footer is split into tiers: tags row, meta row (agent/dates), run row (status), git row (branch/merge)
   const cardTop = document.createElement('div'); cardTop.className = 'card-top';
   const footer = document.createElement('div'); footer.className = 'card-footer';
   const tagsRow = document.createElement('div'); tagsRow.className = 'card-tags';
   const metaRow = document.createElement('div'); metaRow.className = 'card-meta';
+  const runRow = document.createElement('div'); runRow.className = 'card-run';
+  const gitRow = document.createElement('div'); gitRow.className = 'card-git';
 
   (card.tags || []).forEach(tag => {
     const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag;
@@ -297,29 +298,18 @@ function buildCard(card, colId) {
     tagsRow.appendChild(pill);
   });
 
-  if (card.priority) {
-    const pb = document.createElement('span');
-    pb.className = `priority-badge priority-${card.priority}`;
-    pb.textContent = card.priority;
-    pb.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (typeof addFilter === 'function') addFilter('priority', card.priority);
-    });
-    pb.style.cursor = 'pointer';
-    pb.title = 'Click to filter by this priority';
-    cardTop.appendChild(pb);
-  }
+  // Agent badge in meta row - simplified design
   if (card.agent) {
     const badge = document.createElement('span');
     badge.className = `card-agent-badge ${card.agent}`;
-    badge.textContent = { 'claude-code': 'CC', 'opencode': 'OC', 'codex': 'CX', 'command-code': 'CMD' }[card.agent] || card.agent.slice(0,2).toUpperCase();
+    badge.textContent = { 'claude-code': 'Claude', 'opencode': 'OpenCode', 'codex': 'Codex', 'command-code': 'Command' }[card.agent] || card.agent;
     badge.title = AGENT_LABELS[card.agent] || card.agent;
     badge.addEventListener('click', (e) => {
       e.stopPropagation();
       if (typeof addFilter === 'function') addFilter('agent', card.agent);
     });
     badge.style.cursor = 'pointer';
-    cardTop.appendChild(badge);
+    metaRow.appendChild(badge);
   }
   if (card.due_date) {
     const db = document.createElement('span');
@@ -348,33 +338,37 @@ function buildCard(card, colId) {
     rb.title = 'Human review required before this card can be closed';
     metaRow.appendChild(rb);
   }
+  // Branch and merge status in separate git row
   if (card.branch) {
     const b = document.createElement('span');
     b.className = 'branch-badge card-branch-pill';
-    b.textContent = card.branch.replace(/^vb\//, '');
+    b.textContent = '🔀 ' + card.branch.replace(/^vb\//, '');
     b.title = card.branch;
-    metaRow.appendChild(b);
+    gitRow.appendChild(b);
   }
+  
   if (card.merged_at) {
     const m = document.createElement('span');
     m.className = 'merged-badge';
-    m.textContent = 'merged';
+    m.textContent = '✓ merged';
     m.title = 'Merged: ' + fmtTime(card.merged_at);
-    cardTop.appendChild(m);
+    gitRow.appendChild(m);
   }
   const col = board.columns.find(c => c.id === colId);
   if (col && col.title === 'Done' && card.branch && !card.merged_at) {
     const n = document.createElement('span');
     n.className = 'need-merge-badge';
-    n.textContent = 'need merge';
+    n.textContent = '⚠ merge';
     n.title = 'Branch ' + card.branch + ' has not been merged';
-    cardTop.appendChild(n);
+    gitRow.appendChild(n);
   }
+  
+  // Run status badges in separate run row
   if (runningCards.has(card.id)) {
     const dot = document.createElement('span');
     dot.className = 'card-running-dot';
     dot.title = 'Agent running…';
-    metaRow.appendChild(dot);
+    runRow.appendChild(dot);
   } else if (queuedCards.has(card.id)) {
     const queueWrap = document.createElement('span');
     queueWrap.className = 'card-queued-wrap';
@@ -402,7 +396,7 @@ function buildCard(card, colId) {
     };
     queueWrap.appendChild(cancelBtn);
     
-    metaRow.appendChild(queueWrap);
+    runRow.appendChild(queueWrap);
   } else if (card.last_exit_code !== null && card.last_exit_code !== undefined && !card.merged_at) {
     const ok = card.last_exit_code === 0;
     const rs = document.createElement('span');
@@ -410,7 +404,7 @@ function buildCard(card, colId) {
     const durStr = card.last_duration != null ? fmtDuration(card.last_duration) : '';
     rs.textContent = (ok ? '✓' : '✗') + (durStr ? ' ran ' + durStr : '');
     rs.title = `Last agent run ${ok ? 'succeeded' : 'failed (exit ' + card.last_exit_code + ')'}` + (durStr ? ` in ${durStr}` : '');
-    metaRow.appendChild(rs);
+    runRow.appendChild(rs);
   }
 
   if (card.last_cost != null || card.last_tokens != null) {
@@ -421,7 +415,7 @@ function buildCard(card, colId) {
     if (card.last_tokens != null) parts.push(fmtTokens(card.last_tokens) + ' tok');
     u.textContent = parts.join(' · ');
     u.title = 'Reported by the last agent run';
-    metaRow.appendChild(u);
+    runRow.appendChild(u);
   }
 
   const blockers = unfinishedBlockersUI(card);
@@ -443,6 +437,8 @@ function buildCard(card, colId) {
 
   if (tagsRow.children.length) footer.appendChild(tagsRow);
   if (metaRow.children.length) footer.appendChild(metaRow);
+  if (runRow.children.length) footer.appendChild(runRow);
+  if (gitRow.children.length) footer.appendChild(gitRow);
 
   const delBtn = document.createElement('button'); delBtn.className = 'card-del-btn'; delBtn.textContent = '×';
   delBtn.setAttribute('aria-label', 'Delete card');

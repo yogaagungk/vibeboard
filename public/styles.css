@@ -37,7 +37,7 @@
   --radius-pill: 9999px;
   --radius-card: var(--radius-md);
   --radius-col: var(--radius-lg);
-  --col-width: 260px;
+  --col-width: 280px;
   --header-h: 52px;
   --sidebar-w: 240px;
   --tag-feature: #7c3aed;
@@ -863,9 +863,9 @@ body.mcp-banner-open #log-sidebar {
 
 #board-inner {
   flex: 1; overflow-x: auto; overflow-y: hidden;
-  padding: 14px 0 20px 20px; min-height: 0;
+  padding: 16px 0 24px 24px; min-height: 0;
 }
-#board { display: flex; gap: 12px; height: 100%; align-items: flex-start; }
+#board { display: flex; gap: 16px; height: 100%; align-items: flex-start; }
 
 /* ── Empty state ── */
 #empty-state {
@@ -940,9 +940,9 @@ body.mcp-banner-open #log-sidebar {
 
 
 .cards-list {
-  flex: 1; overflow-y: auto; padding: 0 6px 8px;
+  flex: 1; overflow-y: auto; padding: 0 8px 8px;
   margin: 0 4px;
-  display: flex; flex-direction: column; gap: 6px; min-height: 40px;
+  display: flex; flex-direction: column; gap: 8px; min-height: 40px;
 }
 .cards-list[data-empty] { min-height: 80px; }
 .cards-list::-webkit-scrollbar { width: 8px; }
@@ -968,14 +968,20 @@ body.mcp-banner-open #log-sidebar {
 /* ── Cards ── */
 .card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-card); padding: 11px 11px 10px 13px;
+  border-radius: var(--radius-card); padding: 12px 14px;
   cursor: grab; position: relative;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s; user-select: none;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 /* Elevation via surface lift + hairline, not shadow (Linear surface ladder). */
-.card:hover { background: var(--surface-2); border-color: var(--border-strong); transform: translateY(-1px); }
-.card:active { transform: translateY(0); }
-.card.dragging { opacity: 0.4; transform: none; box-shadow: 0 6px 18px rgba(0,0,0,0.14); }
+.card:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+.card:active { box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.card.dragging { opacity: 0.4; box-shadow: 0 6px 18px rgba(0,0,0,0.14); }
 
 /* Priority accent: a thin colored bar on the leading edge of the card. */
 .card.pri-high::before, .card.pri-medium::before, .card.pri-low::before {
@@ -990,17 +996,31 @@ body.mcp-banner-open #log-sidebar {
   0% { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
   100% { border-color: var(--border); box-shadow: none; }
 }
-.card-top { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
-.card-text { font-size: 13px; font-weight: 400; line-height: 1.45; letter-spacing: -0.1px; color: var(--text); word-break: break-word; }
+.card-top { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+.card-text {
+  font-size: 14px; font-weight: 500; line-height: 1.5; letter-spacing: -0.2px;
+  color: var(--text); word-break: break-word; margin-bottom: 2px;
+}
 body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 .card-desc-preview {
-  font-size: 11.5px; font-weight: 300; color: var(--text-muted);
-  line-height: 1.5; margin-top: 5px;
+  font-size: 12px; font-weight: 300; color: var(--text-muted);
+  line-height: 1.5; margin-top: 6px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.card-footer { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
-.card-tags { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.card-footer { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.card-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.card-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.card-run { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.card-git { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+
+/* Branch badge with max-width to prevent wrapping */
+.branch-badge, .card-branch-pill {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
 .tag {
   font-size: 10px; font-weight: 500; padding: 1px 7px;
   border-radius: var(--radius-pill); color: var(--text-strong);
@@ -1235,99 +1255,6 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) .toggle-switch input:checked + .toggle-track::after { background: #f7f8f8; }
 }
-
-/* ── Compact density mode ── */
-/* CSS variable overrides propagate automatically to every calc() that uses them */
-body.vb-compact {
-  --header-h: 44px;
-  --col-width: 240px;
-  --sidebar-w: 220px;
-}
-
-/* ── Header ── */
-body.vb-compact #header { gap: 6px; padding: 0 12px; }
-body.vb-compact .header-wordmark { font-size: 12px; }
-body.vb-compact .header-btn { height: 26px; padding: 0 9px; font-size: 11px; }
-body.vb-compact .icon-btn { width: 22px; height: 22px; }
-body.vb-compact .version-badge { font-size: 9px; padding: 2px 5px; }
-body.vb-compact .version-update-label { font-size: 9px; padding: 2px 6px; }
-body.vb-compact .board-progress-text { font-size: 10px; }
-body.vb-compact .board-progress-bar { width: 44px; height: 3px; }
-
-/* ── Board toolbar + filter bar ── */
-body.vb-compact #board-toolbar { padding: 6px 14px 0; gap: 8px; }
-body.vb-compact #board-search { height: 24px; font-size: 11px; width: 200px; }
-body.vb-compact #board-search-clear { height: 24px; font-size: 10px; }
-body.vb-compact #board-filter-bar { padding: 5px 14px 6px; }
-body.vb-compact .filter-add-btn { height: 20px; font-size: 10px; padding: 0 6px; }
-body.vb-compact .filter-chip { font-size: 10px; }
-
-/* ── Board canvas ── */
-body.vb-compact #board-inner { padding: 10px 0 14px 14px; }
-body.vb-compact #board { gap: 8px; }
-
-/* ── Workspace sidebar ── */
-body.vb-compact #ws-list { padding-top: 6px; }
-body.vb-compact .ws-item { padding: 5px 8px 5px 10px; }
-body.vb-compact .ws-item-name { font-size: 12px; }
-body.vb-compact .ws-item-path { font-size: 10px; }
-body.vb-compact .ws-bottom-btn { padding: 5px 8px 5px 10px; }
-
-/* ── Columns ── */
-body.vb-compact .col-header { padding: 7px 8px 4px; }
-body.vb-compact .col-title { font-size: 12px; }
-body.vb-compact .col-count { font-size: 10px; }
-body.vb-compact .add-card-trigger { font-size: 11px; padding: 5px 10px; }
-
-/* ── Cards ── */
-body.vb-compact .cards-list { gap: 4px; }
-body.vb-compact .card { padding: 7px 8px 6px 9px; }
-body.vb-compact .card-top { margin-bottom: 2px; }
-body.vb-compact .card-text { font-size: 12px; line-height: 1.4; }
-body.vb-compact .card-desc-preview { margin-top: 3px; font-size: 11px; line-height: 1.4; }
-body.vb-compact .card-footer { gap: 4px; margin-top: 6px; }
-body.vb-compact .card-tags { gap: 3px; }
-body.vb-compact .card-meta { gap: 4px; }
-body.vb-compact .tag { font-size: 9px; padding: 0 6px; }
-body.vb-compact .card-del-btn { width: 16px; height: 16px; font-size: 11px; }
-
-/* ── Activity log sidebar ── */
-body.vb-compact #log-sidebar-header { padding: 8px 12px; }
-body.vb-compact #log-sidebar-header .modal-header-title { font-size: 12px; }
-body.vb-compact #log-sidebar-body { padding: 0; }
-body.vb-compact .log-entry { padding: 6px 12px; }
-body.vb-compact .log-entry-top { margin-bottom: 3px; gap: 5px; }
-body.vb-compact .log-entry-action { font-size: 10px; padding: 1px 5px; }
-body.vb-compact .log-entry-detail { font-size: 11px; }
-body.vb-compact .log-entry-time { font-size: 10px; }
-body.vb-compact .log-entry-agent { font-size: 10px; }
-
-/* ── Card sidebar ── */
-body.vb-compact #card-sidebar-header { padding: 10px 12px 9px; gap: 8px; }
-body.vb-compact #card-sidebar-body { padding: 12px; }
-body.vb-compact #card-sidebar-footer { padding: 9px 12px; }
-body.vb-compact .sidebar-tab { font-size: 11px; padding: 5px 10px; }
-body.vb-compact .sidebar-group { padding: 10px; gap: 8px; }
-body.vb-compact .sidebar-group-label { font-size: 10px; }
-body.vb-compact .sidebar-group .details-row + .details-row { margin-top: 6px; }
-body.vb-compact .details-row { padding: 9px 0; }
-body.vb-compact .details-label { font-size: 10px; min-width: 64px; }
-body.vb-compact .field-label { font-size: 10px; margin-bottom: 4px; }
-body.vb-compact .modal-textarea { font-size: 12px; padding: 6px 8px; }
-body.vb-compact .modal-path-input { font-size: 11px; padding: 5px 8px; }
-
-/* ── Modals (new card, workspace, MCP) ── */
-body.vb-compact .modal-header { padding: 10px 14px; }
-body.vb-compact .modal-header-title { font-size: 12px; }
-body.vb-compact .modal-body { padding: 12px; gap: 12px; }
-body.vb-compact .modal-footer { padding: 9px 12px; }
-
-/* ── Settings modal ── */
-body.vb-compact .settings-section { gap: 8px; }
-body.vb-compact .settings-section-title { font-size: 12px; }
-body.vb-compact .toggle-row { gap: 6px; }
-body.vb-compact .toggle-row-label { font-size: 12px; }
-body.vb-compact .toggle-row-hint { font-size: 10px; }
 
 .btn-danger {
   height: 32px; padding: 0 14px;
