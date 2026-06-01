@@ -140,7 +140,15 @@ async function openMcpModal() {
 function renderMcpAgentRows(agents) {
   const container = document.getElementById('mcp-agent-rows');
   if (!agents) {
-    container.innerHTML = '<div class="mcp-status-row" style="justify-content:center;font-size:12px;color:var(--text-muted)">Checking…</div>';
+    container.innerHTML = ['','','',''].map(() => `
+      <div class="mcp-agent-row mcp-agent-row-skel">
+        <div class="skeleton" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></div>
+        <div class="mcp-agent-info" style="display:flex;flex-direction:column;gap:5px">
+          <div class="skeleton" style="height:12px;width:65%;border-radius:3px"></div>
+          <div class="skeleton" style="height:9px;width:45%;border-radius:2px"></div>
+        </div>
+        <div class="skeleton" style="height:24px;width:58px;border-radius:4px;flex-shrink:0"></div>
+      </div>`).join('');
     return;
   }
   container.innerHTML = '';

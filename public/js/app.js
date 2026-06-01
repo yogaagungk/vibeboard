@@ -71,6 +71,50 @@ function initModalA11y() {
 }
 
 // ── Board loading ──────────────────────────────────────────────────────────
+function renderBoardSkeleton() {
+  boardEl.style.display = '';
+  boardEl.innerHTML = '';
+  const defs = [3, 2, 4, 1];
+  defs.forEach(cardCount => {
+    const col = document.createElement('div');
+    col.className = 'column board-skel-col';
+
+    const accentLine = document.createElement('div');
+    accentLine.className = 'col-accent-line';
+    col.appendChild(accentLine);
+
+    const hdr = document.createElement('div');
+    hdr.className = 'col-header';
+    hdr.innerHTML = `<div class="skeleton" style="height:11px;width:48%;border-radius:3px"></div>
+      <div class="skeleton" style="height:20px;width:28px;border-radius:10px;margin-left:auto"></div>`;
+    col.appendChild(hdr);
+
+    const list = document.createElement('div');
+    list.className = 'cards-list';
+    const lineWidths = [70, 90, 55, 80, 65];
+    for (let i = 0; i < cardCount; i++) {
+      const card = document.createElement('div');
+      card.className = 'card board-skel-card';
+      card.innerHTML = `
+        <div class="skeleton" style="height:12px;width:${lineWidths[i % 5]}%;border-radius:3px"></div>
+        <div class="skeleton" style="height:12px;width:${lineWidths[(i+2) % 5]}%;border-radius:3px;margin-top:6px"></div>
+        <div style="display:flex;gap:5px;margin-top:10px">
+          <div class="skeleton" style="height:18px;width:46px;border-radius:3px"></div>
+          ${i % 2 === 0 ? `<div class="skeleton" style="height:18px;width:64px;border-radius:3px"></div>` : ''}
+        </div>`;
+      list.appendChild(card);
+    }
+    col.appendChild(list);
+
+    const addArea = document.createElement('div');
+    addArea.className = 'add-card-area';
+    addArea.innerHTML = `<div class="skeleton" style="height:11px;width:60px;border-radius:3px;margin:6px 0 6px 10px"></div>`;
+    col.appendChild(addArea);
+
+    boardEl.appendChild(col);
+  });
+}
+
 async function loadBoard() {
   const errorEl = document.getElementById('board-error-state');
   if (errorEl) errorEl.remove();
@@ -79,6 +123,8 @@ async function loadBoard() {
   if (cached) {
     boardEl.style.display = '';
     renderBoard(cached);
+  } else {
+    renderBoardSkeleton();
   }
 
   try {

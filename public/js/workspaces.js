@@ -1,7 +1,30 @@
 'use strict';
 
 // ── Workspace list ─────────────────────────────────────────────────────────
+function renderWorkspaceListSkeleton() {
+  wsListEl.innerHTML = '';
+  [55, 70, 62].forEach(w => {
+    const item = document.createElement('div');
+    item.className = 'ws-item ws-item-skel';
+    item.innerHTML = `
+      <div class="skeleton" style="width:28px;height:28px;border-radius:6px;flex-shrink:0"></div>
+      <div class="ws-item-info">
+        <div class="skeleton" style="height:11px;width:${w}%;border-radius:3px"></div>
+        <div class="skeleton" style="height:9px;width:55%;border-radius:2px"></div>
+      </div>`;
+    wsListEl.appendChild(item);
+  });
+}
+
+function renderHeaderSkeleton() {
+  if (!headerWorkspace) return;
+  headerWorkspace.classList.add('header-workspace-skel');
+  headerWorkspace.hidden = false;
+}
+
 async function loadWorkspaces() {
+  renderWorkspaceListSkeleton();
+  renderHeaderSkeleton();
   try {
     const resp = await fetch('/workspaces');
     if (resp.ok) {
@@ -63,6 +86,7 @@ function updateHeaderWorkspace() {
   const wsName = activeWs.name || folderName(activeWs.path) || 'Untitled';
   const initial = wsName.charAt(0).toUpperCase();
   
+  headerWorkspace.classList.remove('header-workspace-skel');
   headerWorkspaceName.textContent = wsName;
   headerWorkspaceIcon.textContent = initial;
   headerWorkspaceIcon.style.background = wsColor(wsName);
