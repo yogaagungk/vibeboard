@@ -24,6 +24,10 @@
   <button id="version-badge" class="version-badge" type="button" title="Version">v-</button>
   <span id="version-update-label" class="version-update-label" hidden aria-live="polite">Update available</span>
   <div class="header-spacer"></div>
+  <button class="header-btn board-progress-btn" id="board-progress-btn" type="button" title="Click to jump to the Done column" aria-label="Board progress">
+    <span class="board-progress-text" id="board-progress-text">0 / 0 done (0%)</span>
+    <span class="board-progress-bar" aria-hidden="true"><span class="board-progress-fill" id="board-progress-fill"></span></span>
+  </button>
   <button class="header-btn" id="log-toggle-btn">Activity Log</button>
   <button class="header-btn" id="mcp-btn">MCP Setup</button>
   <button class="header-btn" id="theme-btn" title="Switch theme" style="min-width:32px;padding:0 10px">☀</button>
