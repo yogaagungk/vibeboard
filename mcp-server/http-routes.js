@@ -235,8 +235,8 @@ module.exports = function registerRoutes(app) {
   app.post('/api/cards/:cardId/spawn-or-queue', (req, res) => {
     const { cardId } = req.params;
     const card = db.getCard(cardId);
-    if (!card || !card.agent) return res.json({ ok: true });
-    spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    if (!card || (!card.agent && !card.review_agent)) return res.json({ ok: true });
+    spawnAgent(cardId, card.workspace_id, card.agent || card.review_agent, emitSSE);
     res.json({ ok: true });
   });
 
@@ -468,7 +468,7 @@ module.exports = function registerRoutes(app) {
     if (!workspace) return res.status(400).json({ error: 'No active workspace' });
     try {
       wt.mergeBranch(workspace.path, card.branch, card.worktree_path);
-      db.updateCard(card.id, { merged_at: new Date().toISOString(), worktreePath: null });
+      db.updateCard(card.id, { merged_at: new Date().toISOString(), worktreePath: null, has_branch_changes: false });
       const fresh = db.getBoard(wsId);
       emitSSE('board_update', fresh);
       res.json({ ok: true });
@@ -492,7 +492,7 @@ module.exports = function registerRoutes(app) {
       }
       try { execFileSync('git', ['worktree', 'prune'], { cwd: workspace.path, stdio: 'ignore' }); } catch (_) {}
     }
-    db.updateCard(card.id, { merged_at: new Date().toISOString(), worktreePath: null });
+    db.updateCard(card.id, { merged_at: new Date().toISOString(), worktreePath: null, has_branch_changes: false });
     const fresh = db.getBoard(wsId);
     emitSSE('board_update', fresh);
     res.json({ ok: true });

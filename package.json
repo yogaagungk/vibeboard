@@ -1,6 +1,6 @@
 {
   "name": "@zanuartri/vibeboard",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Self-hostable kanban board with bidirectional MCP integration for AI coding agents",
   "main": "mcp-server/index.js",
   "bin": {

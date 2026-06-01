@@ -126,16 +126,16 @@ function buildShellCmd(agentType, promptFile, model) {
   switch (agentType) {
     case 'claude-code':
       return win
-        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag}`
-        : `claude --print --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | claude --print --verbose --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag}`
+        : `claude --print --verbose --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag} < "${promptFile}"`;
     case 'opencode':
       return win
         ? `type "${promptFile}" | opencode run --dangerously-skip-permissions${modelFlag}`
         : `opencode run --dangerously-skip-permissions${modelFlag} < "${promptFile}"`;
     case 'codex':
       return win
-        ? `type "${promptFile}" | codex --full-auto${modelFlag}`
-        : `codex --full-auto${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | codex exec --dangerously-bypass-approvals-and-sandbox${modelFlag}`
+        : `codex exec --dangerously-bypass-approvals-and-sandbox${modelFlag} < "${promptFile}"`;
     case 'command-code':
       return win
         ? `type "${promptFile}" | command-code -p --yolo --skip-onboarding --max-turns 60${modelFlag}`
@@ -497,6 +497,23 @@ function agentDone(cardId, code, emitSSE) {
   }
 
   const duration = Math.round((Date.now() - new Date(info.startTime).getTime()) / 1000);
+
+  // If the agent used a worktree but made no commits, clean it up so the card
+  // doesn't show a stale branch, ! merge badge, or enabled merge button.
+  if (info.worktreePath) {
+    try {
+      const base = wt.getBaseBranch(info.workspacePath);
+      const commits = wt.getCommits(info.worktreePath, base);
+      const diff = commits ? wt.getDiff(info.worktreePath, base) : '';
+      if (!commits || !diff.trim()) {
+        wt.removeWorktree(info.workspacePath, info.worktreePath);
+        updateCard(cardId, { branch: null, worktreePath: null, has_branch_changes: false });
+        process.stderr.write(`[agent] Worktree removed — no file changes for card ${cardId}\n`);
+      } else {
+        updateCard(cardId, { has_branch_changes: true });
+      }
+    } catch (_) {}
+  }
 
   // Sanity check: if the workspace uses a worktree, verify the workspace root
   // is clean. Agent writes leaking outside the worktree should be visible here.

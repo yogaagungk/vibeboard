@@ -160,6 +160,7 @@ db.exec(`
     if (!cardCols.includes('review_model'))          db.prepare('ALTER TABLE cards ADD COLUMN review_model TEXT').run();
     if (!cardCols.includes('in_progress_base_sha'))  db.prepare('ALTER TABLE cards ADD COLUMN in_progress_base_sha TEXT').run();
     if (!cardCols.includes('review_issue'))           db.prepare('ALTER TABLE cards ADD COLUMN review_issue INTEGER DEFAULT 0').run();
+    if (!cardCols.includes('has_branch_changes'))     db.prepare('ALTER TABLE cards ADD COLUMN has_branch_changes INTEGER DEFAULT 0').run();
 
     if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
 
@@ -266,7 +267,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, merged_at, review_agent, review_model, position, created_at
+    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, merged_at, review_agent, review_model, review_issue, has_branch_changes, in_progress_base_sha, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -302,6 +303,9 @@ function getBoard(workspaceId) {
         blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
         review_agent: c.review_agent || null,
         review_model: c.review_model || null,
+        review_issue: !!c.review_issue,
+        has_branch_changes: !!c.has_branch_changes,
+        in_progress_base_sha: c.in_progress_base_sha || null,
       }))
   }));
   
@@ -395,7 +399,8 @@ function updateCard(cardId, updates) {
   if (updates.merged_at !== undefined)     { fields.push('merged_at = ?');     values.push(updates.merged_at || null); }
   if (updates.review_agent !== undefined)  { fields.push('review_agent = ?');  values.push(updates.review_agent || null); }
   if (updates.review_model !== undefined)  { fields.push('review_model = ?');  values.push(updates.review_model || null); }
-  if (updates.review_issue !== undefined)  { fields.push('review_issue = ?');  values.push(updates.review_issue ? 1 : 0); }
+  if (updates.review_issue !== undefined)       { fields.push('review_issue = ?');        values.push(updates.review_issue ? 1 : 0); }
+  if (updates.has_branch_changes !== undefined) { fields.push('has_branch_changes = ?');   values.push(updates.has_branch_changes ? 1 : 0); }
 
   if (fields.length === 0) return;
   
