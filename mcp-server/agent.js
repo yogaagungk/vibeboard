@@ -1,7 +1,7 @@
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, DATA_DIR } = require('./db');
+const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, getCardNotes, DATA_DIR } = require('./db');
 const wt = require('./worktree');
 const { verifySpawnDir } = require('./path-guard');
 const { sanitizeForPrompt, wrapCardData } = require('./prompt-sanitize');
@@ -223,7 +223,32 @@ function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
       : 'call complete_card (this card skips Review)';
     phase = `Phase: IN PROGRESS - implement the task, then commit ALL changes with git and ${next}.`;
   } else if (colTitle === 'Review') {
-    phase = `Phase: REVIEW - verify the changes and run tests. If you find issues, commit fixes and move_card back to "In Progress"; if it's good, call complete_card.`;
+    const notes = getCardNotes(card.id);
+    let notesSection = '';
+    if (notes.length > 0) {
+      // Cap total notes at ~3000 chars to avoid prompt bloat
+      let budget = 3000;
+      const kept = [];
+      for (const n of notes) {
+        const line = sanitizeForPrompt(n.content);
+        if (budget <= 0) break;
+        kept.push(`- ${line.slice(0, budget)}`);
+        budget -= line.length;
+      }
+      notesSection = `\n\nProgress notes left by the In Progress agent:\n${kept.join('\n')}`;
+    }
+    const diffHint = branch
+      ? `Start by running: git log --oneline main..HEAD && git diff main..HEAD --stat`
+      : `Start by running: git log --oneline -10 && git diff HEAD~1 --stat`;
+    phase = `Phase: REVIEW - verify the implementation completed during In Progress.${notesSection}
+
+Your job:
+1. ${diffHint}
+2. Confirm the implementation satisfies the original task (title + description above).
+3. Run any existing tests.
+4. If issues found: fix them, commit with git, then move_card back to "In Progress".
+5. If everything looks correct: call complete_card.
+Do NOT re-implement from scratch. Only review, test, and fix targeted issues.`;
   } else if (colTitle === 'Done') {
     phase = `Phase: DONE - work is complete; ensure everything is committed. The user merges manually.`;
   } else {
