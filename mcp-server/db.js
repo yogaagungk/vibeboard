@@ -159,6 +159,7 @@ db.exec(`
     if (!cardCols.includes('review_agent'))          db.prepare('ALTER TABLE cards ADD COLUMN review_agent TEXT').run();
     if (!cardCols.includes('review_model'))          db.prepare('ALTER TABLE cards ADD COLUMN review_model TEXT').run();
     if (!cardCols.includes('in_progress_base_sha'))  db.prepare('ALTER TABLE cards ADD COLUMN in_progress_base_sha TEXT').run();
+    if (!cardCols.includes('review_issue'))           db.prepare('ALTER TABLE cards ADD COLUMN review_issue INTEGER DEFAULT 0').run();
 
     if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
 
@@ -394,6 +395,7 @@ function updateCard(cardId, updates) {
   if (updates.merged_at !== undefined)     { fields.push('merged_at = ?');     values.push(updates.merged_at || null); }
   if (updates.review_agent !== undefined)  { fields.push('review_agent = ?');  values.push(updates.review_agent || null); }
   if (updates.review_model !== undefined)  { fields.push('review_model = ?');  values.push(updates.review_model || null); }
+  if (updates.review_issue !== undefined)  { fields.push('review_issue = ?');  values.push(updates.review_issue ? 1 : 0); }
 
   if (fields.length === 0) return;
   
@@ -416,11 +418,18 @@ function moveCard(cardId, toColumnId) {
 
   const fromColumnId = card.column_id;
 
+  const fromColumn = db.prepare('SELECT title FROM columns WHERE id = ?').get(fromColumnId);
+
   return db.transaction(() => {
     db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(fromColumnId, card.position);
     const newPosition = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM cards WHERE column_id = ?').get(toColumnId).pos;
+    const now = new Date().toISOString();
     db.prepare('UPDATE cards SET column_id = ?, position = ?, updated_at = ? WHERE id = ?')
-      .run(toColumnId, newPosition, new Date().toISOString(), cardId);
+      .run(toColumnId, newPosition, now, cardId);
+    // Clear review_issue when card leaves Review
+    if (fromColumn?.title === 'Review' && card.review_issue) {
+      db.prepare('UPDATE cards SET review_issue = 0, updated_at = ? WHERE id = ?').run(now, cardId);
+    }
     return { cardId, fromColumnId, toColumnId };
   })();
 }

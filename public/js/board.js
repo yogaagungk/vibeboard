@@ -371,6 +371,13 @@ function buildCard(card, colId) {
       metaRow.appendChild(n);
     }
   }
+  if (card.review_issue) {
+    const col = board.columns.find(c => c.id === colId);
+    if (col && col.title === 'Review') {
+      const b = document.createElement('span'); b.className = 'review-issue-badge'; b.textContent = '! issue'; b.title = 'Review agent found issues — check card notes';
+      metaRow.appendChild(b);
+    }
+  }
 
   if (metaRow.children.length) footer.appendChild(metaRow);
 

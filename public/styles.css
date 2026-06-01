@@ -2177,6 +2177,13 @@ kbd {
   background: rgba(234,179,8,0.15); color: #ca8a04;
 }
 :root[data-theme="dark"] .need-merge-badge { background: rgba(234,179,8,0.18); color: #fbbf24; }
+.review-issue-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 500; padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(239,68,68,0.12); color: #dc2626;
+}
+:root[data-theme="dark"] .review-issue-badge { background: rgba(239,68,68,0.18); color: #f87171; }
 .card-merge-actions .btn-primary { flex: 1; }
 .card-merge-actions .btn-ghost   { flex: 1; }
 .card-merge-actions .btn-danger  { flex: 1; }

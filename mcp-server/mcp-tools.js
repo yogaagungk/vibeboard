@@ -166,9 +166,9 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
-  mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, priority, due_date, requires_review, custom_prompt, blocked_by, review_agent, review_model, or merged_at",
-    { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional(), requires_review: z.boolean().optional(), custom_prompt: z.string().optional(), review_agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code', '']).optional(), review_model: z.string().optional(), merged_at: z.string().datetime().nullable().optional() },
-    async ({ cardId, title, description, tags, agent, model, priority, due_date, blocked_by, requires_review, custom_prompt, review_agent, review_model, merged_at }) => {
+  mcp.tool('update_card', "Update a card's title, description, tags, assigned agent, model, priority, due_date, requires_review, custom_prompt, blocked_by, review_agent, review_model, review_issue, or merged_at",
+    { cardId: z.string(), title: z.string().optional(), description: z.string().optional(), tags: z.array(z.string()).optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code', '']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low', '']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional(), requires_review: z.boolean().optional(), custom_prompt: z.string().optional(), review_agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code', '']).optional(), review_model: z.string().optional(), review_issue: z.boolean().optional(), merged_at: z.string().datetime().nullable().optional() },
+    async ({ cardId, title, description, tags, agent, model, priority, due_date, blocked_by, requires_review, custom_prompt, review_agent, review_model, review_issue, merged_at }) => {
       try {
         const card = db.getCard(cardId);
         if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
@@ -182,7 +182,7 @@ module.exports = function registerMcpTools(mcp) {
           }
         }
         
-        const updates = { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined, blocked_by: blocked_by !== undefined ? blocked_by : undefined, requires_review: requires_review !== undefined ? requires_review : undefined, custom_prompt: custom_prompt !== undefined ? custom_prompt : undefined, review_agent: review_agent || undefined, review_model: review_model !== undefined ? review_model : undefined };
+        const updates = { title, description, tags, agent: agent || undefined, model: model !== undefined ? model : undefined, priority: priority || undefined, due_date: due_date !== undefined ? due_date : undefined, blocked_by: blocked_by !== undefined ? blocked_by : undefined, requires_review: requires_review !== undefined ? requires_review : undefined, custom_prompt: custom_prompt !== undefined ? custom_prompt : undefined, review_agent: review_agent || undefined, review_model: review_model !== undefined ? review_model : undefined, review_issue: review_issue !== undefined ? review_issue : undefined };
         if (merged_at !== undefined) {
           updates.merged_at = merged_at;
           if (merged_at !== null) {
