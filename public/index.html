@@ -97,6 +97,10 @@
 
 <!-- Main -->
   <div id="app">
+  <div id="view-tabs">
+    <button class="view-tab active" data-view="board">Board</button>
+    <button class="view-tab" data-view="timeline">Timeline</button>
+  </div>
   <div id="board-wrap">
     <div id="board-toolbar">
       <input type="text" id="board-search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
@@ -120,6 +124,9 @@
       <p class="empty-sub">Create a workspace to get started. Each workspace is an independent kanban board linked to a project.</p>
       <button class="empty-cta" id="empty-create-btn">New workspace</button>
     </div>
+  </div>
+  <div id="timeline-wrap" style="display:none">
+    <div id="timeline"></div>
   </div>
 </div>
 
@@ -528,6 +535,8 @@
 <script src="/js/virtualize.js"></script>
 <script src="/js/filters.js"></script>
 <script src="/js/board.js"></script>
+<script src="/js/timeline.js"></script>
+<script src="/js/view-switcher.js"></script>
 <script src="/js/realtime.js"></script>
 <script src="/js/datepicker.js"></script>
 <script src="/js/shortcuts-io.js"></script>
