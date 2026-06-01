@@ -465,6 +465,27 @@ module.exports = function registerRoutes(app) {
     }
   });
 
+  app.post('/api/cards/:cardId/mark-merged', (req, res) => {
+    const card = db.getCard(req.params.cardId);
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const wsId = db.getActiveWorkspaceId();
+    const workspace = db.getWorkspace(wsId);
+    if (!workspace) return res.status(400).json({ error: 'No active workspace' });
+    const { execFileSync } = require('child_process');
+    if (card.worktree_path) {
+      try {
+        execFileSync('git', ['worktree', 'remove', '--force', card.worktree_path], { cwd: workspace.path, stdio: 'ignore' });
+      } catch (_) {
+        try { fs.rmSync(card.worktree_path, { recursive: true, force: true }); } catch (_) {}
+      }
+      try { execFileSync('git', ['worktree', 'prune'], { cwd: workspace.path, stdio: 'ignore' }); } catch (_) {}
+    }
+    db.updateCard(card.id, { merged_at: new Date().toISOString(), worktreePath: null });
+    const fresh = db.getBoard(wsId);
+    emitSSE('board_update', fresh);
+    res.json({ ok: true });
+  });
+
   app.post('/api/cards/:cardId/pr', (req, res) => {
     const card = db.getCard(req.params.cardId);
     if (!card?.worktree_path) return res.status(400).json({ error: 'Card has no worktree' });

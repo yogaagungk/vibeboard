@@ -1353,20 +1353,12 @@ document.getElementById('card-mark-merged-btn').addEventListener('click', async 
   const originalText = this.textContent;
   this.textContent = 'Marking…';
   try {
-    const resp = await fetch('/board', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'update_card',
-        cardId: modalCardId,
-        merged_at: new Date().toISOString()
-      })
-    });
+    const resp = await fetch(`/api/cards/${modalCardId}/mark-merged`, { method: 'POST' });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Failed to mark as merged');
     const col = board.columns.find(c => c.id === modalColId);
     const card = col?.cards.find(c => c.id === modalCardId);
-    if (card) card.merged_at = new Date().toISOString();
+    if (card) { card.merged_at = new Date().toISOString(); card.worktree_path = null; }
     renderBoard(board);
     openCardModal(modalCardId, modalColId);
     showToast('Marked as merged', 3000, 'success');
