@@ -156,8 +156,9 @@ db.exec(`
     if (!cardCols.includes('last_tokens'))     db.prepare('ALTER TABLE cards ADD COLUMN last_tokens INTEGER').run();
     if (!cardCols.includes('blocked_by'))      db.prepare('ALTER TABLE cards ADD COLUMN blocked_by TEXT').run();
     if (!cardCols.includes('merged_at'))       db.prepare('ALTER TABLE cards ADD COLUMN merged_at TEXT').run();
-    if (!cardCols.includes('review_agent'))    db.prepare('ALTER TABLE cards ADD COLUMN review_agent TEXT').run();
-    if (!cardCols.includes('review_model'))    db.prepare('ALTER TABLE cards ADD COLUMN review_model TEXT').run();
+    if (!cardCols.includes('review_agent'))          db.prepare('ALTER TABLE cards ADD COLUMN review_agent TEXT').run();
+    if (!cardCols.includes('review_model'))          db.prepare('ALTER TABLE cards ADD COLUMN review_model TEXT').run();
+    if (!cardCols.includes('in_progress_base_sha'))  db.prepare('ALTER TABLE cards ADD COLUMN in_progress_base_sha TEXT').run();
 
     if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
 

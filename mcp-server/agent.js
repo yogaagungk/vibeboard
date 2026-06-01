@@ -225,7 +225,9 @@ function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
   } else if (colTitle === 'Review') {
     const diffCmd = branch
       ? `git log --oneline main..HEAD && git diff main..HEAD`
-      : `git log --oneline -10 && git diff HEAD~1`;
+      : card.in_progress_base_sha
+        ? `git log --oneline ${card.in_progress_base_sha}..HEAD && git diff ${card.in_progress_base_sha}..HEAD`
+        : `git log --oneline -10 && git diff HEAD~1`;
     phase = `Phase: REVIEW - verify the implementation completed during In Progress.
 
 Your job:
@@ -382,6 +384,12 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
       process.stderr.write(`Worktree creation failed (running in workspace dir): ${err.message}\n`);
       addCardNote(cardId, `Worktree creation failed: ${err.message}. Agent running in workspace directory.`);
     }
+  } else if (column?.title === 'In Progress') {
+    // No worktree — snapshot HEAD so the Review agent can diff exactly what changed.
+    try {
+      const sha = execSync('git rev-parse HEAD', { cwd: workspace.path, encoding: 'utf8', timeout: 3000 }).trim();
+      if (sha) updateCard(cardId, { in_progress_base_sha: sha });
+    } catch (_) {}
   }
 
   // Verify the spawn directory immediately before launching: catches deleted
