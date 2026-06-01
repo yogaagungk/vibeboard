@@ -251,7 +251,13 @@ function buildColumn(col) {
   });
 
   colEl.appendChild(cardsList);
-  colEl.appendChild(buildAddCardArea(col));
+  const NO_ADD_COLS = ['In Progress', 'Review', 'Done'];
+  if (NO_ADD_COLS.includes(col.title)) {
+    const spacer = document.createElement('div'); spacer.className = 'add-card-spacer';
+    colEl.appendChild(spacer);
+  } else {
+    colEl.appendChild(buildAddCardArea(col));
+  }
   return colEl;
 }
 

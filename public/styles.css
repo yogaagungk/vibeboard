@@ -1079,6 +1079,7 @@ body:not(.vb-show-descriptions) .card-desc-preview { display: none; }
 }
 .add-card-trigger:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--surface)); }
 .add-card-trigger:hover::before { opacity: 1; }
+.add-card-spacer { height: 43px; flex-shrink: 0; }
 .tag-pick-btn {
   font-size: 10px; font-weight: 500;
   padding: 2px 8px; border-radius: var(--radius-pill);
@@ -2287,7 +2288,7 @@ kbd {
 }
 #sse-banner.visible { display: flex; }
 #sse-banner-text { flex: 1; line-height: 1.4; }
-#sse-banner-text::before { content: 'a0\00a0'; }
+#sse-banner-text::before { content: '\26A0\00a0'; }
 body.sidebar-collapsed #sse-banner { left: 0; }
 body.mcp-banner-open #sse-banner { top: calc(var(--header-h) + 41px); }
 
