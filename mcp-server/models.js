@@ -60,11 +60,11 @@ function getClaudeModels() {
 function getCodexModels() {
   if (!isAgentInstalled('codex')) return [];
   return [
-    { id: 'gpt-5.4',       name: 'GPT-5.4',       description: 'Strong model for everyday coding' },
-    { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex',  description: 'Coding-optimized model' },
-    { id: 'gpt-5.5',       name: 'GPT-5.5',        description: 'Frontier model for complex coding, research, and real-world work' },
-    { id: 'gpt-5.2',       name: 'GPT-5.2',        description: 'Optimized for professional work and long-running agents' },
-    { id: 'gpt-5.4-mini',  name: 'GPT-5.4 Mini',   description: 'Small, fast, and cost-efficient model for simpler coding tasks' },
+    { id: 'gpt-5.4',       name: 'GPT-5.4',       description: 'Everyday coding' },
+    { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex',  description: 'Coding-optimized' },
+    { id: 'gpt-5.5',       name: 'GPT-5.5',        description: 'Frontier, complex tasks' },
+    { id: 'gpt-5.2',       name: 'GPT-5.2',        description: 'Long-running agents' },
+    { id: 'gpt-5.4-mini',  name: 'GPT-5.4 Mini',   description: 'Fast, cost-efficient' },
   ];
 }
 
