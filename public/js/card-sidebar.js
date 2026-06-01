@@ -208,6 +208,10 @@ function openCardModal(cardId, colId) {
       else { card.tags=[...tags,tag]; btn.classList.add('active'); btn.style.backgroundColor=`var(--tag-${tag})`; btn.style.color='white'; btn.style.opacity='1'; }
       saveModal(card);
     });
+    btn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (typeof addFilter === 'function') addFilter('tag', tag);
+    });
     cardModalTagPicker.appendChild(btn);
   });
 

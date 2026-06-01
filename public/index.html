@@ -96,13 +96,20 @@
 </aside>
 
 <!-- Main -->
-<div id="app">
+  <div id="app">
   <div id="board-wrap">
     <div id="board-toolbar">
       <input type="text" id="board-search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
       <button id="board-search-clear">Clear</button>
       <span id="board-search-count"></span>
       <button class="header-btn" id="ws-context-btn" title="View AI context files" style="display:none">Context</button>
+    </div>
+    <div id="board-filter-bar" style="display:none">
+      <div class="filter-bar-inner">
+        <span class="filter-bar-label">Filters:</span>
+        <div id="filter-chips"></div>
+        <button id="filter-clear-all" class="filter-clear-all-btn" style="display:none">Clear all</button>
+      </div>
     </div>
     <div id="board-inner">
       <div id="board"></div>
@@ -497,6 +504,7 @@
 <script src="/js/select.js"></script>
 <script src="/js/workspaces.js"></script>
 <script src="/js/virtualize.js"></script>
+<script src="/js/filters.js"></script>
 <script src="/js/board.js"></script>
 <script src="/js/realtime.js"></script>
 <script src="/js/datepicker.js"></script>

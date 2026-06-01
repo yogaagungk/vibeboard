@@ -59,10 +59,14 @@ function applySearch() {
       }
     });
     
-    const cards = boardEl.querySelectorAll('.card');
-    cards.forEach(c => c.style.display = '');
     searchClear.style.display = 'none';
-    searchCount.style.display = 'none';
+    if (typeof applyFilters === 'function') {
+      applyFilters();
+    } else {
+      const cards = boardEl.querySelectorAll('.card');
+      cards.forEach(c => c.style.display = '');
+      searchCount.style.display = 'none';
+    }
     return;
   }
   
@@ -71,28 +75,33 @@ function applySearch() {
     temporarilyRenderAllCards(colId);
   });
   
-  const cards = boardEl.querySelectorAll('.card');
-  let total = 0, visible = 0;
-  cards.forEach(c => {
-    total++;
-    const match = (c.dataset.searchTitle || '').includes(q);
-    c.style.display = match ? '' : 'none';
-    if (match) visible++;
-  });
-  
-  boardEl.querySelectorAll('.cards-list').forEach(cardsList => {
-    const visibleInCol = Array.from(cardsList.querySelectorAll('.card')).filter(c => c.style.display !== 'none').length;
-    if (visibleInCol === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'search-empty-state';
-      empty.textContent = 'No results';
-      cardsList.appendChild(empty);
-    }
-  });
-  
   searchClear.style.display = 'inline-block';
-  searchCount.style.display = 'inline-block';
-  searchCount.textContent = `${visible} of ${total}`;
+  
+  if (typeof applyFilters === 'function') {
+    applyFilters();
+  } else {
+    const cards = boardEl.querySelectorAll('.card');
+    let total = 0, visible = 0;
+    cards.forEach(c => {
+      total++;
+      const match = (c.dataset.searchTitle || '').includes(q);
+      c.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    
+    boardEl.querySelectorAll('.cards-list').forEach(cardsList => {
+      const visibleInCol = Array.from(cardsList.querySelectorAll('.card')).filter(c => c.style.display !== 'none').length;
+      if (visibleInCol === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'search-empty-state';
+        empty.textContent = 'No results';
+        cardsList.appendChild(empty);
+      }
+    });
+    
+    searchCount.style.display = 'inline-block';
+    searchCount.textContent = `${visible} of ${total}`;
+  }
 }
 
 searchInput.addEventListener('input', () => {
@@ -244,13 +253,26 @@ function buildCard(card, colId) {
   const metaRow = document.createElement('div'); metaRow.className = 'card-meta';
 
   (card.tags || []).forEach(tag => {
-    const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag; tagsRow.appendChild(pill);
+    const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag;
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof addFilter === 'function') addFilter('tag', tag);
+    });
+    pill.style.cursor = 'pointer';
+    pill.title = 'Click to filter by this tag';
+    tagsRow.appendChild(pill);
   });
 
   if (card.priority) {
     const pb = document.createElement('span');
     pb.className = `priority-badge priority-${card.priority}`;
     pb.textContent = card.priority;
+    pb.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof addFilter === 'function') addFilter('priority', card.priority);
+    });
+    pb.style.cursor = 'pointer';
+    pb.title = 'Click to filter by this priority';
     cardTop.appendChild(pb);
   }
   if (card.agent) {
@@ -258,12 +280,31 @@ function buildCard(card, colId) {
     badge.className = `card-agent-badge ${card.agent}`;
     badge.textContent = { 'claude-code': 'CC', 'opencode': 'OC', 'codex': 'CX', 'command-code': 'CMD' }[card.agent] || card.agent.slice(0,2).toUpperCase();
     badge.title = AGENT_LABELS[card.agent] || card.agent;
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof addFilter === 'function') addFilter('agent', card.agent);
+    });
+    badge.style.cursor = 'pointer';
     cardTop.appendChild(badge);
   }
   if (card.due_date) {
     const db = document.createElement('span');
     db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : '');
     db.textContent = '📅 ' + card.due_date;
+    db.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof addFilter === 'function') {
+        if (isOverdue(card.due_date)) {
+          addFilter('dueDate', 'overdue');
+        } else if (isDueToday(card.due_date)) {
+          addFilter('dueDate', 'today');
+        } else if (isDueThisWeek(card.due_date)) {
+          addFilter('dueDate', 'week');
+        }
+      }
+    });
+    db.style.cursor = 'pointer';
+    db.title = 'Click to filter by due date';
     metaRow.appendChild(db);
   }
   if (card.requires_review) {
