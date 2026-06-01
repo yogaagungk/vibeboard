@@ -355,6 +355,24 @@ function openCardModal(cardId, colId) {
   if (savedTab === 'context') loadAgentContext(card.agent);
 }
 
+function renderTagPicker(container, selectedTags) {
+  container.innerHTML = '';
+  TAGS.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
+    const active = (selectedTags || []).includes(tag);
+    if (active) { btn.classList.add('active'); btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white'; }
+    else { btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45'; }
+    btn.addEventListener('click', () => {
+      const isActive = btn.classList.toggle('active');
+      btn.style.backgroundColor = isActive ? `var(--tag-${tag})` : '';
+      btn.style.color = isActive ? 'white' : `var(--tag-${tag})`;
+      btn.style.opacity = isActive ? '1' : '0.45';
+    });
+    container.appendChild(btn);
+  });
+}
+
 function openNewCardModal(colId) {
   newCardColId = colId;
   const col = board.columns.find(c => c.id === colId);
@@ -1346,9 +1364,12 @@ document.getElementById('card-mark-merged-btn').addEventListener('click', async 
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Failed to mark as merged');
+    const col = board.columns.find(c => c.id === modalColId);
+    const card = col?.cards.find(c => c.id === modalCardId);
+    if (card) card.merged_at = new Date().toISOString();
+    renderBoard(board);
+    openCardModal(modalCardId, modalColId);
     showToast('Marked as merged', 3000, 'success');
-    this.disabled = false;
-    this.textContent = originalText;
   } catch(err) {
     showToast('Failed: ' + err.message, 3000, 'error');
     this.disabled = false;
