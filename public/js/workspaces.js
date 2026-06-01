@@ -240,6 +240,16 @@ if (descToggle) {
   });
 }
 
+// ── Compact density toggle ────────────────────────────────────────────────
+const compactToggle = document.getElementById('setting-compact-density');
+if (compactToggle) {
+  compactToggle.checked = getCompactDensity();
+  compactToggle.addEventListener('change', () => {
+    setCompactDensity(compactToggle.checked);
+    document.body.classList.toggle('vb-compact', compactToggle.checked);
+  });
+}
+
 document.getElementById('settings-copy-path').addEventListener('click', function() {
   const p = document.getElementById('settings-data-path').textContent;
   navigator.clipboard.writeText(p).then(() => {
