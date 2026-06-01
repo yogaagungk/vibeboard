@@ -341,6 +341,16 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
   if (!card) { process.stderr.write(`Card ${cardId} not found\n`); return; }
 
   const column = getColumn(card.column_id);
+
+  // For Review column, prefer card.review_agent/review_model when defined.
+  // This makes all spawn paths (direct, queued, pending respawn) consistent.
+  if (column?.title === 'Review' && card.review_agent) {
+    agentType = card.review_agent;
+  }
+  const modelToUse = (column?.title === 'Review' && card.review_agent)
+    ? (card.review_model || card.model)
+    : (modelOverride !== undefined ? modelOverride : card.model);
+
   const workspace = getWorkspace(workspaceId);
   if (!workspace?.path) { process.stderr.write(`Workspace ${workspaceId} has no path\n`); return; }
 
@@ -381,7 +391,6 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
   try {
-    const modelToUse = modelOverride !== undefined ? modelOverride : card.model;
     const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
     const transform = agentType === 'claude-code' ? parseClaudeStreamJson : null;
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE, transform);
