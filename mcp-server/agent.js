@@ -498,6 +498,20 @@ function agentDone(cardId, code, emitSSE) {
 
   const duration = Math.round((Date.now() - new Date(info.startTime).getTime()) / 1000);
 
+  // If the agent used a worktree but made no commits, clean it up so the card
+  // doesn't show a stale branch, ! merge badge, or enabled merge button.
+  if (info.worktreePath) {
+    try {
+      const base = wt.getBaseBranch(info.workspacePath);
+      const commits = wt.getCommits(info.worktreePath, base);
+      if (!commits) {
+        wt.removeWorktree(info.workspacePath, info.worktreePath);
+        updateCard(cardId, { branch: null, worktreePath: null });
+        process.stderr.write(`[agent] Worktree removed — no commits for card ${cardId}\n`);
+      }
+    } catch (_) {}
+  }
+
   // Sanity check: if the workspace uses a worktree, verify the workspace root
   // is clean. Agent writes leaking outside the worktree should be visible here.
   if (info.worktreePath) {
