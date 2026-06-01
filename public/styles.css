@@ -565,6 +565,108 @@ body.mcp-banner-open #log-sidebar {
 }
 #board-search-clear:hover { background: var(--bg); color: var(--text); }
 #board-search-count { font-size: 11px; color: var(--text-muted); display: none; }
+
+#board-filter-bar {
+  padding: 0 20px 10px 20px;
+  flex-shrink: 0;
+}
+.filter-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-bar-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+#filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  border: 1px solid transparent;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.filter-chip:hover {
+  opacity: 0.8;
+}
+.filter-chip-label {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+.filter-chip-remove {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.filter-chip.tag-feature { background: var(--tag-feature); color: #fff; border-color: var(--tag-feature); }
+.filter-chip.tag-bug { background: var(--tag-bug); color: #fff; border-color: var(--tag-bug); }
+.filter-chip.tag-design { background: var(--tag-design); color: #fff; border-color: var(--tag-design); }
+.filter-chip.tag-infra { background: var(--tag-infra); color: #fff; border-color: var(--tag-infra); }
+.filter-chip.tag-docs { background: var(--tag-docs); color: #fff; border-color: var(--tag-docs); }
+.filter-chip.tag-api { background: var(--tag-api); color: #fff; border-color: var(--tag-api); }
+.filter-chip.tag-feature .filter-chip-label,
+.filter-chip.tag-bug .filter-chip-label,
+.filter-chip.tag-design .filter-chip-label,
+.filter-chip.tag-infra .filter-chip-label,
+.filter-chip.tag-docs .filter-chip-label,
+.filter-chip.tag-api .filter-chip-label,
+.filter-chip.tag-feature .filter-chip-remove,
+.filter-chip.tag-bug .filter-chip-remove,
+.filter-chip.tag-design .filter-chip-remove,
+.filter-chip.tag-infra .filter-chip-remove,
+.filter-chip.tag-docs .filter-chip-remove,
+.filter-chip.tag-api .filter-chip-remove {
+  color: rgba(255, 255, 255, 0.8);
+}
+.filter-chip.priority-high { background: #dc2626; color: #fff; border-color: #dc2626; }
+.filter-chip.priority-medium { background: #d97706; color: #fff; border-color: #d97706; }
+.filter-chip.priority-low { background: #2563eb; color: #fff; border-color: #2563eb; }
+.filter-chip.priority-high .filter-chip-label,
+.filter-chip.priority-medium .filter-chip-label,
+.filter-chip.priority-low .filter-chip-label,
+.filter-chip.priority-high .filter-chip-remove,
+.filter-chip.priority-medium .filter-chip-remove,
+.filter-chip.priority-low .filter-chip-remove {
+  color: rgba(255, 255, 255, 0.8);
+}
+.filter-clear-all-btn {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-clear-all-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
 #board-inner {
   flex: 1; overflow-x: auto; overflow-y: hidden;
   padding: 14px 0 20px 20px; min-height: 0;

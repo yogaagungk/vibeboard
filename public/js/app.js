@@ -154,6 +154,7 @@ async function init() {
 
   await loadBoard();
   loadContextPanel(activeWsId);
+  if (typeof initFilters === 'function') initFilters();
 }
 
 init();
