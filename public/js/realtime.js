@@ -152,6 +152,7 @@ function connectSSE() {
     }
     if (type === 'workspace_switch') {
       const { board: nb, workspaceId } = data;
+      if (typeof closeCardModal === 'function') closeCardModal();
       activeWsId = workspaceId;
       workspaces = workspaces.map(w => ({ ...w, active: w.id === workspaceId }));
       renderWorkspaceList(); setEmptyState(false);
