@@ -292,10 +292,15 @@ function updateModelDropdown(prefix, agent, selectedModel) {
     ctrl = vbSelect({
       options, value: selectedModel || '', placeholder: 'Default', ariaLabel: 'Model',
       onChange: v => {
-        // Only the card detail sidebar persists immediately; the new-card modal
-        // reads the value at submit time.
         const card = board.columns.flatMap(c => c.cards).find(c => c.id === modalCardId);
-        if (card) { card.model = v || undefined; saveModal(card); }
+        if (card) {
+          if (prefix === 'card-review') {
+            card.review_model = v || undefined;
+          } else if (prefix === 'card') {
+            card.model = v || undefined;
+          }
+          saveModal(card);
+        }
       },
     });
     mount.appendChild(ctrl.el);

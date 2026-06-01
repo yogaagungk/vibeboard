@@ -245,7 +245,29 @@ function openCardModal(cardId, colId) {
     card.requires_review = reviewToggle.checked;
     updatePromptBox(card);
     saveModal(card);
+    const reviewAgentSection = document.getElementById('card-review-agent-section');
+    reviewAgentSection.style.display = (card.agent && reviewToggle.checked) ? '' : 'none';
   };
+
+  const reviewAgentSection = document.getElementById('card-review-agent-section');
+  reviewAgentSection.style.display = (card.agent && card.requires_review) ? '' : 'none';
+
+  const reviewAgentMount = document.getElementById('card-review-agent-mount');
+  reviewAgentMount.innerHTML = '';
+  reviewAgentMount._reviewAgentSelect = vbSelect({
+    options: buildAgentOptions(),
+    value: card.review_agent || '',
+    placeholder: 'Same as main agent',
+    ariaLabel: 'Review agent',
+    onChange: value => {
+      card.review_agent = value || undefined;
+      saveModal(card);
+      updateModelDropdown('card-review', card.review_agent || '', card.review_model);
+    },
+  });
+  reviewAgentMount.appendChild(reviewAgentMount._reviewAgentSelect.el);
+
+  updateModelDropdown('card-review', card.review_agent || '', card.review_model);
 
   // Priority dropdown
   const cardPriorityMount = document.getElementById('card-priority-mount');

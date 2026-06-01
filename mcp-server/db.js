@@ -156,6 +156,8 @@ db.exec(`
     if (!cardCols.includes('last_tokens'))     db.prepare('ALTER TABLE cards ADD COLUMN last_tokens INTEGER').run();
     if (!cardCols.includes('blocked_by'))      db.prepare('ALTER TABLE cards ADD COLUMN blocked_by TEXT').run();
     if (!cardCols.includes('merged_at'))       db.prepare('ALTER TABLE cards ADD COLUMN merged_at TEXT').run();
+    if (!cardCols.includes('review_agent'))    db.prepare('ALTER TABLE cards ADD COLUMN review_agent TEXT').run();
+    if (!cardCols.includes('review_model'))    db.prepare('ALTER TABLE cards ADD COLUMN review_model TEXT').run();
 
     if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
 
@@ -262,7 +264,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, merged_at, position, created_at
+    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, merged_at, review_agent, review_model, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -296,6 +298,8 @@ function getBoard(workspaceId) {
         last_tokens: c.last_tokens,
         merged_at: c.merged_at || null,
         blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
+        review_agent: c.review_agent || null,
+        review_model: c.review_model || null,
       }))
   }));
   
@@ -333,10 +337,12 @@ function createCard(workspaceId, columnId, title, options = {}) {
   }
   const blockedBy = blockedByArr.length ? JSON.stringify(blockedByArr) : null;
   const mergedAt = options.merged_at || null;
+  const reviewAgent = options.review_agent || null;
+  const reviewModel = options.review_model || null;
 
   db.prepare(`
-    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, merged_at, blocked_by, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, merged_at, blocked_by, review_agent, review_model, position, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, columnId, workspaceId, title,
     options.description || null,
@@ -344,11 +350,11 @@ function createCard(workspaceId, columnId, title, options = {}) {
     options.agent || null,
     model,
     requiresReview,
-    priority, customPrompt, dueDate, mergedAt, blockedBy,
+    priority, customPrompt, dueDate, mergedAt, blockedBy, reviewAgent, reviewModel,
     position, now, now
   );
 
-  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, model, merged_at: mergedAt, blocked_by: options.blocked_by || [], createdAt: now, ...options };
+  return { id, title, tags: options.tags || [], requires_review: requiresReview !== 0, priority, custom_prompt: customPrompt || '', due_date: dueDate, model, merged_at: mergedAt, blocked_by: options.blocked_by || [], review_agent: reviewAgent, review_model: reviewModel, createdAt: now, ...options };
 }
 
 function updateCard(cardId, updates) {
@@ -385,6 +391,8 @@ function updateCard(cardId, updates) {
     values.push(Array.isArray(updates.blocked_by) && updates.blocked_by.length ? JSON.stringify(updates.blocked_by) : null);
   }
   if (updates.merged_at !== undefined)     { fields.push('merged_at = ?');     values.push(updates.merged_at || null); }
+  if (updates.review_agent !== undefined)  { fields.push('review_agent = ?');  values.push(updates.review_agent || null); }
+  if (updates.review_model !== undefined)  { fields.push('review_model = ?');  values.push(updates.review_model || null); }
 
   if (fields.length === 0) return;
   
@@ -517,13 +525,15 @@ function _syncBoardImpl(workspaceId, columns) {
         const dueDate = card.due_date || null;
         const model = card.model || null;
         const blockedBy = Array.isArray(card.blocked_by) && card.blocked_by.length ? JSON.stringify(card.blocked_by) : null;
+        const reviewAgent = card.review_agent || null;
+        const reviewModel = card.review_model || null;
         if (existingCards.includes(card.id)) {
-          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, model=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, blocked_by=?, position=?, updated_at=? WHERE id=?')
-            .run(col.id, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, blockedBy, ki, now, card.id);
+          db.prepare('UPDATE cards SET column_id=?, title=?, description=?, tags=?, agent=?, model=?, requires_review=?, priority=?, custom_prompt=?, due_date=?, blocked_by=?, review_agent=?, review_model=?, position=?, updated_at=? WHERE id=?')
+            .run(col.id, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, blockedBy, reviewAgent, reviewModel, ki, now, card.id);
         } else {
           const mergedAt = card.merged_at || null;
-          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, merged_at, blocked_by, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, mergedAt, blockedBy, ki, now, now);
+          db.prepare('INSERT INTO cards (id, column_id, workspace_id, title, description, tags, agent, model, requires_review, priority, custom_prompt, due_date, merged_at, blocked_by, review_agent, review_model, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .run(card.id, col.id, workspaceId, card.title, card.description || null, tags, card.agent || null, model, rr, priority, customPrompt, dueDate, mergedAt, blockedBy, reviewAgent, reviewModel, ki, now, now);
         }
       }
     }
@@ -564,6 +574,8 @@ function getCard(cardId) {
     last_tokens: card.last_tokens,
     merged_at: card.merged_at || null,
     blocked_by: card.blocked_by ? JSON.parse(card.blocked_by) : [],
+    review_agent: card.review_agent || null,
+    review_model: card.review_model || null,
   };
 }
 
@@ -638,6 +650,8 @@ function searchCards(workspaceId, filters = {}) {
       last_tokens: c.last_tokens,
       blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
       merged_at: c.merged_at || null,
+      review_agent: c.review_agent || null,
+      review_model: c.review_model || null,
       position: c.position,
       createdAt: c.created_at,
     }))
