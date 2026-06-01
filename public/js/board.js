@@ -111,7 +111,7 @@ function buildColumn(col) {
 
   const count = document.createElement('span'); count.className = 'col-count';
   const limit = Number.isInteger(col.wip_limit) && col.wip_limit > 0 ? col.wip_limit : null;
-  count.textContent = limit ? `${col.cards.length}/${limit}` : col.cards.length;
+  count.textContent = limit ? `${col.cards.length}/${limit}` : `(${col.cards.length})`;
   if (limit && col.cards.length > limit) count.classList.add('over');
   count.title = 'Double-click to set a WIP limit';
   count.addEventListener('dblclick', async () => {
