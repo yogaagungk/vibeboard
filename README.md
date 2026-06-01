@@ -117,7 +117,7 @@ cd vibeboard && npm install && npm start
 - 🚦 **Flow controls** - WIP limits per column, card dependencies (`blocked_by`),
   and a concurrency cap with an automatic agent queue.
 - 🗂️ **Multiple workspaces** - one board per project, switch instantly.
-- 🌑 **Light & dark** - a refined, Linear-inspired UI with keyboard support.
+- 🎨 **ClickUp-inspired UI** - clean white surfaces, colorful column accents, vibrant workspace icons, skeleton loading, full light & dark theme.
 - 🔒 **Local-first** - SQLite on your machine. No cloud, no account, no tracking.
 
 ## Connect your agents
@@ -161,7 +161,7 @@ Add a `vibeboard` entry under `mcpServers` in `~/.codex/config.json`:
 `list_workspaces` · `create_workspace` · `switch_workspace` · `set_workspace` ·
 `create_card` · `update_card` · `move_card` · `complete_card` · `delete_card` ·
 `add_card_note` · `get_card_notes` · `get_agent_status` ·
-`list_models` · `refresh_models`
+`list_models` · `refresh_models` · `list_templates` · `create_template`
 
 `get_board` supports `columnsOnly`, `excludeLogs`, and `columnTitle` filters to reduce payload size. `search_cards` and `list_cards` support `limit`/`offset` pagination.
 

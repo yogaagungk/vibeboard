@@ -7,8 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-01
+
 ### Added
-- **Board-level progress summary in header** — sticky header now shows `X / Y done (Z%)` with a slim progress bar; updates live with every board render (initial load, SSE updates, drag/move). Click the indicator to scroll the board to the Done column. Disabled when no Done column exists.
+- **ClickUp-inspired design system** — full UI overhaul replacing the previous Linear-inspired theme. White surfaces, vibrant column accent lines, colorful workspace icons (10-color curated palette via `wsColor()`), hash-based tag colors, and `#7C3AED` purple accent throughout.
+- **Skeleton loading states** — shimmer placeholders for workspace list, header breadcrumb, board columns (4 skeleton columns with fake cards), and MCP modal agent rows. All skeletons respect light/dark theme via CSS custom properties.
+- **Favicon & brand icon** — white background with colorful kanban bars (purple/orange/sky); sidebar collapsed icon matches.
+- **Board-level progress summary in header** — sticky header shows `X / Y done (Z%)` with a progress bar; updates live. Click to scroll to Done column.
+- **Keyboard shortcuts close button** — shortcuts overlay now has a proper modal-style header with title and × close button.
+
+### Changed
+- **Header** — clean white bar, workspace breadcrumb with colored icon, connection status pill, agent activity indicator.
+- **Sidebar** — 240px wide, "WORKSPACES" section label, tighter item rows, active item with left accent bar, New Workspace button accent-tinted.
+- **Columns** — colored top accent line (4px) is the sole column color indicator (dot removed); column title uppercase in accent color; count badge shows plain number without parentheses (e.g. `97` not `(97)`).
+- **Cards** — add-card button always visible at column bottom (fixed `max-height` on `cards-list` instead of column); columns naturally compact when empty.
+- **Modals & dialogs** — `border-radius: 10px`, deeper shadow `0 24px 64px`, uniform `16px 20px` padding. New Workspace modal wider (`520px`). `vbDialog` (confirm/prompt) restructured with `head / body / footer` layout. MCP modal, settings, card detail all consistent.
+- **Card details sidebar** — title `16px/600`; tabs `13px/38px` with accent underline; body padding `16px 20px`; description `min-height 120px`; property rows tighter (`9px`); notes `13px` with white bg + subtle shadow.
+- **Typography system** — removed all `font-weight: 300` (13 instances → 400); normalized uppercase label tracking to `0.5px`; removed negative letter-spacing from non-heading text; size floor raised to `10px` for text badges; card title `13px/500`; consistent `1.5` line-height for inputs, `1.6` for prose.
+- **Filter buttons** — now show correct `▾` chevron (was broken by encoding bug); `0.3.0` also fixes `▶` play icon, `✓` checkmark, `⏳` hourglass, `⚠` warning — all converted to CSS unicode escapes for encoding safety.
+- **COL_COLORS** — updated to more vibrant ClickUp-accurate palette (sky blue, amber, green, violet, red, cyan, pink, orange, teal).
+
+### Fixed
+- **Card sidebar stays open on workspace switch** — `workspace_switch` SSE handler now calls `closeCardModal()` before re-rendering, preventing stale card details from a different workspace.
+- **CSS encoding corruption** — `▾ ▶ ✓ ⏳ ⚠` content values were double-encoded by PowerShell file operations; all converted to `\25be \25b6 \2713 \23f3 \26a0` escapes.
+- **`var(--hover)` undefined** — 4 occurrences replaced with `var(--surface-2)`.
+- **Column cards hidden** — `flex: 1 1 0` on `cards-list` collapsed to 0px with `max-height` container; fixed by applying `max-height` directly on `cards-list` so columns grow naturally and cards always render.
+- **Duplicate CSS block** — ~420-line duplicate section removed from `styles.css`.
+- **Em dashes in user-visible text** — replaced in SSE reconnect banner, workspace name placeholder, browser notification title, and error message string.
 
 ## [0.2.14] - 2026-05-31
 

@@ -31,7 +31,8 @@ vibeboard/
 │   ├── styles.css      ← UI styles
 │   └── js/             ← UI logic as ordered classic scripts (no bundler)
 │       ├── bootstrap.js, workspaces.js, board.js, realtime.js,
-│       └── shortcuts-io.js, md-render.js, datepicker.js, card-sidebar.js, app.js
+│       └── shortcuts-io.js, md-render.js, datepicker.js, card-sidebar.js,
+│           dialogs.js, app.js
 ├── .claude/
 │   └── mcp.json        ← MCP config for Claude Code
 ├── README.md           ← User documentation
