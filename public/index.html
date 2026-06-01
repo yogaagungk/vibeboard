@@ -106,6 +106,12 @@
       <input type="text" id="board-search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
       <button id="board-search-clear">Clear</button>
       <span id="board-search-count"></span>
+      <button class="header-btn" id="swimlane-toggle-btn" title="Switch to swimlane view">Swimlane</button>
+      <div id="swimlane-group-selector" style="display:none">
+        <button class="swimlane-group-btn active" data-group-by="tag">Tag</button>
+        <button class="swimlane-group-btn" data-group-by="priority">Priority</button>
+        <button class="swimlane-group-btn" data-group-by="agent">Agent</button>
+      </div>
       <button class="header-btn" id="ws-context-btn" title="View AI context files" style="display:none">Context</button>
     </div>
     <div id="board-filter-bar" style="display:none">
@@ -537,6 +543,7 @@
 <script src="/js/board.js"></script>
 <script src="/js/timeline.js"></script>
 <script src="/js/view-switcher.js"></script>
+<script src="/js/swimlane.js"></script>
 <script src="/js/realtime.js"></script>
 <script src="/js/datepicker.js"></script>
 <script src="/js/shortcuts-io.js"></script>

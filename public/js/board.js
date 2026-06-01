@@ -22,6 +22,18 @@ function renderBoard(b) {
     queuedCards.clear();
     b.queuedCards.forEach(id => queuedCards.add(id));
   }
+  
+  if (typeof swimlaneView !== 'undefined' && swimlaneView) {
+    if (typeof renderSwimlaneBoard === 'function') {
+      renderSwimlaneBoard(b);
+      renderLog(board.agentLog || []);
+      searchInput.value = currentSearchValue;
+      applySearch();
+      return;
+    }
+  }
+  
+  boardEl.classList.remove('swimlane-mode');
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
 

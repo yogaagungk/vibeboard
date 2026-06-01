@@ -19,7 +19,12 @@ function connectSSE() {
       if (data._tabId === TAB_ID) return;
       const affected = findAffectedCards(board, data);
       board = data; board.agentLog = board.agentLog || [];
-      saveCache(board); renderBoard(board);
+      saveCache(board);
+      if (typeof swimlaneView !== 'undefined' && swimlaneView && typeof renderSwimlaneBoard === 'function') {
+        renderSwimlaneBoard(board);
+      } else {
+        renderBoard(board);
+      }
       affected.forEach(id => flashCard(id));
       // Refresh branch badge + notes if the updated card's sidebar is open, so
       // agent checkpoints (add_card_note → board_update) appear live without
