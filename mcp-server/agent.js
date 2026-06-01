@@ -126,16 +126,16 @@ function buildShellCmd(agentType, promptFile, model) {
   switch (agentType) {
     case 'claude-code':
       return win
-        ? `type "${promptFile}" | claude --print --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag}`
-        : `claude --print --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | claude --print --verbose --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag}`
+        : `claude --print --verbose --dangerously-skip-permissions --effort medium --output-format stream-json${modelFlag} < "${promptFile}"`;
     case 'opencode':
       return win
         ? `type "${promptFile}" | opencode run --dangerously-skip-permissions${modelFlag}`
         : `opencode run --dangerously-skip-permissions${modelFlag} < "${promptFile}"`;
     case 'codex':
       return win
-        ? `type "${promptFile}" | codex --full-auto${modelFlag}`
-        : `codex --full-auto${modelFlag} < "${promptFile}"`;
+        ? `type "${promptFile}" | codex exec --dangerously-bypass-approvals-and-sandbox${modelFlag}`
+        : `codex exec --dangerously-bypass-approvals-and-sandbox${modelFlag} < "${promptFile}"`;
     case 'command-code':
       return win
         ? `type "${promptFile}" | command-code -p --yolo --skip-onboarding --max-turns 60${modelFlag}`
