@@ -63,36 +63,14 @@
 
 <!-- Workspace Sidebar -->
 <aside id="workspace-sidebar">
-  <div id="ws-sidebar-top">
-    <span class="ws-label">Workspaces</span>
-    <button class="icon-btn" id="ws-add-btn" title="New workspace">+</button>
-  </div>
-
-  <div id="ws-create-form">
-    <div class="ws-path-row">
-      <input class="ws-input" id="ws-create-path" type="text" placeholder="Project path *" spellcheck="false" autocomplete="off" style="font-family:monospace;font-size:11px">
-      <button class="browse-btn" id="ws-create-browse">Browse</button>
-    </div>
-    <div id="ws-git-status" style="display:none;font-size:11px;padding:4px 2px;display:flex;align-items:center;gap:6px"></div>
-    <input class="ws-input" id="ws-create-name" type="text" placeholder="Name (optional)" spellcheck="false" autocomplete="off">
-    <div class="ws-create-toggle-row">
-      <span class="ws-create-toggle-label">Git worktree</span>
-      <label class="toggle-switch">
-        <input type="checkbox" id="ws-create-use-worktree">
-        <span class="toggle-track"></span>
-      </label>
-    </div>
-    <div class="ws-create-actions">
-      <button class="btn-primary" id="ws-create-submit">Create</button>
-      <button class="btn-ghost" id="ws-create-cancel">Cancel</button>
-    </div>
-  </div>
-
   <div id="ws-list"></div>
-
   <div id="ws-sidebar-bottom">
-    <button id="settings-btn">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <button id="ws-new-btn" class="ws-bottom-btn">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+      New workspace
+    </button>
+    <button id="settings-btn" class="ws-bottom-btn">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="8" cy="8" r="2"/>
         <path d="M12.5 8a4.5 4.5 0 0 0-.4-1.8l1.5-.9-1-1.7-1.7.4a4.5 4.5 0 0 0-1.4-1.4l.4-1.7-1.7-1-.9 1.5A4.5 4.5 0 0 0 8 1a4.5 4.5 0 0 0-1.8.4L5.3.9l-1.7 1 .4 1.7a4.5 4.5 0 0 0-1.4 1.4l-1.7-.4-1 1.7 1.5.9A4.5 4.5 0 0 0 1 8a4.5 4.5 0 0 0 .4 1.8l-1.5.9 1 1.7 1.7-.4a4.5 4.5 0 0 0 1.4 1.4l-.4 1.7 1.7 1 .9-1.5A4.5 4.5 0 0 0 8 15a4.5 4.5 0 0 0 1.8-.4l.9 1.5 1.7-1-.4-1.7a4.5 4.5 0 0 0 1.4-1.4l1.7.4 1-1.7-1.5-.9A4.5 4.5 0 0 0 12.5 8z"/>
       </svg>
@@ -100,6 +78,45 @@
     </button>
   </div>
 </aside>
+
+<!-- New Workspace Modal -->
+<div class="modal-overlay" id="ws-new-overlay">
+  <div class="modal-box" id="ws-new-modal">
+    <div class="modal-header">
+      <span class="modal-header-title">New workspace</span>
+      <button class="modal-close-btn" id="ws-new-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="field-label">Project path *</div>
+        <div class="modal-path-row">
+          <input class="modal-path-input" id="ws-new-path" type="text" placeholder="e.g. C:\Projects\myapp" spellcheck="false" autocomplete="off">
+          <button class="browse-btn" id="ws-new-browse" style="height:36px">Browse</button>
+        </div>
+        <div id="ws-new-git-status" style="display:none;font-size:11px;margin-top:6px;display:flex;align-items:center;gap:6px"></div>
+      </div>
+      <div>
+        <div class="field-label">Name</div>
+        <input class="modal-path-input" id="ws-new-name" type="text" placeholder="Optional — inferred from folder name" spellcheck="false" autocomplete="off" style="width:100%">
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-row-label">Git worktree</div>
+          <div class="toggle-row-hint">Agent works in an isolated branch per card</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ws-new-use-worktree">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" id="ws-new-cancel">Cancel</button>
+      <div class="modal-spacer"></div>
+      <button class="btn-primary" id="ws-new-submit" style="flex:0;padding:0 16px">Create workspace</button>
+    </div>
+  </div>
+</div>
 
 <!-- Main -->
   <div id="app">

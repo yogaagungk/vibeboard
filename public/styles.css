@@ -203,16 +203,6 @@ body {
   transition: transform 0.25s ease;
 }
 
-#ws-sidebar-top {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 14px 10px; flex-shrink: 0;
-}
-
-.ws-label {
-  font-size: 10px; font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
 
 .icon-btn {
   width: 24px; height: 24px;
@@ -225,14 +215,6 @@ body {
 }
 .icon-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
 
-/* ── Create form ── */
-#ws-create-form {
-  display: none; flex-direction: column; gap: 7px;
-  margin: 0 10px 8px;
-  padding: 10px; background: var(--bg);
-  border: 1px solid var(--border); border-radius: var(--radius-md);
-  flex-shrink: 0;
-}
 
 .ws-input {
   width: 100%;
@@ -251,9 +233,6 @@ select.ws-input {
   cursor: pointer;
 }
 
-.ws-path-row { display: flex; gap: 5px; align-items: stretch; }
-.ws-path-row .ws-input { flex: 1; font-family: monospace; font-size: 11px; }
-
 .browse-btn {
   height: 28px; padding: 0 10px;
   border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -265,9 +244,6 @@ select.ws-input {
 .browse-btn:hover { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
 .browse-btn:disabled { opacity: 0.4; cursor: default; }
 
-.ws-create-actions { display: flex; gap: 5px; }
-.ws-create-toggle-row { display: flex; align-items: center; justify-content: space-between; }
-.ws-create-toggle-label { font-size: 12px; color: var(--text-muted); }
 
 .btn-primary {
   flex: 1; height: 28px; border: none; border-radius: var(--radius-md);
@@ -292,7 +268,7 @@ select.ws-input {
 /* ── Workspace list ── */
 #ws-list {
   flex: 1; overflow-y: auto;
-  padding: 0 8px 4px;
+  padding: 8px 0 4px;
   display: flex; flex-direction: column; gap: 1px;
 }
 #ws-list::-webkit-scrollbar { width: 8px; }
@@ -301,18 +277,19 @@ select.ws-input {
 
 .ws-item {
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 8px; border-radius: 7px;
-  border: 1px solid transparent; cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  padding: 7px 8px 7px 12px;
+  margin-right: 8px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  cursor: pointer;
+  transition: background 0.12s, border-left-color 0.15s;
 }
 .ws-item:hover { background: var(--bg); }
-.ws-item.active { background: var(--bg); border-color: var(--border); cursor: default; }
-
-.ws-item-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--border-strong); flex-shrink: 0;
+.ws-item.active {
+  background: var(--bg);
+  border-left-color: var(--accent);
+  cursor: default;
 }
-.ws-item.active .ws-item-dot { background: var(--active-ws); }
 
 .ws-item-info { flex: 1; min-width: 0; }
 .ws-item-name {
@@ -321,7 +298,7 @@ select.ws-input {
 }
 .ws-item.active .ws-item-name { color: var(--text); font-weight: 500; }
 .ws-item-path {
-  font-size: 10px; color: var(--text-muted); opacity: 0.65;
+  font-size: 10px; color: var(--text-muted); opacity: 0.6;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: monospace; margin-top: 1px;
 }
@@ -340,22 +317,26 @@ select.ws-input {
 /* ── Sidebar bottom ── */
 #ws-sidebar-bottom {
   flex-shrink: 0;
-  padding: 8px 10px 10px;
+  padding: 6px 0 8px;
   border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 1px;
 }
 
-#settings-btn {
+.ws-bottom-btn {
   width: 100%;
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 8px; border-radius: var(--radius-md);
-  border: 1px solid transparent; cursor: pointer;
-  background: transparent;
+  padding: 7px 8px 7px 12px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-top: none; border-right: none; border-bottom: none;
+  margin-right: 8px; width: calc(100% - 8px);
+  cursor: pointer; background: transparent;
   color: var(--text-muted); font-family: 'Inter', sans-serif;
   font-size: 12px; font-weight: 400;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s;
 }
-#settings-btn:hover { background: var(--bg); color: var(--text); }
-#settings-btn svg { flex-shrink: 0; opacity: 0.7; }
+.ws-bottom-btn:hover { background: var(--bg); color: var(--text); }
+.ws-bottom-btn svg { flex-shrink: 0; opacity: 0.65; }
 
 /* ── Card Details Sidebar ── */
 #card-sidebar {
@@ -1133,13 +1114,11 @@ body.vb-compact #board-inner { padding: 10px 0 14px 14px; }
 body.vb-compact #board { gap: 8px; }
 
 /* ── Workspace sidebar ── */
-body.vb-compact #ws-sidebar-top { padding: 9px 10px 6px; }
-body.vb-compact .ws-label { font-size: 9px; }
-body.vb-compact #ws-list { gap: 1px; }
-body.vb-compact .ws-item { padding: 5px 10px; }
+body.vb-compact #ws-list { padding-top: 6px; }
+body.vb-compact .ws-item { padding: 5px 8px 5px 10px; }
 body.vb-compact .ws-item-name { font-size: 12px; }
 body.vb-compact .ws-item-path { font-size: 10px; }
-body.vb-compact .ws-item-dot { width: 6px; height: 6px; }
+body.vb-compact .ws-bottom-btn { padding: 5px 8px 5px 10px; }
 
 /* ── Columns ── */
 body.vb-compact .col-header { padding: 7px 8px 4px; }

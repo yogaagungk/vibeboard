@@ -190,14 +190,10 @@ const connDot        = document.getElementById('conn-dot');
 const logSidebar     = document.getElementById('log-sidebar');
 const logEntries     = document.getElementById('log-entries');
 const logToggleBtn   = document.getElementById('log-toggle-btn');
-const wsAddBtn       = document.getElementById('ws-add-btn');
-const wsCreateForm   = document.getElementById('ws-create-form');
-const wsCreatePath   = document.getElementById('ws-create-path');
-const wsCreateName   = document.getElementById('ws-create-name');
-const wsCreateBrowse = document.getElementById('ws-create-browse');
-const wsCreateSubmit = document.getElementById('ws-create-submit');
-const wsCreateCancel = document.getElementById('ws-create-cancel');
-const wsListEl       = document.getElementById('ws-list');
+const wsNewBtn    = document.getElementById('ws-new-btn');
+const wsNewPath   = document.getElementById('ws-new-path');
+const wsNewName   = document.getElementById('ws-new-name');
+const wsListEl    = document.getElementById('ws-list');
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function uid() { return crypto.randomUUID(); }
@@ -335,27 +331,27 @@ async function browseFolder(inputEl, btnEl) {
   finally { btnEl.disabled = false; btnEl.textContent = orig; }
 }
 
-wsCreateBrowse.addEventListener('click', () => browseFolder(wsCreatePath, wsCreateBrowse));
+document.getElementById('ws-new-browse').addEventListener('click', () => browseFolder(wsNewPath, document.getElementById('ws-new-browse')));
 document.getElementById('ws-modal-browse').addEventListener('click', () =>
   browseFolder(document.getElementById('ws-modal-path'), document.getElementById('ws-modal-browse'))
 );
 
-// Auto-fill name from path and check git status when path changes
+// Auto-fill name from path and check git status when path changes (new workspace modal)
 let _gitCheckTimer = null;
-wsCreatePath.addEventListener('input', () => {
-  if (!wsCreateName.value.trim()) {
-    const suggested = folderName(wsCreatePath.value);
-    wsCreateName.placeholder = suggested ? `Name (${suggested})` : 'Name (optional)';
+wsNewPath.addEventListener('input', () => {
+  if (!wsNewName.value.trim()) {
+    const suggested = folderName(wsNewPath.value);
+    wsNewName.placeholder = suggested ? `Name (${suggested})` : 'Optional — inferred from folder name';
   }
   clearTimeout(_gitCheckTimer);
-  const p = wsCreatePath.value.trim();
-  const gitRow = document.getElementById('ws-git-status');
+  const p = wsNewPath.value.trim();
+  const gitRow = document.getElementById('ws-new-git-status');
   if (!p) { gitRow.style.display = 'none'; return; }
   _gitCheckTimer = setTimeout(() => checkPathGitStatus(p), 600);
 });
 
 async function checkPathGitStatus(wsPath) {
-  const gitRow = document.getElementById('ws-git-status');
+  const gitRow = document.getElementById('ws-new-git-status');
   gitRow.style.display = 'flex';
   gitRow.innerHTML = '<span style="color:var(--text-muted)">Checking git…</span>';
   try {

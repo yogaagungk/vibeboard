@@ -19,16 +19,12 @@ function renderWorkspaceList() {
     const item = document.createElement('div');
     item.className = 'ws-item' + (ws.active ? ' active' : '');
 
-    const dot = document.createElement('span');
-    dot.className = 'ws-item-dot';
-
     const info = document.createElement('div');
     info.className = 'ws-item-info';
 
     const nameEl = document.createElement('div');
     nameEl.className = 'ws-item-name';
     nameEl.textContent = ws.name || folderName(ws.path) || 'Untitled';
-
     info.appendChild(nameEl);
 
     if (ws.path) {
@@ -45,7 +41,6 @@ function renderWorkspaceList() {
     editBtn.title = 'Edit workspace';
     editBtn.addEventListener('click', e => { e.stopPropagation(); openWsModal(ws.id); });
 
-    item.appendChild(dot);
     item.appendChild(info);
     item.appendChild(editBtn);
 
@@ -58,64 +53,64 @@ async function switchWorkspace(id) {
   try { await fetch(`/workspaces/${id}/switch`, { method: 'POST' }); } catch(_){}
 }
 
-// ── Create form ────────────────────────────────────────────────────────────
-function openCreateForm() {
-  wsCreateForm.style.display = 'flex';
-  wsAddBtn.style.display = 'none';
-  wsCreatePath.focus();
+// ── New workspace modal ────────────────────────────────────────────────────
+function openNewWsModal() {
+  wsNewPath.value = '';
+  wsNewName.value = '';
+  wsNewPath.placeholder = 'e.g. C:\\Projects\\myapp';
+  wsNewName.placeholder = 'Optional — inferred from folder name';
+  wsNewPath.classList.remove('error');
+  document.getElementById('ws-new-git-status').style.display = 'none';
+  document.getElementById('ws-new-use-worktree').checked = false;
+  document.getElementById('ws-new-overlay').classList.add('open');
+  wsNewPath.focus();
 }
 
-function closeCreateForm() {
-  wsCreateForm.style.display = 'none';
-  wsAddBtn.style.display = '';
-  wsCreatePath.value = '';
-  wsCreateName.value = '';
-  wsCreatePath.classList.remove('error');
-  wsCreateName.placeholder = 'Name (optional)';
-  document.getElementById('ws-git-status').style.display = 'none';
+function closeNewWsModal() {
+  document.getElementById('ws-new-overlay').classList.remove('open');
 }
 
-wsAddBtn.addEventListener('click', openCreateForm);
-wsCreateCancel.addEventListener('click', closeCreateForm);
+wsNewBtn.addEventListener('click', openNewWsModal);
+document.getElementById('ws-new-close').addEventListener('click', closeNewWsModal);
+document.getElementById('ws-new-cancel').addEventListener('click', closeNewWsModal);
+document.getElementById('ws-new-overlay').addEventListener('click', e => {
+  if (e.target.id === 'ws-new-overlay') closeNewWsModal();
+});
 
-wsCreateSubmit.addEventListener('click', async () => {
-  const wsPath = wsCreatePath.value.trim();
-  if (!wsPath) {
-    wsCreatePath.classList.add('error');
-    wsCreatePath.focus();
-    return;
-  }
-  
+document.getElementById('ws-new-submit').addEventListener('click', async () => {
+  const wsPath = wsNewPath.value.trim();
+  if (!wsPath) { wsNewPath.classList.add('error'); wsNewPath.focus(); return; }
   if (!isAbsolutePath(wsPath)) {
-    wsCreatePath.classList.add('error');
+    wsNewPath.classList.add('error');
     showToast('Path must be absolute (e.g., C:\\Projects\\myapp or /home/user/myapp)');
-    wsCreatePath.focus();
+    wsNewPath.focus();
     return;
   }
-  
-  wsCreatePath.classList.remove('error');
-
-  const name = wsCreateName.value.trim() || folderName(wsPath) || '';
-  const use_worktree = document.getElementById('ws-create-use-worktree').checked ? 1 : 0;
+  wsNewPath.classList.remove('error');
+  const name = wsNewName.value.trim() || folderName(wsPath) || '';
+  const use_worktree = document.getElementById('ws-new-use-worktree').checked ? 1 : 0;
+  const submitBtn = document.getElementById('ws-new-submit');
+  submitBtn.disabled = true; submitBtn.textContent = 'Creating…';
   try {
     const resp = await fetch('/workspaces', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ name, path: wsPath, use_worktree }),
     });
     const ws = await resp.json();
-    closeCreateForm();
+    closeNewWsModal();
     if (!activeWsId) await fetch(`/workspaces/${ws.id}/switch`, { method: 'POST' });
     await loadWorkspaces();
-  } catch(_){}
+  } catch(_){ showToast('Failed to create workspace', 3000, 'error'); }
+  submitBtn.disabled = false; submitBtn.textContent = 'Create workspace';
 });
 
-wsCreatePath.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeCreateForm();
-  if (e.key === 'Enter') wsCreateName.focus();
+wsNewPath.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeNewWsModal();
+  if (e.key === 'Enter') wsNewName.focus();
 });
-wsCreateName.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeCreateForm();
-  if (e.key === 'Enter') wsCreateSubmit.click();
+wsNewName.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeNewWsModal();
+  if (e.key === 'Enter') document.getElementById('ws-new-submit').click();
 });
 
 // ── Workspace detail modal ─────────────────────────────────────────────────
