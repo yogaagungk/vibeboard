@@ -30,12 +30,16 @@ function routeSpawnAgent(cardId, columnTitle) {
   }
 }
 
-function routeStopAgent(cardId) {
+async function routeStopAgent(cardId) {
   if (isHttpRunning()) {
     return isAgentActive(cardId) ? stopAgent(cardId, emitSSE) : false;
   } else {
-    fetch(`http://localhost:${PORT}/api/cards/${cardId}/stop`, { method: 'POST' }).catch(() => {});
-    return true;
+    try {
+      const res = await fetch(`http://localhost:${PORT}/api/cards/${cardId}/stop`, { method: 'POST' });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
   }
 }
 
