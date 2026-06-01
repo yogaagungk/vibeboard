@@ -103,6 +103,7 @@ function connectSSE() {
         if (data.cost != null) entry.card.last_cost = data.cost;
         if (data.tokens != null) entry.card.last_tokens = data.tokens;
         renderBoard(board);
+        sendAgentNotification(entry.card.title || 'Unknown card', data.code, data.agentType);
       }
       const el = document.querySelector(`[data-card-id="${data.cardId}"]`);
       if (el) el.querySelectorAll('.card-running-dot').forEach(d => d.remove());
@@ -197,6 +198,22 @@ function showToast(msg, dur = 3000, type = '') {
 function showTriggerToast(data) {
   const lbl = data.agent ? ` (${AGENT_LABELS[data.agent] || data.agent})` : '';
   showToast(`Agent triggered${lbl}: ${data.card?.title || data.card?.text || ''}`, 4000);
+}
+
+// ── Browser Notifications ────────────────────────────────────────────────────
+function sendAgentNotification(title, exitCode, agentType) {
+  if (!('Notification' in window)) return;
+  const status = exitCode === 0 ? 'completed' : 'failed (exit code ' + exitCode + ')';
+  const body = '"' + title + '" ' + status + (agentType ? ' [' + agentType + ']' : '');
+  if (Notification.permission === 'granted') {
+    new Notification('VibeBoard — Agent ' + status, { body, icon: '/favicon.ico' });
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        new Notification('VibeBoard — Agent ' + status, { body, icon: '/favicon.ico' });
+      }
+    });
+  }
 }
 
 // ── Due date helpers ────────────────────────────────────────────────────────
