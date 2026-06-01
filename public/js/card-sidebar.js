@@ -228,6 +228,7 @@ function openCardModal(cardId, colId) {
       updateRunAgentBtn(card);
       document.getElementById('card-review-toggle-row').style.display = card.agent ? '' : 'none';
       document.getElementById('card-custom-prompt-section').style.display = card.agent ? '' : 'none';
+      document.getElementById('card-review-agent-section').style.display = (card.agent && card.requires_review) ? '' : 'none';
       updateModelDropdown('card', card.agent || '', card.model);
       const activeTab = document.querySelector('.sidebar-tab.active');
       if (activeTab?.dataset.tab === 'context') loadAgentContext(card.agent);

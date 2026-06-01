@@ -267,7 +267,7 @@ function getBoard(workspaceId) {
   `).all(workspaceId);
   
   const cards = db.prepare(`
-    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, merged_at, review_agent, review_model, position, created_at
+    SELECT id, column_id, title, description, tags, agent, model, branch, worktree_path, requires_review, priority, custom_prompt, due_date, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, blocked_by, merged_at, review_agent, review_model, review_issue, has_branch_changes, in_progress_base_sha, position, created_at
     FROM cards
     WHERE workspace_id = ?
     ORDER BY position
@@ -303,6 +303,9 @@ function getBoard(workspaceId) {
         blocked_by: c.blocked_by ? JSON.parse(c.blocked_by) : [],
         review_agent: c.review_agent || null,
         review_model: c.review_model || null,
+        review_issue: !!c.review_issue,
+        has_branch_changes: !!c.has_branch_changes,
+        in_progress_base_sha: c.in_progress_base_sha || null,
       }))
   }));
   

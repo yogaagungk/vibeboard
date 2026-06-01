@@ -235,8 +235,8 @@ module.exports = function registerRoutes(app) {
   app.post('/api/cards/:cardId/spawn-or-queue', (req, res) => {
     const { cardId } = req.params;
     const card = db.getCard(cardId);
-    if (!card || !card.agent) return res.json({ ok: true });
-    spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    if (!card || (!card.agent && !card.review_agent)) return res.json({ ok: true });
+    spawnAgent(cardId, card.workspace_id, card.agent || card.review_agent, emitSSE);
     res.json({ ok: true });
   });
 
