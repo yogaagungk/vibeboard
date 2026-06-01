@@ -508,54 +508,6 @@ function applyTemplate(templateId, templates) {
   document.getElementById('nc-title-input').select();
 }
 
-  // Agent dropdown
-  const agentMount = document.getElementById('nc-agent-mount');
-  agentMount.innerHTML = '';
-  const agentOpts = [
-    { value: '', label: 'None' },
-    ...['claude-code', 'opencode', 'codex', 'command-code'].map(k => {
-      const reason = agentUnavailableReason(k);
-      return { value: k, label: AGENT_LABELS[k] || k, disabled: !!reason, hint: reason || undefined };
-    }),
-  ];
-  if (!window._ncAgentSelect) {
-    window._ncAgentSelect = vbSelect({
-      options: agentOpts,
-      value: '',
-      placeholder: 'None',
-      ariaLabel: 'Agent',
-      onChange: val => {
-        document.getElementById('nc-agent-warning').style.display = val ? '' : 'none';
-        updateModelDropdown('nc', val);
-      },
-    });
-    agentMount.appendChild(window._ncAgentSelect.el);
-  } else {
-    window._ncAgentSelect.setOptions(agentOpts);
-    window._ncAgentSelect.setValue('');
-    agentMount.appendChild(window._ncAgentSelect.el);
-  }
-
-  updateModelDropdown('nc', '');
-
-  document.getElementById('nc-due-date').value = '';
-  document.getElementById('nc-needs-review').checked = false;
-  document.getElementById('nc-agent-warning').style.display = 'none';
-
-  // Blocked-by picker (buffered in ncBlockedBy until the card is created)
-  ncBlockedBy = [];
-  renderBlockedByControl(
-    document.getElementById('nc-dep-list'),
-    () => ncBlockedBy,
-    ids => { ncBlockedBy = ids; },
-    null,
-  );
-
-  document.getElementById('nc-modal-overlay').classList.add('open');
-  document.getElementById('nc-title-input').focus();
-  syncAriaPressed(document.getElementById('nc-modal-overlay'));
-}
-
 function getModalTags() {
   return Array.from(cardModalTagPicker.querySelectorAll('.tag-pick-btn.active')).map(b => b.dataset.tag);
 }

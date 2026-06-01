@@ -76,8 +76,6 @@ function initModalA11y() {
 }
 
 // ── Board loading ──────────────────────────────────────────────────────────
-let currentView = 'board';
-
 async function loadBoard() {
   const errorEl = document.getElementById('board-error-state');
   if (errorEl) errorEl.remove();
@@ -86,14 +84,13 @@ async function loadBoard() {
   if (cached) {
     boardEl.style.display = '';
     renderBoard(cached);
-    if (currentView === 'timeline') renderTimeline(cached);
   }
 
   try {
     const resp = await fetch('/board');
     if (resp.ok) {
       const fresh = await resp.json();
-      if (fresh) { fresh.agentLog = fresh.agentLog||[]; saveCache(fresh); renderBoard(fresh); if (currentView === 'timeline') renderTimeline(fresh); }
+      if (fresh) { fresh.agentLog = fresh.agentLog||[]; saveCache(fresh); renderBoard(fresh); }
     } else {
       throw new Error('Server responded with ' + resp.status);
     }
