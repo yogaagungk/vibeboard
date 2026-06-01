@@ -448,6 +448,19 @@ function buildLogEntry(entry) {
   const el = document.createElement('div'); el.className = 'log-entry';
   const action = entry.action || 'event';
   el.dataset.action = action.toLowerCase();
+  if (entry.cardId) {
+    el.dataset.cardId = entry.cardId;
+    el.style.cursor = 'pointer';
+    el.title = 'Click to open card';
+    el.addEventListener('click', () => {
+      const cardEntry = findCardEntry(entry.cardId);
+      if (cardEntry) {
+        openCardModal(entry.cardId, cardEntry.column.id);
+      } else {
+        showToast('Card not found on the board', 2000);
+      }
+    });
+  }
 
   const top = document.createElement('div'); top.className = 'log-entry-top';
   const chip = document.createElement('span'); chip.className = 'log-entry-action'; chip.textContent = action.replace(/_/g, ' ');

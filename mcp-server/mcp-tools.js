@@ -136,7 +136,7 @@ module.exports = function registerMcpTools(mcp) {
         }
         
         const card = db.createCard(activeId, column.id, title, { description, tags, agent, model, priority, due_date, blocked_by });
-        db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`);
+        db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`, card.id);
         emitSSE('board_update', db.getBoard(activeId));
         return { content: [{ type: 'text', text: JSON.stringify(card) }] };
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
@@ -169,14 +169,14 @@ module.exports = function registerMcpTools(mcp) {
         }
         if (agent !== undefined && agent !== card.agent) {
           if (agent === '') {
-            db.addAgentLog(card.workspace_id, 'system', 'update_card', `Agent unassigned (was: ${card.agent || 'none'}) on '${card.title}'`);
+            db.addAgentLog(card.workspace_id, 'system', 'update_card', `Agent unassigned (was: ${card.agent || 'none'}) on '${card.title}'`, cardId);
           } else {
-            db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Agent assigned: ${agent} (was: ${card.agent || 'none'}) on '${card.title}'`);
+            db.addAgentLog(card.workspace_id, agent || 'system', 'update_card', `Agent assigned: ${agent} (was: ${card.agent || 'none'}) on '${card.title}'`, cardId);
           }
         }
         db.updateCard(cardId, updates);
         if (agent === undefined || agent === card.agent) {
-          db.addAgentLog(card.workspace_id, card.agent || 'system', 'update_card', `Updated '${card.title}'`);
+          db.addAgentLog(card.workspace_id, card.agent || 'system', 'update_card', `Updated '${card.title}'`, cardId);
         }
         emitSSE('board_update', db.getBoard(card.workspace_id));
         return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };
@@ -210,7 +210,7 @@ module.exports = function registerMcpTools(mcp) {
 
         const fromColumn = db.getColumn(card.column_id);
         db.moveCard(cardId, toColumn.id);
-        db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`);
+        db.addAgentLog(card.workspace_id, card.agent || 'system', 'move_card', `Moved '${card.title}' → ${toColumnTitle}`, cardId);
         emitSSE('board_update', db.getBoard(card.workspace_id));
 
         if (card.column_id !== toColumn.id && (toColumnTitle === 'In Progress' || toColumnTitle === 'Review') && card.agent) {
@@ -242,7 +242,7 @@ module.exports = function registerMcpTools(mcp) {
 
       const fromColumn = db.getColumn(card.column_id);
       db.moveCard(cardId, doneColumn.id);
-      db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`);
+      db.addAgentLog(card.workspace_id, card.agent || 'system', 'complete_card', `Completed '${card.title}'`, cardId);
       emitSSE('board_update', db.getBoard(card.workspace_id));
       emitSSE('trigger', { card, toColumn: 'Done' });
 
@@ -258,7 +258,7 @@ module.exports = function registerMcpTools(mcp) {
       routeStopAgent(cardId);
 
       db.deleteCard(cardId);
-      db.addAgentLog(card.workspace_id, 'system', 'delete_card', `Deleted '${card.title}'`);
+      db.addAgentLog(card.workspace_id, 'system', 'delete_card', `Deleted '${card.title}'`, cardId);
       emitSSE('board_update', db.getBoard(card.workspace_id));
 
       return { content: [{ type: 'text', text: JSON.stringify({ deleted: true, card }) }] };
@@ -273,7 +273,7 @@ module.exports = function registerMcpTools(mcp) {
         if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
 
         const note = db.addCardNote(cardId, content);
-        db.addAgentLog(card.workspace_id, card.agent || 'system', 'add_note', `Added note to '${card.title}'`);
+        db.addAgentLog(card.workspace_id, card.agent || 'system', 'add_note', `Added note to '${card.title}'`, cardId);
         emitSSE('board_update', db.getBoard(card.workspace_id));
 
         return { content: [{ type: 'text', text: JSON.stringify(note) }] };

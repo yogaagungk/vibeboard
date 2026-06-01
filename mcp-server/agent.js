@@ -317,7 +317,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
           process.stderr.write(`[agent] Warning: card ${cardId} already has ${queue.length} pending respawn(s); queuing another (previous targets will run first)\n`);
         }
         queue.push({ workspaceId, agentType });
-        addAgentLog(workspaceId, agentType, 'agent_pending_respawn', `Queued respawn #${queue.length} after current agent exits for card ${cardId}`);
+        addAgentLog(workspaceId, agentType, 'agent_pending_respawn', `Queued respawn #${queue.length} after current agent exits for card ${cardId}`, cardId);
         emitSSE('agent_pending_respawn', { cardId, agentType });
       }
     }
@@ -329,7 +329,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
   if (activeAgents.size >= MAX_CONCURRENT) {
     if (!isQueued(cardId)) {
       agentQueue.push({ cardId, workspaceId, agentType });
-      addAgentLog(workspaceId, agentType, 'agent_queued', `Queued at capacity (${MAX_CONCURRENT} running) for card ${cardId}`);
+      addAgentLog(workspaceId, agentType, 'agent_queued', `Queued at capacity (${MAX_CONCURRENT} running) for card ${cardId}`, cardId);
       const queuePos = agentQueue.length;
       addCardNote(cardId, `Agent queued — ${activeAgents.size} agent(s) already running (max ${MAX_CONCURRENT}). Position in queue: ${queuePos}. Starts automatically when a slot frees up.`);
       emitSSE('agent_queued', { cardId, agentType, position: queuePos });
@@ -370,7 +370,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     spawnDir = verifySpawnDir(spawnDir, workspace.use_worktree && worktreePath ? workspace.path : null);
   } catch (err) {
     process.stderr.write(`Refusing to spawn agent: ${err.message}\n`);
-    addAgentLog(workspaceId, agentType, 'agent_error', `Spawn dir rejected: ${err.message}`);
+    addAgentLog(workspaceId, agentType, 'agent_error', `Spawn dir rejected: ${err.message}`, cardId);
     addCardNote(cardId, `Agent failed to start: spawn directory rejected (${err.message}).`);
     emitSSE('agent_error', { cardId, agentType, error: err.message });
     return;
@@ -389,7 +389,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
       if (!activeAgents.has(cardId)) return;
       process.stderr.write(`Agent timeout (${AGENT_TIMEOUT_MS / 60000}min) for card ${cardId}\n`);
       addCardNote(cardId, `Agent timed out after ${AGENT_TIMEOUT_MS / 60000} minutes and was stopped.`);
-      addAgentLog(workspaceId, agentType, 'agent_timeout', `Timed out for card ${cardId}`);
+      addAgentLog(workspaceId, agentType, 'agent_timeout', `Timed out for card ${cardId}`, cardId);
       try { child?.kill(); } catch (_) {}
       agentDone(cardId, 1, emitSSE);
     }, AGENT_TIMEOUT_MS);
@@ -403,7 +403,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
     });
 
     updateCard(cardId, { agent_ran_at: startTime });
-    addAgentLog(workspaceId, agentType, 'agent_started', `Started ${agentType} for: ${card.title}`);
+    addAgentLog(workspaceId, agentType, 'agent_started', `Started ${agentType} for: ${card.title}`, cardId);
     emitSSE('agent_started', { cardId, agentType, title: card.title });
     process.stderr.write(`Started ${agentType} (background) for card ${cardId}\n`);
   } catch (err) {
@@ -418,7 +418,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE) {
       removePid(cardId);
     }
     process.stderr.write(`Failed to start agent: ${err.message}\n`);
-    addAgentLog(workspaceId, agentType, 'agent_error', `Failed to start: ${err.message}`);
+    addAgentLog(workspaceId, agentType, 'agent_error', `Failed to start: ${err.message}`, cardId);
     addCardNote(cardId, `Agent failed to start: ${err.message}`);
     emitSSE('agent_error', { cardId, agentType, error: err.message });
   }
@@ -480,7 +480,7 @@ function agentDone(cardId, code, emitSSE) {
       if (status) {
         const msg = `Worktree leak detected: workspace root (${info.workspacePath}) has dirty files after agent completed:\n${status.slice(0, 2000)}`;
         process.stderr.write(`[agent_warning] ${msg}\n`);
-        addAgentLog(info.workspaceId, info.agentType, 'agent_warning', msg);
+        addAgentLog(info.workspaceId, info.agentType, 'agent_warning', msg, cardId);
         addCardNote(cardId, `[WARN] ${msg}`);
       }
     } catch (_) {
@@ -498,7 +498,7 @@ function agentDone(cardId, code, emitSSE) {
 
   const status = code === 0 ? 'completed' : 'failed';
   addAgentLog(info.workspaceId, info.agentType, `agent_${status}`,
-    `${info.agentType} ${status} for card ${cardId} (${duration}s, exit ${code})`);
+    `${info.agentType} ${status} for card ${cardId} (${duration}s, exit ${code})`, cardId);
   emitSSE('agent_completed', { cardId, agentType: info.agentType, code, duration, cost: usage.cost, tokens: usage.tokens });
 
   // Free capacity may now let a queued agent start.
@@ -522,7 +522,7 @@ function stopAgent(cardId, emitSSE) {
     dequeued = true;
     const card = getCard(cardId);
     if (card) {
-      addAgentLog(card.workspace_id, card.agent || 'system', 'agent_cancelled', `Cancelled queued agent for card ${cardId}`);
+      addAgentLog(card.workspace_id, card.agent || 'system', 'agent_cancelled', `Cancelled queued agent for card ${cardId}`, cardId);
       if (emitSSE) emitSSE('agent_cancelled', { cardId });
     }
   }
@@ -537,7 +537,7 @@ function stopAgent(cardId, emitSSE) {
   try { info.child?.kill(); } catch (_) {}
   activeAgents.delete(cardId);
   removePid(cardId);
-  addAgentLog(info.workspaceId, info.agentType, 'agent_stopped', `Stopped agent for card ${cardId}`);
+  addAgentLog(info.workspaceId, info.agentType, 'agent_stopped', `Stopped agent for card ${cardId}`, cardId);
   return true;
 }
 
