@@ -470,12 +470,12 @@ function buildCard(card, colId) {
     queueWrap.appendChild(cancelBtn);
     
     metaRow.appendChild(queueWrap);
-  } else if (card.last_exit_code !== null && card.last_exit_code !== undefined) {
+  } else if (card.last_exit_code !== null && card.last_exit_code !== undefined && !card.merged_at) {
     const ok = card.last_exit_code === 0;
     const rs = document.createElement('span');
     rs.className = 'run-status-badge ' + (ok ? 'ok' : 'fail');
     const durStr = card.last_duration != null ? fmtDuration(card.last_duration) : '';
-    rs.textContent = (ok ? '✓' : '✗') + (durStr ? ' ' + durStr : '');
+    rs.textContent = (ok ? '✓' : '✗') + (durStr ? ' ran ' + durStr : '');
     rs.title = `Last agent run ${ok ? 'succeeded' : 'failed (exit ' + card.last_exit_code + ')'}` + (durStr ? ` in ${durStr}` : '');
     metaRow.appendChild(rs);
   }
