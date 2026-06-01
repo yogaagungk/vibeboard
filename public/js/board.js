@@ -212,7 +212,7 @@ function buildColumn(col) {
 function buildCard(card, colId) {
   const el = document.createElement('div');
   el.className = 'card' + (card.priority ? ' pri-' + card.priority : ''); el.draggable = true; el.dataset.cardId = card.id;
-  el.dataset.searchTitle = (card.title || '').toLowerCase();
+  el.dataset.searchTitle = [card.title || '', (card.tags || []).join(' '), card.description || ''].join(' ').toLowerCase();
   // Keyboard-accessible: a real button role, focusable, openable with Enter/Space.
   el.tabIndex = 0;
   el.setAttribute('role', 'button');
