@@ -33,12 +33,19 @@ function vbDialog({
     box.setAttribute('aria-modal', 'true');
 
     if (title) {
+      const head = document.createElement('div');
+      head.className = 'vb-dialog-head';
       const h = document.createElement('div');
       h.className = 'vb-dialog-title';
       h.textContent = title;
+      head.appendChild(h);
       box.setAttribute('aria-label', title);
-      box.appendChild(h);
+      box.appendChild(head);
     }
+
+    const body = document.createElement('div');
+    body.className = 'vb-dialog-body';
+
     if (message || messageHtml) {
       const m = document.createElement('div');
       m.className = 'vb-dialog-message';
@@ -46,16 +53,14 @@ function vbDialog({
         const allowedTags = ['b', 'i', 'em', 'strong', 'code', 'br'];
         const sanitized = messageHtml.replace(/<(\/?)([\w-]+)([^>]*)>/g, (match, slash, tag, attrs) => {
           const lower = tag.toLowerCase();
-          if (allowedTags.includes(lower)) {
-            return `<${slash}${lower}>`;
-          }
+          if (allowedTags.includes(lower)) return `<${slash}${lower}>`;
           return '';
         });
         m.innerHTML = sanitized;
       } else {
         m.textContent = message;
       }
-      box.appendChild(m);
+      body.appendChild(m);
     }
 
     let field = null;
@@ -67,8 +72,10 @@ function vbDialog({
       field.placeholder = placeholder;
       field.spellcheck = false;
       field.autocomplete = 'off';
-      box.appendChild(field);
+      body.appendChild(field);
     }
+
+    box.appendChild(body);
 
     const footer = document.createElement('div');
     footer.className = 'vb-dialog-footer';

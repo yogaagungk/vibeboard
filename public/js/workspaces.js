@@ -103,7 +103,7 @@ function openNewWsModal() {
   wsNewPath.value = '';
   wsNewName.value = '';
   wsNewPath.placeholder = 'e.g. C:\\Projects\\myapp';
-  wsNewName.placeholder = 'Optional — inferred from folder name';
+  wsNewName.placeholder = 'Optional, inferred from folder name';
   wsNewPath.classList.remove('error');
   document.getElementById('ws-new-git-status').style.display = 'none';
   document.getElementById('ws-new-use-worktree').checked = false;

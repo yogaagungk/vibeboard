@@ -52,13 +52,18 @@
 <!-- Keyboard Shortcuts Overlay -->
 <div id="shortcuts-overlay">
   <div id="shortcuts-box">
-    <h3>Keyboard Shortcuts</h3>
-    <table class="shortcut-table">
-      <tr><td><kbd>N</kbd></td><td>New card in first column</td></tr>
-      <tr><td><kbd>/</kbd></td><td>Focus search</td></tr>
-      <tr><td><kbd>Esc</kbd></td><td>Close panel / modal</td></tr>
-      <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
-    </table>
+    <div id="shortcuts-box-header">
+      <h3>Keyboard Shortcuts</h3>
+      <button id="shortcuts-close" aria-label="Close">×</button>
+    </div>
+    <div id="shortcuts-box-body">
+      <table class="shortcut-table">
+        <tr><td><kbd>N</kbd></td><td>New card in first column</td></tr>
+        <tr><td><kbd>/</kbd></td><td>Focus search</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close panel / modal</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -70,7 +75,7 @@
 </div>
 
 <div id="sse-banner">
-  <span id="sse-banner-text">Connection lost — trying to reconnect…</span>
+  <span id="sse-banner-text">Connection lost, trying to reconnect…</span>
 </div>
 
 <!-- Workspace Sidebar -->
@@ -126,7 +131,7 @@
       </div>
       <div>
         <div class="field-label">Name</div>
-        <input class="modal-path-input" id="ws-new-name" type="text" placeholder="Optional — inferred from folder name" spellcheck="false" autocomplete="off" style="width:100%">
+        <input class="modal-path-input" id="ws-new-name" type="text" placeholder="Optional, inferred from folder name" spellcheck="false" autocomplete="off" style="width:100%">
       </div>
       <div class="toggle-row">
         <div>

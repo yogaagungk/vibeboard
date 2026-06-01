@@ -373,7 +373,7 @@ let _gitCheckTimer = null;
 wsNewPath.addEventListener('input', () => {
   if (!wsNewName.value.trim()) {
     const suggested = folderName(wsNewPath.value);
-    wsNewName.placeholder = suggested ? `Name (${suggested})` : 'Optional — inferred from folder name';
+    wsNewName.placeholder = suggested ? `Name (${suggested})` : 'Optional, inferred from folder name';
   }
   clearTimeout(_gitCheckTimer);
   const p = wsNewPath.value.trim();

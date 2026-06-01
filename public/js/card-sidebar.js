@@ -1358,7 +1358,7 @@ document.getElementById('card-mark-merged-btn').addEventListener('click', async 
     const resp = await fetch(`/api/cards/${modalCardId}/mark-merged`, { method: 'POST' });
     if (!resp.ok) {
       const text = await resp.text();
-      throw new Error(resp.status === 404 ? 'Endpoint not found — restart the server' : (JSON.parse(text).error || text));
+      throw new Error(resp.status === 404 ? 'Endpoint not found, restart the server' : (JSON.parse(text).error || text));
     }
     const data = await resp.json();
     const col = board.columns.find(c => c.id === modalColId);

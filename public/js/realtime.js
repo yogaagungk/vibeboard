@@ -227,11 +227,11 @@ function sendAgentNotification(title, exitCode, agentType) {
   const status = exitCode === 0 ? 'completed' : 'failed (exit code ' + exitCode + ')';
   const body = '"' + title + '" ' + status + (agentType ? ' [' + agentType + ']' : '');
   if (Notification.permission === 'granted') {
-    new Notification('VibeBoard — Agent ' + status, { body, icon: '/favicon.ico' });
+    new Notification('VibeBoard: Agent ' + status, { body, icon: '/favicon.ico' });
   } else if (Notification.permission !== 'denied') {
     Notification.requestPermission().then(p => {
       if (p === 'granted') {
-        new Notification('VibeBoard — Agent ' + status, { body, icon: '/favicon.ico' });
+        new Notification('VibeBoard: Agent ' + status, { body, icon: '/favicon.ico' });
       }
     });
   }

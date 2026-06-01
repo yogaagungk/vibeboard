@@ -36,6 +36,9 @@ document.addEventListener('keydown', e => {
 document.getElementById('shortcuts-overlay').addEventListener('click', e => {
   if (e.target.id === 'shortcuts-overlay') e.target.classList.remove('open');
 });
+document.getElementById('shortcuts-close').addEventListener('click', () => {
+  document.getElementById('shortcuts-overlay').classList.remove('open');
+});
 
 // ── Export / Import ─────────────────────────────────────────────────────────
 document.getElementById('ws-export-btn').addEventListener('click', async () => {
