@@ -22,7 +22,7 @@ function renderBoard(b) {
     queuedCards.clear();
     b.queuedCards.forEach(id => queuedCards.add(id));
   }
-  
+
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
 
@@ -75,9 +75,9 @@ let searchDebounceTimer = null;
 
 function applySearch() {
   const q = searchInput.value.trim().toLowerCase();
-  
+
   boardEl.querySelectorAll('.search-empty-state').forEach(el => el.remove());
-  
+
   if (!q) {
     virtualizedColumns.forEach((state, colId) => {
       if (state.searchActive) {
@@ -85,7 +85,7 @@ function applySearch() {
         updateVisibleRange(state);
       }
     });
-    
+
     searchClear.style.display = 'none';
     if (typeof applyFilters === 'function') {
       applyFilters();
@@ -96,14 +96,14 @@ function applySearch() {
     }
     return;
   }
-  
+
   virtualizedColumns.forEach((state, colId) => {
     state.searchActive = true;
     temporarilyRenderAllCards(colId);
   });
-  
+
   searchClear.style.display = 'inline-block';
-  
+
   if (typeof applyFilters === 'function') {
     applyFilters();
   } else {
@@ -115,7 +115,7 @@ function applySearch() {
       c.style.display = match ? '' : 'none';
       if (match) visible++;
     });
-    
+
     boardEl.querySelectorAll('.cards-list').forEach(cardsList => {
       const visibleInCol = Array.from(cardsList.querySelectorAll('.card')).filter(c => c.style.display !== 'none').length;
       if (visibleInCol === 0) {
@@ -125,7 +125,7 @@ function applySearch() {
         cardsList.appendChild(empty);
       }
     });
-    
+
     searchCount.style.display = 'inline-block';
     searchCount.textContent = `${visible} of ${total}`;
   }
@@ -140,9 +140,12 @@ searchClear.addEventListener('click', () => { searchInput.value = ''; applySearc
 function buildColumn(col) {
   const colEl = document.createElement('div');
   colEl.className = 'column'; colEl.dataset.colId = col.id;
+  if (col.color) colEl.style.setProperty('--col-accent', col.color);
+
+  const accent = document.createElement('div'); accent.className = 'col-accent-line';
+  colEl.appendChild(accent);
 
   const hdr = document.createElement('div'); hdr.className = 'col-header';
-  const dot = document.createElement('span'); dot.className = 'col-color-dot'; dot.style.background = col.color || '#6b6860';
 
   const title = document.createElement('span');
   title.className = 'col-title';
@@ -174,12 +177,12 @@ function buildColumn(col) {
     });
   }
 
-  hdr.appendChild(dot); hdr.appendChild(title); if (wipBtn) hdr.appendChild(wipBtn); hdr.appendChild(count);
+  hdr.appendChild(title); if (wipBtn) hdr.appendChild(wipBtn); hdr.appendChild(count);
   colEl.appendChild(hdr);
 
   const cardsList = document.createElement('div');
   cardsList.className = 'cards-list'; cardsList.dataset.colId = col.id;
-  
+
   if (col.cards.length === 0) cardsList.dataset.empty = '';
 
   const reversedCards = [...col.cards].reverse();
@@ -254,21 +257,18 @@ function buildColumn(col) {
 
 function buildCard(card, colId) {
   const el = document.createElement('div');
-  el.className = 'card' + (card.priority ? ' pri-' + card.priority : ''); el.draggable = true; el.dataset.cardId = card.id;
+  el.className = 'card'; el.draggable = true; el.dataset.cardId = card.id;
   el.dataset.searchTitle = [card.title || '', (card.tags || []).join(' '), card.description || ''].join(' ').toLowerCase();
-  // Keyboard-accessible: a real button role, focusable, openable with Enter/Space.
   el.tabIndex = 0;
   el.setAttribute('role', 'button');
   el.setAttribute('aria-label', `Open card: ${card.title || card.text || 'Untitled'}`);
 
-  el.addEventListener('dragstart', e => { 
-    draggingCard = card.id; 
-    draggingFromCol = colId; 
-    e.dataTransfer.effectAllowed = 'move'; 
-    el.classList.add('dragging');
+  el.addEventListener('dragstart', e => {
+    draggingCard = card.id; draggingFromCol = colId;
+    e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging');
     if (typeof notifyDragStart === 'function') notifyDragStart();
   });
-  el.addEventListener('dragend', () => { 
+  el.addEventListener('dragend', () => {
     el.classList.remove('dragging');
     if (typeof notifyDragEnd === 'function') notifyDragEnd();
   });
@@ -277,112 +277,39 @@ function buildCard(card, colId) {
     if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); openCardModal(card.id, colId); }
   });
 
+  // Title row: optional priority dot + title text
+  const titleRow = document.createElement('div'); titleRow.className = 'card-title-row';
+  if (card.priority) {
+    const dot = document.createElement('span'); dot.className = `card-priority-dot ${card.priority}`;
+    titleRow.appendChild(dot);
+  }
   const text = document.createElement('div'); text.className = 'card-text'; text.textContent = card.title || card.text;
+  titleRow.appendChild(text);
 
-  // Footer is split into tiers: tags row, meta row (agent/dates), run row (status), git row (branch/merge)
-  const cardTop = document.createElement('div'); cardTop.className = 'card-top';
   const footer = document.createElement('div'); footer.className = 'card-footer';
-  const tagsRow = document.createElement('div'); tagsRow.className = 'card-tags';
+
+  // Row 1 — tags
+  if ((card.tags || []).length) {
+    const tagsRow = document.createElement('div'); tagsRow.className = 'card-tags';
+    card.tags.forEach(tag => {
+      const pill = document.createElement('span'); pill.className = 'tag'; pill.textContent = tag; pill.style.background = tagColor(tag);
+      pill.addEventListener('click', (e) => { e.stopPropagation(); if (typeof addFilter === 'function') addFilter('tag', tag); });
+      pill.style.cursor = 'pointer'; pill.title = 'Click to filter by this tag';
+      tagsRow.appendChild(pill);
+    });
+    footer.appendChild(tagsRow);
+  }
+
+  // Row 2 — meta: running/queued · agent · due date · blocked · merged/need-merge
   const metaRow = document.createElement('div'); metaRow.className = 'card-meta';
-  const runRow = document.createElement('div'); runRow.className = 'card-run';
-  const gitRow = document.createElement('div'); gitRow.className = 'card-git';
 
-  (card.tags || []).forEach(tag => {
-    const pill = document.createElement('span'); pill.className = `tag tag-${tag}`; pill.textContent = tag;
-    pill.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (typeof addFilter === 'function') addFilter('tag', tag);
-    });
-    pill.style.cursor = 'pointer';
-    pill.title = 'Click to filter by this tag';
-    tagsRow.appendChild(pill);
-  });
-
-  // Agent badge in meta row - simplified design
-  if (card.agent) {
-    const badge = document.createElement('span');
-    badge.className = `card-agent-badge ${card.agent}`;
-    badge.textContent = { 'claude-code': 'Claude', 'opencode': 'OpenCode', 'codex': 'Codex', 'command-code': 'Command' }[card.agent] || card.agent;
-    badge.title = AGENT_LABELS[card.agent] || card.agent;
-    badge.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (typeof addFilter === 'function') addFilter('agent', card.agent);
-    });
-    badge.style.cursor = 'pointer';
-    metaRow.appendChild(badge);
-  }
-  if (card.due_date) {
-    const db = document.createElement('span');
-    db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : '');
-    db.textContent = '📅 ' + card.due_date;
-    db.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (typeof addFilter === 'function') {
-        if (isOverdue(card.due_date)) {
-          addFilter('dueDate', 'overdue');
-        } else if (isDueToday(card.due_date)) {
-          addFilter('dueDate', 'today');
-        } else if (isDueThisWeek(card.due_date)) {
-          addFilter('dueDate', 'week');
-        }
-      }
-    });
-    db.style.cursor = 'pointer';
-    db.title = 'Click to filter by due date';
-    metaRow.appendChild(db);
-  }
-  if (card.requires_review) {
-    const rb = document.createElement('span');
-    rb.className = 'card-review-badge';
-    rb.textContent = '👁 Review';
-    rb.title = 'Human review required before this card can be closed';
-    metaRow.appendChild(rb);
-  }
-  // Branch and merge status in separate git row
-  if (card.branch) {
-    const b = document.createElement('span');
-    b.className = 'branch-badge card-branch-pill';
-    b.textContent = '🔀 ' + card.branch.replace(/^vb\//, '');
-    b.title = card.branch;
-    gitRow.appendChild(b);
-  }
-  
-  if (card.merged_at) {
-    const m = document.createElement('span');
-    m.className = 'merged-badge';
-    m.textContent = '✓ merged';
-    m.title = 'Merged: ' + fmtTime(card.merged_at);
-    gitRow.appendChild(m);
-  }
-  const col = board.columns.find(c => c.id === colId);
-  if (col && col.title === 'Done' && card.branch && !card.merged_at) {
-    const n = document.createElement('span');
-    n.className = 'need-merge-badge';
-    n.textContent = '⚠ merge';
-    n.title = 'Branch ' + card.branch + ' has not been merged';
-    gitRow.appendChild(n);
-  }
-  
-  // Run status badges in separate run row
   if (runningCards.has(card.id)) {
-    const dot = document.createElement('span');
-    dot.className = 'card-running-dot';
-    dot.title = 'Agent running…';
-    runRow.appendChild(dot);
+    const dot = document.createElement('span'); dot.className = 'card-running-dot'; dot.title = 'Agent running…';
+    metaRow.appendChild(dot);
   } else if (queuedCards.has(card.id)) {
-    const queueWrap = document.createElement('span');
-    queueWrap.className = 'card-queued-wrap';
-    
-    const q = document.createElement('span');
-    q.className = 'card-queued-pill';
-    q.textContent = 'queued';
-    q.title = 'Agent queued - waiting for a free slot';
-    queueWrap.appendChild(q);
-    
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'card-cancel-queue-btn';
-    cancelBtn.textContent = '×';
-    cancelBtn.title = 'Cancel queued agent';
+    const queueWrap = document.createElement('span'); queueWrap.className = 'card-queued-wrap';
+    const q = document.createElement('span'); q.className = 'card-queued-pill'; q.textContent = 'queued'; q.title = 'Agent queued - waiting for a free slot';
+    const cancelBtn = document.createElement('button'); cancelBtn.className = 'card-cancel-queue-btn'; cancelBtn.textContent = '×'; cancelBtn.title = 'Cancel queued agent';
     cancelBtn.onclick = async function(e) {
       e.stopPropagation();
       if (!confirm('Cancel this queued agent?')) return;
@@ -394,59 +321,59 @@ function buildCard(card, colId) {
         showToast('Failed to cancel agent: ' + err.message, 3000, 'error');
       }
     };
-    queueWrap.appendChild(cancelBtn);
-    
-    runRow.appendChild(queueWrap);
-  } else if (card.last_exit_code !== null && card.last_exit_code !== undefined && !card.merged_at) {
-    const ok = card.last_exit_code === 0;
-    const rs = document.createElement('span');
-    rs.className = 'run-status-badge ' + (ok ? 'ok' : 'fail');
-    const durStr = card.last_duration != null ? fmtDuration(card.last_duration) : '';
-    rs.textContent = (ok ? '✓' : '✗') + (durStr ? ' ran ' + durStr : '');
-    rs.title = `Last agent run ${ok ? 'succeeded' : 'failed (exit ' + card.last_exit_code + ')'}` + (durStr ? ` in ${durStr}` : '');
-    runRow.appendChild(rs);
+    queueWrap.appendChild(q); queueWrap.appendChild(cancelBtn);
+    metaRow.appendChild(queueWrap);
   }
 
-  if (card.last_cost != null || card.last_tokens != null) {
-    const u = document.createElement('span');
-    u.className = 'usage-badge';
-    const parts = [];
-    if (card.last_cost != null) parts.push('$' + Number(card.last_cost).toFixed(card.last_cost < 1 ? 3 : 2));
-    if (card.last_tokens != null) parts.push(fmtTokens(card.last_tokens) + ' tok');
-    u.textContent = parts.join(' · ');
-    u.title = 'Reported by the last agent run';
-    runRow.appendChild(u);
+  if (card.agent) {
+    const badge = document.createElement('span'); badge.className = `card-agent-badge ${card.agent}`;
+    badge.textContent = { 'claude-code': 'Claude', 'opencode': 'OpenCode', 'codex': 'Codex', 'command-code': 'Command' }[card.agent] || card.agent;
+    badge.title = AGENT_LABELS[card.agent] || card.agent;
+    badge.addEventListener('click', (e) => { e.stopPropagation(); if (typeof addFilter === 'function') addFilter('agent', card.agent); });
+    badge.style.cursor = 'pointer';
+    metaRow.appendChild(badge);
+  }
+
+  if (card.due_date) {
+    const db = document.createElement('span'); db.className = 'due-date-badge' + (isOverdue(card.due_date) ? ' overdue' : ''); db.textContent = card.due_date;
+    db.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof addFilter === 'function') {
+        if (isOverdue(card.due_date)) addFilter('dueDate', 'overdue');
+        else if (isDueToday(card.due_date)) addFilter('dueDate', 'today');
+        else if (isDueThisWeek(card.due_date)) addFilter('dueDate', 'week');
+      }
+    });
+    db.style.cursor = 'pointer'; db.title = 'Click to filter by due date';
+    metaRow.appendChild(db);
   }
 
   const blockers = unfinishedBlockersUI(card);
   if (blockers.length) {
-    const bl = document.createElement('span');
-    bl.className = 'blocked-badge';
-    bl.textContent = '\uD83D\uDD12 blocked';
+    const bl = document.createElement('span'); bl.className = 'blocked-badge'; bl.textContent = 'blocked';
     bl.title = 'Blocked by: ' + blockers.map(c => c.title).join(', ');
     metaRow.appendChild(bl);
   }
 
-  if (cycleCardIds.has(card.id)) {
-    const cw = document.createElement('span');
-    cw.className = 'cycle-warn-badge';
-    cw.textContent = '\u26A0 cycle';
-    cw.title = 'This card is part of a circular dependency chain';
-    metaRow.appendChild(cw);
+  if (card.merged_at) {
+    const m = document.createElement('span'); m.className = 'merged-badge'; m.textContent = '✓ merged'; m.title = 'Merged: ' + fmtTime(card.merged_at);
+    metaRow.appendChild(m);
+  } else if (card.branch) {
+    const col = board.columns.find(c => c.id === colId);
+    if (col && col.title === 'Done') {
+      const n = document.createElement('span'); n.className = 'need-merge-badge'; n.textContent = '! merge'; n.title = 'Branch ' + card.branch + ' has not been merged';
+      metaRow.appendChild(n);
+    }
   }
 
-  if (tagsRow.children.length) footer.appendChild(tagsRow);
   if (metaRow.children.length) footer.appendChild(metaRow);
-  if (runRow.children.length) footer.appendChild(runRow);
-  if (gitRow.children.length) footer.appendChild(gitRow);
 
   const delBtn = document.createElement('button'); delBtn.className = 'card-del-btn'; delBtn.textContent = '×';
   delBtn.setAttribute('aria-label', 'Delete card');
   delBtn.addEventListener('click', e => { e.stopPropagation(); deleteCard(card.id, colId); });
 
   el.appendChild(delBtn);
-  if (cardTop.children.length) el.appendChild(cardTop);
-  el.appendChild(text);
+  el.appendChild(titleRow);
   if (card.description) { const d = document.createElement('div'); d.className = 'card-desc-preview'; d.textContent = card.description; el.appendChild(d); }
   if (footer.children.length) el.appendChild(footer);
   return el;
@@ -454,7 +381,7 @@ function buildCard(card, colId) {
 
 function buildAddCardArea(col) {
   const area = document.createElement('div'); area.className = 'add-card-area';
-  const trigger = document.createElement('button'); trigger.className = 'add-card-trigger'; trigger.textContent = '+ Add card';
+  const trigger = document.createElement('button'); trigger.className = 'add-card-trigger'; trigger.textContent = 'Add card';
   trigger.addEventListener('click', () => openNewCardModal(col.id));
   area.appendChild(trigger);
   return area;

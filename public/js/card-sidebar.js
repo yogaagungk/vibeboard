@@ -198,14 +198,14 @@ function openCardModal(cardId, colId) {
   cardModalTagPicker.innerHTML = '';
   TAGS.forEach(tag => {
     const btn = document.createElement('button');
-    btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
+    btn.className = 'tag-pick-btn'; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
     const active = (card.tags||[]).includes(tag);
-    if (active) { btn.classList.add('active'); btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white'; }
-    else { btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45'; }
+    if (active) { btn.classList.add('active'); btn.style.backgroundColor = tagColor(tag); btn.style.color = 'white'; }
+    else { btn.style.color = tagColor(tag); btn.style.opacity = '0.45'; }
     btn.addEventListener('click', () => {
       const tags = card.tags||[];
-      if (tags.includes(tag)) { card.tags = tags.filter(t=>t!==tag); btn.classList.remove('active'); btn.style.backgroundColor=''; btn.style.color=`var(--tag-${tag})`; btn.style.opacity='0.45'; }
-      else { card.tags=[...tags,tag]; btn.classList.add('active'); btn.style.backgroundColor=`var(--tag-${tag})`; btn.style.color='white'; btn.style.opacity='1'; }
+      if (tags.includes(tag)) { card.tags = tags.filter(t=>t!==tag); btn.classList.remove('active'); btn.style.backgroundColor=''; btn.style.color=tagColor(tag); btn.style.opacity='0.45'; }
+      else { card.tags=[...tags,tag]; btn.classList.add('active'); btn.style.backgroundColor=tagColor(tag); btn.style.color='white'; btn.style.opacity='1'; }
       saveModal(card);
     });
     btn.addEventListener('contextmenu', (e) => {
@@ -359,14 +359,14 @@ function renderTagPicker(container, selectedTags) {
   container.innerHTML = '';
   TAGS.forEach(tag => {
     const btn = document.createElement('button');
-    btn.className = `tag-pick-btn tag-${tag}`; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
+    btn.className = 'tag-pick-btn'; btn.dataset.tag = tag; btn.textContent = tag; btn.type = 'button';
     const active = (selectedTags || []).includes(tag);
-    if (active) { btn.classList.add('active'); btn.style.backgroundColor = `var(--tag-${tag})`; btn.style.color = 'white'; }
-    else { btn.style.color = `var(--tag-${tag})`; btn.style.opacity = '0.45'; }
+    if (active) { btn.classList.add('active'); btn.style.backgroundColor = tagColor(tag); btn.style.color = 'white'; }
+    else { btn.style.color = tagColor(tag); btn.style.opacity = '0.45'; }
     btn.addEventListener('click', () => {
       const isActive = btn.classList.toggle('active');
-      btn.style.backgroundColor = isActive ? `var(--tag-${tag})` : '';
-      btn.style.color = isActive ? 'white' : `var(--tag-${tag})`;
+      btn.style.backgroundColor = isActive ? tagColor(tag) : '';
+      btn.style.color = isActive ? 'white' : tagColor(tag);
       btn.style.opacity = isActive ? '1' : '0.45';
     });
     container.appendChild(btn);

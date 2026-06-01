@@ -34,6 +34,24 @@ function applyTheme(t) {
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'system');
 
+// ── Tag color (deterministic hash → vibrant hue, ClickUp-style) ───────────
+function tagColor(tag) {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (Math.imul(31, h) + tag.charCodeAt(i)) | 0;
+  const hue = (h >>> 0) % 360;
+  const sat = 60 + ((h >>> 8) % 15);
+  const lit = 44 + ((h >>> 16) % 8);
+  return `hsl(${hue}, ${sat}%, ${lit}%)`;
+}
+
+// ── Workspace icon color (curated ClickUp-like vibrant palette) ─────────────
+const WS_COLORS = ['#7C3AED','#F97316','#0EA5E9','#16A34A','#E91E8C','#EF4444','#F59E0B','#0D9488','#8B5CF6','#EC4899'];
+function wsColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
+  return WS_COLORS[(h >>> 0) % WS_COLORS.length];
+}
+
 // ── Card description toggle ────────────────────────────────────────────────
 function getShowDescriptions() {
   return localStorage.getItem('vb_show_descriptions') === 'true';

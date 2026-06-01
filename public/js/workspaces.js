@@ -19,6 +19,12 @@ function renderWorkspaceList() {
     const item = document.createElement('div');
     item.className = 'ws-item' + (ws.active ? ' active' : '');
 
+    const icon = document.createElement('div');
+    icon.className = 'ws-item-icon';
+    icon.textContent = (ws.name || folderName(ws.path) || 'W')[0].toUpperCase();
+    icon.style.background = wsColor(ws.name || folderName(ws.path) || 'W');
+    item.appendChild(icon);
+
     const info = document.createElement('div');
     info.className = 'ws-item-info';
 
@@ -59,6 +65,7 @@ function updateHeaderWorkspace() {
   
   headerWorkspaceName.textContent = wsName;
   headerWorkspaceIcon.textContent = initial;
+  headerWorkspaceIcon.style.background = wsColor(wsName);
   headerWorkspace.hidden = false;
   headerWorkspace.title = `Active workspace: ${wsName}`;
 }

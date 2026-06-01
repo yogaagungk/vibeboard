@@ -1,327 +1,260 @@
-# VibeBoard - Design System & UI Guide
+# VibeBoard — Design System & UI Guide
 
 Context for anyone (human or agent) building UI in this repo. Read this before
 touching `public/`. The goal is that new UI is **indistinguishable** from what's
 already there.
 
 > **Two pages:**
-> - `/` → `public/landing.html` - a **self-contained** marketing page (its own
->   inline `<style>`, no external JS). It mirrors the app's tokens and dark theme
->   but is intentionally standalone so it loads instantly with zero dependencies.
-> - `/app` → `public/index.html` - the kanban app: markup in `index.html`, styles
+> - `/` → `public/landing.html` — a **self-contained** marketing page (its own
+>   inline `<style>`, no external JS). Mirrors app tokens but is intentionally
+>   standalone so it loads instantly with zero dependencies.
+> - `/app` → `public/index.html` — the kanban app: markup in `index.html`, styles
 >   in `public/styles.css`, behavior in ordered `public/js/*.js` classic scripts.
 >
 > The app obeys: no bundler, no build step, no ES modules, no inline
-> `<script>`/`<style>`. (The landing page's inline `<style>` is the one sanctioned
-> exception - it's a single static file with no shared scope.) See `CLAUDE.md`.
+> `<script>`/`<style>`. See `CLAUDE.md`.
 
 ---
 
 ## 1. Design principles
 
-VibeBoard's look is **quiet, dense, and functional** - a developer tool, not a
-consumer app. The palette is adapted from **Linear's design system** (same
-product class: a developer issue/kanban tracker): a cool-neutral surface ladder
-with a single **lavender-blue accent** (`#5e6ad2`).
+VibeBoard follows **ClickUp's design language** — colorful, structured, and built
+around task clarity.
 
-1. **Calm base, one accent.** The base UI is a cool neutral ramp (near-white /
-   near-black). The lavender-blue accent (`--accent`) is the *only* brand hue -
-   reserved for the primary action, the active/selected state, focus rings, and
-   the connection of agent activity. Everything else earns its color from
-   meaning (priority, tags, agent identity, run status, danger), never decoration.
-2. **Elevation by surface ladder, not shadow.** Depth comes from a hairline
-   border + a step up the surface ladder (`--bg` canvas → `--surface` panel →
-   `--surface-2` hover/featured → `--surface-3` popover), echoing Linear. Hover
-   lifts by changing background, not by casting a shadow. Drop shadows are
-   reserved for things that genuinely float over a scrim (modals, toasts,
-   dropdown popover, dragging card). On dark, lifted panels carry a subtle white
-   top edge-highlight (`--edge`) for the crisp "rendered" feel.
-3. **One weight up for emphasis.** Hierarchy is font-weight (300→400→500) and
-   muted-vs-full text color, not size jumps. Body is 12–13px; almost nothing is
-   larger than 15px.
-4. **Everything is reversible and obvious.** Inline-edit titles, toggles over
-   checkboxes, toasts for feedback, explicit empty states.
-5. **Respect the two surface patterns** (see §6): **modals** for transient
-   create/config flows, **right sidebars** for persistent contextual detail.
+1. **Color carries meaning.** The purple accent (`--accent`) anchors primary
+   actions and selected states. Priority, tags, agents, and status each have
+   their own semantic colors — not decoration, but signal. Use color deliberately.
+2. **Cards are the atoms.** Cards are white elevated surfaces (`--surface`) on a
+   recessed board (`--bg`). Each card lifts off the background with a visible
+   shadow. Hover increases elevation. Columns provide structure but don't compete
+   for visual weight — they are containers, not cards.
+3. **Sidebar follows the theme.** The left sidebar uses `--surface` and `--border`
+   like all other panels — light in light mode, dark in dark mode.
+4. **Rounded and approachable.** Cards `8px`, modals `8px`, buttons/inputs `6px`,
+   tags/badges `4px`, pills `20px`. Consistent rounding signals modern, product-
+   grade quality.
+5. **Hierarchy through weight and color.** Use font-weight (400→500→600) and
+   muted-vs-full text color. Body `12–13px`, badges `11px`, card titles `14px`,
+   headings `16px`. Nothing larger than `16px` in the app.
+6. **One primary action per surface.** Everything else is ghost/secondary. The
+   accent should appear once or twice per screen, never as decoration.
 
 ---
 
 ## 2. Design tokens
 
 All visual constants are CSS custom properties on `:root` in `styles.css`.
-**Never hardcode a value that a token exists for.** If you need a new constant,
-add a token rather than a literal.
+**Never hardcode a value a token exists for.** Add a token if one is missing.
 
 ### Color (light / dark)
+
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--bg` | `#f7f8f8` | `#08090a` | App background, recessed wells (inputs, cards-in-group) |
-| `--surface` | `#ffffff` | `#141516` | Raised panels (surface-1): header, columns, cards, modals, sidebars |
-| `--surface-2` | `#eef0f4` | `#1b1c1e` | One step up: card/feature hover, featured |
-| `--surface-3` | `#ffffff` | `#202123` | Popovers / dropdown menus (the `vbSelect` list) |
-| `--surface-4` | `#f5f6f6` | `#232427` | Deepest lifted surface (reserve for nested elevation; rare) |
-| `--edge` | `0 0 0 0 transparent` | `inset 0 1px 0 rgba(255,255,255,.045)` | Top edge-highlight on lifted dark panels (list-safe, layer it before float shadows) |
-| `--border` | `#e7e8ec` | `#23252a` | Default hairline |
-| `--border-strong` | `#d3d5dc` | `#34343a` | Hover/focus borders, toggle track |
-| `--text` | `#08090a` | `#f7f8f8` | Primary text |
-| `--text-strong` | `#2b2f36` | `#d0d6e0` | Secondary copy on hero / large panels (between `--text` and `--text-muted`) |
-| `--text-muted` | `#6b7079` | `#8a8f98` | Tertiary text, labels, placeholders, icons |
-| `--accent` | `#5e6ad2` | `#5e6ad2` | Primary buttons, active/selected state, log chip |
-| `--accent-hover` | `#5058c9` | `#828fff` | Accent hover (Linear's lighter-on-dark / deeper-on-light) |
-| `--accent-focus` | `#5e69d1` | `#5e69d1` | Focus ring tint (slightly cooler than `--accent`) |
-| `--accent-fg` | `#ffffff` | `#ffffff` | Text on `--accent` |
-| `--danger` / `--danger-bg` | `#dc2626` / `#fee2e2` | `#f87171` / `#3b1515` | Destructive actions, overdue, errors |
+| `--bg` | `#F1F2F6` | `#1C1F26` | App canvas, board background |
+| `--surface` | `#FFFFFF` | `#22262F` | Cards, modals, header, panels |
+| `--surface-2` | `#F4F5F9` | `#292D38` | Hover state, featured |
+| `--surface-3` | `#FFFFFF` | `#2E3240` | Popovers, dropdowns |
+| `--surface-4` | `#ECEEF4` | `#262A34` | Column backgrounds, recessed inputs |
+| `--border` | `#E0E2EA` | `#2D3240` | Default hairlines |
+| `--border-strong` | `#C8CBDA` | `#3C4155` | Hover/focus borders |
+| `--text` | `#1B2030` | `#D8DCE8` | Primary text |
+| `--text-strong` | `#353D52` | `#B8BDD0` | Labels, secondary copy |
+| `--text-muted` | `#6E7687` | `#7A8092` | Hints, timestamps, placeholders |
+| `--accent` | `#7C69EF` | `#9B8FF0` | Primary buttons, selection, active |
+| `--accent-hover` | `#6554C0` | `#B0A5F5` | Accent hover |
+| `--accent-focus` | `#7C69EF` | `#9B8FF0` | Focus rings |
+| `--accent-fg` | `#FFFFFF` | `#FFFFFF` | Text on accent |
+| `--danger` | `#E53935` | `#FC5A5A` | Destructive, overdue, errors |
+| `--danger-bg` | `#FDECEA` | `#2D1515` | Danger tinted background |
+| `--active-ws` | `#16A34A` | `#16A34A` | Connected / running status |
 
-> **Note:** `--accent` is the single brand hue (Linear's lavender-blue) and is
-> the same in both themes - only the neutral ramp flips. Use it sparingly; if a
-> screen looks "too purple," something non-primary is borrowing the accent.
->
-> **Light theme is a VibeBoard addition.** Linear's marketing canvas ships dark
-> only; the light ramp here mirrors the structure but isn't directly derived
-> from Linear. Keep new tokens working in both, but treat dark as the canonical
-> reference when there's any visual disagreement.
 
-### Semantic color (used by badges/pills; currently hardcoded - prefer tokenizing new ones)
-- **Priority:** high `#dc2626`, medium `#d97706`, low `#2563eb` (badges use a tinted bg + colored text; pickers use solid fill when active).
-- **Tags:** feature `#7c3aed`, bug `#dc2626`, design `#db2777`, infra `#16a34a`, docs `#d97706`, api `#2563eb` (tokenized as `--tag-*`).
-- **Agents:** claude-code `#d97706`, opencode `#7c3aed`, codex `#0ea5e9`, command-code `#0d9488` (badge labels CC / OC / CX / CMD).
-- **Status:** success/connected `#16a34a` (`--active-ws`), running/agent `#3b82f6`.
+**Semantic colors (badges; currently hardcoded — tokenize new ones):**
+- **Priority:** high `#EF4444`, medium `#F97316`, low `#3B82F6`
+- **Tags:** dynamic via `tagColor()` — deterministic HSL hash, solid fill, white text
+- **Agents:** claude-code `#D97706`, opencode `#7C3AED`, codex `#0EA5E9`, command-code `#0D9488`
+- **Run status:** ok `#16A34A`, fail `#EF4444`
+- **Merged:** `#16A34A` text, no background
+- **Blocked:** `#EF4444` tinted pill
 
 ### Geometry / scale
 
-**Radius scale** (Linear: `xs 4 / sm 6 / md 8 / lg 12 / xl 16 / pill`):
+**Radius scale:**
 
 | Token | Value | Use |
 |---|---|---|
-| `--radius-xs` | `4px` | Status badges, small chips |
-| `--radius-sm` | `6px` | Inline tags |
-| `--radius-md` | `8px` | Buttons, inputs, cards (alias `--radius-card`) |
-| `--radius-lg` | `12px` | Columns, modal boxes (alias `--radius-col`) |
+| `--radius-xs` | `4px` | Tags, badges, small chips |
+| `--radius-sm` | `6px` | Buttons, inputs, minor elements |
+| `--radius-md` | `8px` | Cards, modals, dropdowns |
+| `--radius-lg` | `10px` | Columns, large panels |
 | `--radius-xl` | `16px` | Oversized panels (rare) |
-| `--radius-pill` | `9999px` | Tag pills, queued chip, status pills |
+| `--radius-pill` | `20px` | Pills, filter chips, queued badge |
+| `--radius-card` | `var(--radius-md)` | Card alias |
+| `--radius-col` | `var(--radius-lg)` | Column alias |
 
 **Layout sizes:**
 
 | Token | Value | Notes |
 |---|---|---|
-| `--col-width` | `280px` | Column width (mobile drops to 220-260) |
-| `--header-h` | `52px` | Sticky header height |
-| `--sidebar-w` | `220px` | Left workspace rail |
-| (right sidebars) | `480px` | Card-detail + log (literal; resizable for card) |
+| `--col-width` | `280px` | Column width |
+| `--header-h` | `48px` | Sticky header height |
+| `--sidebar-w` | `260px` | Left workspace rail |
 
-**Spacing rhythm:** 4 / 8 / 12 / 16 / 24 / 32px (Linear's 4px base, doubled
-through 32). 6/10/14/20px steps still appear in older code but new code should
-snap to the scale above. Component padding is typically 12-16px; gaps between
-controls 8-12px.
+**Spacing rhythm:** 4 / 8 / 12 / 16 / 20 / 24 / 32px (4px base grid).
 
-**Transitions:** `0.15s` for hover/focus on controls; `0.2-0.3s` for theme and
-panel slide. Easing is default/`ease`. Keep new transitions in this range.
+**Transitions:** `0.15s ease` for hover/focus; `0.2–0.3s ease` for panels and theme.
 
 ---
 
 ## 3. Typography
 
-- **Font:** **`'Inter', sans-serif`** everywhere (Linear's typeface is
-  proprietary; Inter is its documented open substitute), with **`'JetBrains
-  Mono'`** for paths, branch names, diffs, agent output, prompt text, version
-  badge, and config snippets. `body` sets `letter-spacing:-0.01em` +
-  `-webkit-font-smoothing:antialiased` - Inter wants both.
-- **Weights:** 300 (descriptions, hints), 400 (default UI text/body), 500
-  (labels, active/emphasis), **600 (headings - Linear caps display at 600, not
-  700)**.
-- **Negative tracking on display.** Headings tighten as they grow. Linear's
-  reference scale is roughly:
+- **Font:** `'Inter', sans-serif` everywhere. `'JetBrains Mono'` for paths,
+  branch names, agent output, version badge, config snippets.
+- `body` sets `letter-spacing: -0.01em` + `-webkit-font-smoothing: antialiased`.
+- **Weights:** 400 (body/default), 500 (labels/emphasis), 600 (headings only).
 
-  | Size | Tracking | Weight | Use |
-  |---|---|---|---|
-  | 80px | -3.0px | 600 | Hero (landing only) |
-  | 56px | -1.8px | 600 | Section opener |
-  | 40px | -1.0px | 600 | Sub-section |
-  | 28px | -0.6px | 600 | Headline / CTA banner |
-  | 22px | -0.4px | 500 | Card title |
-  | 20px | -0.2px | 400 | Subhead, lead |
-  | 18px | -0.1px | 400 | Hero subhead |
-  | 16px | -0.05px | 400 | Body |
-  | 14px | 0 | 400 | Body-sm |
-  | 12px | 0 | 400 | Caption |
+**App size scale:**
 
-  In the app today: header title -0.3px, empty-state -0.5px. The landing page
-  uses larger steps (-0.8px on section titles, -1.8px on hero). Keep new large
-  headings on weight 600 + tracking proportional to size (~ -3.5% of px).
-- **Sizes used in the app:** 9-10px (badges, pills, timestamps), 11px (hints,
-  secondary), 12px (default control/body), 13px (card text, section body),
-  14-18px (titles).
-- **Uppercase micro-labels (eyebrows):** field/group labels use
-  `font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.4px;
-  color:var(--text-muted)` - see `.field-label`, `.sidebar-group-label`,
-  `.nc-agent-box-label`. Linear eyebrows use *positive* tracking (+0.4px); the
-  contrast against negative-tracked display marks them as taxonomy. Keep these
-  sans (not mono). Reuse the classes; don't reinvent.
+| Use | Size | Weight | Notes |
+|---|---|---|---|
+| Badge / timestamp | `11px` | 400 | Card meta, dates |
+| Body / control | `12px` | 400 | Default UI text |
+| Section label | `13px` | 500 | Column titles, sidebar items |
+| Card title | `14px` | 500 | |
+| Sidebar heading | `16px` | 600 | VibeBoard wordmark |
+| Field label (eyebrow) | `11px` | 500 | `text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted)` |
 
 ---
 
-## 4. Theming
-
-- Three modes: **System / Light / Dark**, set via `data-theme` on `:root`
-  (`light`/`dark`) or absent (system).
-- **Every dark override must be written twice** - once under
-  `:root[data-theme="dark"]` and once under
-  `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="dark"]) … }`.
-  This is forced by the no-build constraint. When you add a dark-specific rule
-  (e.g. a tinted badge bg), add **both** blocks or system-dark users get the
-  light styling. This is the #1 theming footgun in this codebase.
-- Prefer theming through tokens so a single `:root` override covers most cases;
-  only duplicate when a value genuinely differs in dark (e.g. tinted overlays
-  like `.priority-badge`, `.agent-permission-warning`, `.due-input.overdue`).
-
----
-
-## 5. Layout & z-index
+## 4. Layout
 
 ```
-┌─ header (sticky, --header-h, z100) ───────────────────────────┐
-│ conn-dot · ☰ · VibeBoard · Agent Log · MCP Setup · theme      │
-├──────────┬────────────────────────────────────┬──────────────┤
-│ workspace│ board-wrap                          │ card-sidebar │
-│ sidebar  │  ├ board-toolbar (search)           │  (z60, 480px,│
-│ (z50,    │  └ board-inner → columns → cards    │   resizable) │
-│  220px)  │     · empty-state when no workspace │ OR log-      │
-│          │                                     │  sidebar(z59)│
-└──────────┴────────────────────────────────────┴──────────────┘
-   mcp-banner: fixed under header (z90) when MCP unconfigured
+┌── sidebar (fixed left, --sidebar-w 260px, --sidebar-bg, z50) ──┐
+│  logo · v badge · workspace list · + New workspace · Settings   │
+├── header (sticky, --header-h 48px, --surface, z100) ───────────┤
+│  ☰ · search · filter chips              conn · Log · MCP · ★    │
+├── board-wrap ───────────────────────────────────────────────────┤
+│   board-inner (--bg canvas) → #board flex → columns             │
+│     .column: --surface-4 bg, no border, --radius-col (10px)     │
+│       .col-header: 12px 14px pad, dot + title + count           │
+│       .cards-list: gap 10px, 8px h-padding                      │
+│       .add-card-area: sticky bottom                              │
+└─────────────────────────────────────────────────────────────────┘
+  right: #card-sidebar (z60, 480px) | #log-sidebar (z59, 480px)
+  overlay: mcp-banner (fixed under header, z90)
 ```
 
-**z-index scale** (keep new layers on this ladder):
-`workspace-sidebar 50` · `log-sidebar 59` · `card-sidebar 60` · `mcp-banner 90` ·
-`header 100` · `modal-overlay 300` · `mcp-modal 400` · `toast 500` ·
-`shortcuts-overlay 600`.
-
-- The card sidebar and log sidebar are **mutually exclusive** (opening one closes
-  the other) and slide in via `transform: translateX`. The left rail and right
-  panels offset their `top`/`height` when `body.mcp-banner-open`.
+**z-index ladder:**
+`50` sidebar · `59` log-sidebar · `60` card-sidebar · `90` mcp-banner ·
+`100` header · `300` modal overlay · `400` mcp-modal · `500` toast · `600` shortcuts
 
 ---
 
-## 6. Component patterns
+## 5. Components
 
-### Buttons (pick the right one - don't invent variants)
-| Class | Look | Use |
+### Cards
+- `background: var(--surface)` — white / dark-elevated
+- `border: 1px solid var(--border)`, `border-radius: 8px`
+- `box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)`
+- Hover: `box-shadow: 0 4px 8px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06)`
+- `padding: 12px 14px`
+- **Structure:** `[×del] [title-row: dot? + title] [desc-preview?] [footer: tags-row?, meta-row?]`
+- **Footer meta** (what shows on card): agent badge · due date · blocked · merged/need-merge · running/queued
+- **Footer meta** (sidebar only): run status ✓/✗ · usage $cost/tokens · branch pill · review badge · cycle warning
+
+### Columns
+- `background: var(--surface-4)` — subtle tint, **no border**
+- `border-radius: var(--radius-col)` = `10px`
+- No box-shadow — columns are containers, cards provide the elevation
+- Col header padding: `12px 14px`; color dot `8px` circle + title `13px 500` + count muted
+- Cards gap: `10px`
+
+### Sidebar
+- Follows theme: `background: var(--surface)` · `border-right: 1px solid var(--border)`
+- Item hover: `var(--surface-4)` bg
+- Active item: accent-tinted bg + `var(--accent)` text + `3px` left accent bar (`box-shadow: inset 3px 0 0 var(--accent)`)
+
+### Header
+- `height: 48px`, `background: var(--surface)`, `border-bottom: 1px solid var(--border)`
+- Minimal shadow (dark mode only): `0 1px 3px rgba(0,0,0,0.2)`
+- Search: `var(--surface-4)` background (recessed), `260px` wide
+- Buttons: `.header-btn` ghost style
+
+### Buttons
+
+| Class | Style | Use |
 |---|---|---|
-| `.btn-primary` / `.btn-save` / `.empty-cta` | Solid `--accent`, white text, hover = `opacity .85` | The one primary action in a context |
-| `.btn-ghost` / `.header-btn` / `.browse-btn` / `.card-move-btn` / `.output-toggle-btn` | Transparent, `--border`, muted text; hover fills `--bg` + `--text` + `--border-strong` | Secondary/neutral actions |
-| `.btn-danger` | Transparent, `--danger` text; hover = `--danger-bg` | Destructive (Delete) |
-| `.icon-btn` | 24px square, bordered, muted glyph | Icon-only (`+`, `↻`) - add a `title` |
+| `.btn-primary` | Solid `--accent`, white, `opacity .85` hover | One primary action |
+| `.btn-ghost` / `.header-btn` | Transparent + `--border`; hover: `--surface-4` fill | Secondary / neutral |
+| `.btn-danger` | Transparent + `--danger` text; hover: `--danger-bg` fill | Destructive |
 
-**The universal ghost-hover recipe** (memorize it): `background→var(--bg);
-color→var(--text); border-color→var(--border-strong)`. Almost every neutral
-control uses exactly this. Exception: the **stop-agent** button keeps its danger
-border on hover (no fill) - see `#card-stop-agent-btn:hover`.
-
-**Active/selected state** (theme picker, agent picker, priority "None"):
-`border-color + background: var(--accent); color: var(--accent-fg)`. Priority
-high/medium/low use their semantic color as the active fill instead.
+**Ghost hover recipe:** `background → var(--surface-4); color → var(--text); border-color → var(--border-strong)`
 
 ### Inputs
-- Text inputs: `.ws-input` (compact, sidebar) or `.modal-path-input` /
-  `.modal-textarea` (modal). Recessed `--bg`, `--border`, focus brightens to
-  `--surface` + `--border-strong` (or `--accent` for `.ws-input`).
-- Inline-edit titles (column titles, card/workspace name) are **borderless
-  transparent inputs** that show a border only on `:focus`. This is the pattern
-  for "click the text to rename."
-- Toggles use `.toggle-switch` (a styled checkbox), **never** a raw checkbox.
-  Pair with `.toggle-row` + `.toggle-row-label` + `.toggle-row-hint`.
-- **Dropdowns: never use native `<select>`.** Its open option list is OS-rendered
-  and can't be themed (it breaks the dark UI). Use `vbSelect({ options, value,
-  placeholder, onChange, ariaLabel })` from `public/js/select.js` - a themed,
-  keyboard-operable combobox whose popup is body-mounted with fixed positioning
-  (never clipped by a scrolling sidebar). It returns a controller with
-  `setOptions`, `setValue`, `setPlaceholder`, `getValue`. Mount `ctrl.el` into a
-  container `<div>`. Used by the model pickers and the blocked-by picker.
+- Recessed (`var(--surface-4)` bg) for toolbar/search inputs
+- Raised (`var(--surface)` bg) for modal/form inputs
+- Border `--border`, focus border `--accent` (or `--border-strong` for secondary)
+- Never use native `<select>` — use `vbSelect()` from `select.js`
+- Never use native `confirm()`/`prompt()` — use `vbConfirm()`/`vbPrompt()` from `dialogs.js`
 
-### Containers
-- **`.sidebar-group` / `.nc-agent-box`**: a recessed (`--bg`) bordered card that
-  groups related fields, with an uppercase `…-label`. Use this to chunk forms in
-  the card sidebar / new-card modal.
-- **`.modal-box`**: `--surface`, 12px radius, `header / body / footer` rows.
-  Header has a title (or inline-edit input) + `.modal-close-btn`. Footer is
-  right-aligned via `.modal-spacer`; destructive action goes far-left.
-- **Right sidebars** (`#card-sidebar`, `#log-sidebar`): `header / body(scroll) /
-  footer` columns, slide in from the right, 480px.
+### Badges & pills
+All `11px`, `font-weight: 400`, `border-radius: 4px`.
 
-### Badges & pills (footer of a card, header chips)
-Small, `flex-shrink:0`, 9–10px. Families: `.tag-*`, `.priority-badge`,
-`.card-agent-badge`, `.run-status-badge` (ok/fail), `.usage-badge`,
-`.card-queued-pill` (pulsing dot), `.blocked-badge` (🔒), `.branch-badge`
-(monospace), `.card-running-dot` (pulsing). When adding a new card signal, make
-it a badge in this family and append it to `.card-footer` in `buildCard()`.
+| Badge | Style |
+|---|---|
+| Tag | Solid `tagColor()` bg, white text |
+| Agent | Solid agent-color bg, white text |
+| Due date | Plain muted text; red when overdue |
+| Blocked | `rgba(239,68,68,0.12)` bg, `#EF4444` text |
+| Merged | `#16A34A` text, no bg |
+| Need-merge | Amber tinted pill |
+| Running dot | Pulsing `#3B82F6` circle |
+| Queued | Muted bg + pulsing dot |
+| Priority dot | `10×10px`, `border-radius: 3px`, inline with title |
 
 ### Feedback
-- **Toasts** (`showToast(msg, dur, type)`) bottom-right for transient
-  confirmations/errors. `type` is `''` (neutral), `'success'` (green left bar),
-  or `'error'` (red left bar). Auto-dismiss; pointer-events only on the toast.
-- **Dialogs** - **never use native `confirm()`/`prompt()`/`alert()`.** Use the
-  promise-based `vbConfirm(message, opts)` / `vbPrompt(message, opts)` from
-  `public/js/dialogs.js` instead. They render a themed `.vb-dialog`, trap focus,
-  and support Esc/Enter. Pass `{ title, confirmText, danger }` (set `danger:true`
-  for destructive confirms - it gives a solid red confirm button).
-- **Connection dot** in header reflects SSE state (gray → pulsing green).
-- **Agent-flash** outline on a card when an agent touches it.
-- Animations are subtle and short (`fadeIn`, `toastIn`, `pulse`,
-  `running-pulse`). Keep new motion in the same vocabulary.
+- **Toasts** `showToast(msg, dur, type)` — bottom-right, types: `''` / `'success'` / `'error'`
+- **Dialogs** `vbConfirm` / `vbPrompt` from `dialogs.js` — never native browser dialogs
+- **Agent flash** — `card.agent-flash` class on card element via SSE
+- **Connection dot** — gray → pulsing green in header
+
+---
+
+## 6. Theming
+
+- Three modes: **System / Light / Dark** via `data-theme` on `:root`
+- **Every dark override must be written twice:** once in `:root[data-theme="dark"]`
+  and once in `@media (prefers-color-scheme: dark) { :root:not([...]) … }`.
+  This is the #1 theming footgun — missing the media-query block breaks system-dark users.
+- Sidebar uses standard app tokens (`--surface`, `--border`, etc.) and follows the theme automatically.
 
 ---
 
 ## 7. Responsive
 
-Breakpoints: **768px** (tablet/mobile) and **480px** (small phone).
-- Left rail becomes an off-canvas drawer toggled by `.mobile-menu-btn` (☰).
-- Right sidebars and the card sidebar go full-width (`100vw`); resize handle hides.
-- Modals go `90vw` / `85vh`. Columns shrink to 260 → 220px.
-Test any new layout at 768 and 480 before considering it done.
+Breakpoints: **768px** (tablet/mobile) · **480px** (small phone).
+- Left rail: off-canvas drawer via `.mobile-menu-btn`
+- Right sidebars: full-width
+- Modals: `90vw / 85vh`
+- Columns: `260px` → `220px`
 
 ---
 
 ## 8. Accessibility
 
-**In place - keep it that way:**
-- **Focus rings.** A `:focus-visible` outline (`2px solid var(--accent)`) covers
-  buttons, cards, list items, selects and key inputs on both pages. New
-  interactive elements inherit it via the element/class selectors - don't set
-  `outline:none` without providing a `:focus-visible` alternative.
-- **Cards are keyboard-operable** - `role="button"`, `tabindex="0"`, and
-  Enter/Space open them. Build new interactive elements as real `<button>`s, or
-  replicate this trio. Don't ship click-only `<div>`s.
-- **Modals/sidebars** trap focus, set `role="dialog"`/`aria-modal`, restore focus
-  on close, and reflect picker state via `aria-pressed` (see `app.js`
-  `initModalA11y` / `syncAriaPressed`). New static modals should be added to the
-  `dialogs` list in `initModalA11y`.
-- **No native dialogs** - `vbConfirm`/`vbPrompt` only (see §6).
-
-**Still to improve when you're in the area:**
-- **Label icon-only controls** with `aria-label`, not just `title`.
-- **Contrast:** `--text-muted` is borderline against `--bg` at small sizes. Don't
-  use muted text smaller than 11px for anything load-bearing; never put muted
-  text on `--bg` for primary content. (The landing page uses a slightly lighter
-  muted value in dark mode for body-copy legibility.)
+- Focus rings: `:focus-visible { outline: 2px solid var(--accent) }`
+- Cards: `role="button"`, `tabindex="0"`, Enter/Space open
+- Modals/sidebars: trap focus, `role="dialog"`, `aria-modal`, restore focus on close
+- No native `<select>` or dialogs (see §5 Inputs)
+- Label icon-only controls with `aria-label`, not just `title`
 
 ---
 
 ## 9. Conventions & footguns
 
-- **No inline styles for *appearance*.** State toggles (`style="display:none"`)
-  that JS flips are tolerated; styling (fonts, widths, colors) belongs in a class
-  in `styles.css`. Several legacy inline styles in `index.html` violate this -
-  don't add more.
-- **Keep markup and behavior separated:** new DOM goes in `index.html` (static)
-  or is built in a `public/js/*.js` file; element wiring/`addEventListener`
-  lives in JS, never inline `onclick`.
-- **Token-first:** reach for an existing CSS variable before any literal; add a
-  token if one is missing. New semantic colors (priority/tag/agent) should become
-  tokens rather than repeated hexes (current ones are partly hardcoded - a known
-  debt).
-- **Dark mode = two blocks** (see §4). Forgetting the `prefers-color-scheme`
-  twin is the most common visual regression here.
+- **No inline styles for appearance.** State toggles (`style="display:none"`) OK; colors/fonts belong in `styles.css`.
+- **Token-first.** Reach for an existing CSS variable before any literal.
+- **Dark mode = two blocks** (see §6). Forgetting the `prefers-color-scheme` twin is the most common visual regression.
 - **One primary action per surface.** Everything else is ghost/secondary.
-- **Match the neighbors.** Before adding a control, find the closest existing one
-  and reuse its class. The system only stays coherent if new code copies the
-  established pattern instead of introducing a parallel one.
+- **Match the neighbors.** Reuse existing classes before inventing new ones.
+- **Sidebar scope trick.** The sidebar overrides `--surface`, `--text`, `--border`, etc. inside `#workspace-sidebar` so all child components automatically pick up dark values without per-rule overrides.
