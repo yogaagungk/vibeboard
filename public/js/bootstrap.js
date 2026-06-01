@@ -45,7 +45,7 @@ document.body.classList.toggle('vb-show-descriptions', getShowDescriptions());
 
 // ── Compact density toggle ────────────────────────────────────────────────
 function getCompactDensity() {
-  return localStorage.getItem('vb_compact_density') === 'true';
+  return localStorage.getItem('vb_compact_density') !== 'false';
 }
 function setCompactDensity(val) {
   localStorage.setItem('vb_compact_density', val ? 'true' : 'false');

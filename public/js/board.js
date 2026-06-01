@@ -342,67 +342,6 @@ function buildCard(card, colId) {
     tagsRow.appendChild(pill);
   });
 
-  // Inline tag picker: a "+" chip that appears on hover, opening a compact dropdown.
-  const addTagBtn = document.createElement('button');
-  addTagBtn.className = 'card-add-tag-btn';
-  addTagBtn.textContent = '+';
-  addTagBtn.type = 'button';
-  addTagBtn.setAttribute('aria-label', 'Add or remove tags');
-  addTagBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    document.querySelectorAll('.card-inline-tag-dropdown').forEach(d => d.remove());
-    const dropdown = document.createElement('div');
-    dropdown.className = 'card-inline-tag-dropdown';
-    TAGS.forEach(itag => {
-      const btn = document.createElement('button');
-      btn.className = 'tag-pick-btn tag-' + itag;
-      btn.dataset.tag = itag;
-      btn.textContent = itag;
-      btn.type = 'button';
-      const active = (card.tags || []).includes(itag);
-      if (active) {
-        btn.classList.add('active');
-        btn.style.backgroundColor = 'var(--tag-' + itag + ')';
-        btn.style.color = 'white';
-      } else {
-        btn.style.color = 'var(--tag-' + itag + ')';
-        btn.style.opacity = '0.45';
-      }
-      btn.addEventListener('click', ev => {
-        ev.stopPropagation();
-        const tags = card.tags || [];
-        if (tags.includes(itag)) {
-          card.tags = tags.filter(t => t !== itag);
-          btn.classList.remove('active');
-          btn.style.backgroundColor = '';
-          btn.style.color = 'var(--tag-' + itag + ')';
-          btn.style.opacity = '0.45';
-        } else {
-          card.tags = [...tags, itag];
-          btn.classList.add('active');
-          btn.style.backgroundColor = 'var(--tag-' + itag + ')';
-          btn.style.color = 'white';
-          btn.style.opacity = '1';
-        }
-        // Update tag pills on the card in-place without full re-render.
-        tagsRow.innerHTML = '';
-        card.tags.forEach(t => {
-          const p = document.createElement('span');
-          p.className = 'tag tag-' + t;
-          p.textContent = t;
-          tagsRow.appendChild(p);
-        });
-        tagsRow.appendChild(addTagBtn);
-        // Update search index.
-        el.dataset.searchTitle = [card.title || '', (card.tags || []).join(' '), card.description || ''].join(' ').toLowerCase();
-        postBoard();
-      });
-      dropdown.appendChild(btn);
-    });
-    el.appendChild(dropdown);
-  });
-  tagsRow.appendChild(addTagBtn);
-
   if (card.priority) {
     const pb = document.createElement('span');
     pb.className = `priority-badge priority-${card.priority}`;

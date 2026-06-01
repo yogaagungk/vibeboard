@@ -7,7 +7,6 @@ document.addEventListener('keydown', e => {
   if (document.getElementById('ws-modal-overlay').classList.contains('open')) { closeWsModal(); return; }
   if (document.getElementById('nc-modal-overlay').classList.contains('open')) { closeNewCardModal(); return; }
   closeCardModal();
-  document.querySelectorAll('.card-inline-tag-dropdown').forEach(d => d.remove());
 });
 
 // ── Accessibility ────────────────────────────────────────────────────────────
@@ -17,10 +16,6 @@ function syncAriaPressed(root) {
     .forEach(b => b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
 }
 document.addEventListener('click', e => {
-  // Close inline tag dropdowns when clicking outside them.
-  if (!e.target.closest('.card-inline-tag-dropdown') && !e.target.closest('.card-add-tag-btn')) {
-    document.querySelectorAll('.card-inline-tag-dropdown').forEach(d => d.remove());
-  }
   const b = e.target.closest && e.target.closest('.priority-btn, .tag-pick-btn, .theme-opt');
   if (b) queueMicrotask(() => syncAriaPressed(b.closest('.priority-picker, .modal-tag-picker, #card-modal-tag-picker, .theme-picker') || document));
 }, true);
@@ -147,7 +142,6 @@ function renderBoardError() {
 async function init() {
   initModalA11y();
   syncAriaPressed();
-  initViewSwitcher();
   connectSSE();
   await loadWorkspaces();
   checkMcpStatus();
@@ -161,7 +155,6 @@ async function init() {
   await loadBoard();
   loadContextPanel(activeWsId);
   if (typeof initFilters === 'function') initFilters();
-  if (typeof initSwimlaneControls === 'function') initSwimlaneControls();
 }
 
 init();
