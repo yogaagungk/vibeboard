@@ -364,7 +364,7 @@ function buildCard(card, colId) {
   if (card.merged_at) {
     const m = document.createElement('span'); m.className = 'merged-badge'; m.textContent = '✓ merged'; m.title = 'Merged: ' + fmtTime(card.merged_at);
     metaRow.appendChild(m);
-  } else if (card.branch) {
+  } else if (card.branch && card.has_branch_changes) {
     const col = board.columns.find(c => c.id === colId);
     if (col && col.title === 'Done') {
       const n = document.createElement('span'); n.className = 'need-merge-badge'; n.textContent = '! merge'; n.title = 'Branch ' + card.branch + ' has not been merged';

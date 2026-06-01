@@ -878,13 +878,14 @@ function showChangesSection(card) {
     .then(r => r.json())
     .then(data => {
       const count = data.commits ? data.commits.split('\n').filter(Boolean).length : 0;
+      const hasChanges = !!(data.diff && data.diff.trim());
       meta.textContent = count ? `${count} commit${count > 1 ? 's' : ''}` : 'no commits yet';
       toggleBtn._diffData = data;
-      const hasCommits = count > 0;
       const mb = document.getElementById('card-merge-btn');
       const pb = document.getElementById('card-pr-btn');
-      mb.disabled = !hasCommits; mb.title = hasCommits ? '' : 'No commits on this branch yet';
-      pb.disabled = !hasCommits; pb.title = hasCommits ? '' : 'No commits on this branch yet';
+      const disabledTitle = !count ? 'No commits on this branch yet' : 'No file changes to merge';
+      mb.disabled = !hasChanges; mb.title = hasChanges ? '' : disabledTitle;
+      pb.disabled = !hasChanges; pb.title = hasChanges ? '' : disabledTitle;
     })
     .catch(() => { meta.textContent = ''; });
 }

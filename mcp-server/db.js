@@ -160,6 +160,7 @@ db.exec(`
     if (!cardCols.includes('review_model'))          db.prepare('ALTER TABLE cards ADD COLUMN review_model TEXT').run();
     if (!cardCols.includes('in_progress_base_sha'))  db.prepare('ALTER TABLE cards ADD COLUMN in_progress_base_sha TEXT').run();
     if (!cardCols.includes('review_issue'))           db.prepare('ALTER TABLE cards ADD COLUMN review_issue INTEGER DEFAULT 0').run();
+    if (!cardCols.includes('has_branch_changes'))     db.prepare('ALTER TABLE cards ADD COLUMN has_branch_changes INTEGER DEFAULT 0').run();
 
     if (!wsCols.includes('use_worktree')) db.prepare('ALTER TABLE workspaces ADD COLUMN use_worktree INTEGER DEFAULT 0').run();
 
@@ -395,7 +396,8 @@ function updateCard(cardId, updates) {
   if (updates.merged_at !== undefined)     { fields.push('merged_at = ?');     values.push(updates.merged_at || null); }
   if (updates.review_agent !== undefined)  { fields.push('review_agent = ?');  values.push(updates.review_agent || null); }
   if (updates.review_model !== undefined)  { fields.push('review_model = ?');  values.push(updates.review_model || null); }
-  if (updates.review_issue !== undefined)  { fields.push('review_issue = ?');  values.push(updates.review_issue ? 1 : 0); }
+  if (updates.review_issue !== undefined)       { fields.push('review_issue = ?');        values.push(updates.review_issue ? 1 : 0); }
+  if (updates.has_branch_changes !== undefined) { fields.push('has_branch_changes = ?');   values.push(updates.has_branch_changes ? 1 : 0); }
 
   if (fields.length === 0) return;
   

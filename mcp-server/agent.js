@@ -504,10 +504,13 @@ function agentDone(cardId, code, emitSSE) {
     try {
       const base = wt.getBaseBranch(info.workspacePath);
       const commits = wt.getCommits(info.worktreePath, base);
-      if (!commits) {
+      const diff = commits ? wt.getDiff(info.worktreePath, base) : '';
+      if (!commits || !diff.trim()) {
         wt.removeWorktree(info.workspacePath, info.worktreePath);
-        updateCard(cardId, { branch: null, worktreePath: null });
-        process.stderr.write(`[agent] Worktree removed — no commits for card ${cardId}\n`);
+        updateCard(cardId, { branch: null, worktreePath: null, has_branch_changes: false });
+        process.stderr.write(`[agent] Worktree removed — no file changes for card ${cardId}\n`);
+      } else {
+        updateCard(cardId, { has_branch_changes: true });
       }
     } catch (_) {}
   }
