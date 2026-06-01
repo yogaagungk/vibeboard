@@ -26,7 +26,7 @@ function routeSpawnAgent(cardId, columnTitle) {
       spawnAgent(cardId, card.workspace_id, agentType, emitSSE, model);
     }
   } else {
-    fetch(`http://localhost:${PORT}/api/cards/${cardId}/run`, { method: 'POST' }).catch(() => {});
+    fetch(`http://localhost:${PORT}/api/cards/${cardId}/spawn-or-queue`, { method: 'POST' }).catch(() => {});
   }
 }
 

@@ -224,17 +224,19 @@ module.exports = function registerRoutes(app) {
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (!card.agent) return res.status(400).json({ error: 'Card has no assigned agent' });
     if (isAgentActive(cardId)) return res.status(409).json({ error: 'Agent already running or queued' });
-    
-    const column = db.getColumn(card.column_id);
-    let agentType = card.agent;
-    let model = card.model;
-    
-    if (column?.title === 'Review' && card.review_agent) {
-      agentType = card.review_agent;
-      model = card.review_model || card.model;
-    }
-    
-    spawnAgent(cardId, card.workspace_id, agentType, emitSSE, model);
+    spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    res.json({ ok: true });
+  });
+
+  // Called by routeSpawnAgent in MCP-subprocess mode after a move_card.
+  // Unlike /run, this does NOT reject when the agent is already active — it
+  // lets spawnAgent queue a pendingRespawn so the review phase starts as soon
+  // as the current agent exits.
+  app.post('/api/cards/:cardId/spawn-or-queue', (req, res) => {
+    const { cardId } = req.params;
+    const card = db.getCard(cardId);
+    if (!card || !card.agent) return res.json({ ok: true });
+    spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
     res.json({ ok: true });
   });
 
