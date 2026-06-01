@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-01
+
+### Added
+- **Per-card review agent & model** — cards with "Requires review" toggled on can now specify a separate agent and model for the Review phase, independent of the In Progress agent. Pickers appear in both the new-card modal and the card sidebar when the toggle is on.
+- **`review_issue` flag & badge** — when the review agent finds significant issues it calls `update_card({ review_issue: true })` and leaves a note. A red `! issue` badge appears on the card in the Review column. The flag is cleared automatically when the card leaves Review.
+- **Smart `! merge` badge** — the badge now requires actual file changes (`has_branch_changes`); a branch with no committed file diff no longer triggers it. Stored on the card via `agentDone` so no async fetch is needed at render time.
+- **Auto-spawn review agent** — when the In Progress agent calls `move_card("Review")` via MCP while still running, a pending respawn is correctly queued and the review agent starts automatically once the In Progress agent exits (previously silently dropped in MCP-subprocess mode).
+- **Branch strategy** — `develop` is the active development branch; direct commits/pushes to `main` are prohibited. Documented in CLAUDE.md and AGENTS.md.
+- **Codex model list updated** — hardcoded list updated to the current GPT-5.x lineup: `gpt-5.4` (default), `gpt-5.3-codex`, `gpt-5.5`, `gpt-5.2`, `gpt-5.4-mini`.
+
+### Fixed
+- **Review agent auto-spawn broken in MCP-subprocess mode** — `routeSpawnAgent` was calling `POST /run` which returns 409 when the In Progress agent is still active, preventing the pending-respawn queue from being set. New `POST /spawn-or-queue` endpoint bypasses the active-agent guard; `/run` remains unchanged for manual UI triggers.
+- **Review agent/model not used via all spawn paths** — `spawnAgent` now resolves `review_agent`/`review_model` from the card internally, so the dequeue and pending-respawn paths also use the correct agent and model (previously only the direct spawn path did).
+- **Review diff showed "No changes yet" with commits present** — `getDiff` was using `baseBranch...HEAD` (three-dot, merge-base diff) while `getCommits` used `baseBranch..HEAD` (two-dot). On repos where the base branch advanced after the worktree was created the diff was empty; both now use two-dot.
+- **`! merge` badge and merge/PR buttons showed for empty branches** — `agentDone` now checks for actual file changes; if none, the worktree is removed and `branch`/`worktree_path` are cleared. Merge/PR buttons in the sidebar also gate on non-empty diff content, not just commit count.
+- **`review_issue` and `has_branch_changes` never surfaced in UI** — both fields were written to DB but omitted from the `getBoard` SELECT and card mapping, making both badge features dead on arrival. Fixed.
+- **Review-agent section stayed visible after main agent was cleared** — clearing the agent dropdown in the card sidebar now also hides the review-agent section.
+- **SSE banner showed unknown character** — corrupted `0x16` byte in `#sse-banner-text::before` CSS content replaced with `\26A0\00a0` (⚠ + NBSP).
+- **Add card button shown in non-editable columns** — removed from In Progress, Review, and Done columns; a same-height spacer preserves column layout.
+- **Review phase prompt was contradictory** — old instruction said "fix issues then move_card back to In Progress" (self-contradictory). New: trivial issues → fix inline → `complete_card`; significant issues → `update_card({ review_issue: true })` + `add_card_note` → stop; review agent does not re-implement.
+- **Review prompt had no context on what changed** — prompt now starts with `git diff base..HEAD` anchored to the worktree branch (worktree mode) or a stored base SHA captured at In Progress spawn time (non-worktree mode).
+
 ## [0.3.1] - 2026-06-01
 
 ### Added
