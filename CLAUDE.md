@@ -154,6 +154,13 @@ Add to your OpenCode config:
   }
 }
 
+## Branch strategy
+
+- **`develop`** is the active development branch. All work happens here or in feature branches cut from it.
+- **`main`** is protected. Never commit directly to `main`. Never push directly to `main`.
+- Merge path: `feature/* → develop` (PR) → `main` (PR, release only).
+- When working on a task, commit to `develop` (or a feature branch). Submit changes via PR — do not push to `main` under any circumstances.
+
 ## Key rules for agents working in this repo
 
 1. SQLite database is the source of truth — always call get_board first before mutating
@@ -168,6 +175,7 @@ Add to your OpenCode config:
 7. If you need to run the server to verify your changes, use a different port:
    `PORT=7342 npm start`. The default port 7341 is already in use by the live
    instance managing your session — binding to it will cause a conflict.
+8. Always work on `develop` or a feature branch. Never commit or push directly to `main`.
 
 ## Tech decisions (do not change without discussion)
 
