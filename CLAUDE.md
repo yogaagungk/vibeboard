@@ -72,7 +72,7 @@ list_cards         → list cards with filters, more efficient than get_board (p
 list_workspaces    → list all workspaces
 create_workspace   → create a new workspace (params: name, path, description?)
 switch_workspace   → switch to a different workspace (params: workspaceId)
-set_workspace      → update workspace metadata (params: name?, path?, description?)
+set_workspace      → update workspace description only (params: workspaceId, description) — name/path changes must be done via UI
 create_card        → add a card (params: title, workspaceId?, columnTitle?, tags?, description?, agent?, model?, priority?, due_date?, blocked_by?)
 update_card        → update card fields (params: cardId, title?, description?, tags?, agent?, model?, priority?, due_date?, blocked_by?, requires_review?, custom_prompt?, merged_at?)
 move_card          → move a card between columns (params: cardId, toColumnTitle)

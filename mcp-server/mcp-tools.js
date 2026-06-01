@@ -61,18 +61,17 @@ module.exports = function registerMcpTools(mcp) {
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
-  mcp.tool('set_workspace', 'Update name, path, or description of the active workspace',
-    { name: z.string().optional(), path: z.string().optional(), description: z.string().optional() },
-    async ({ name, path: wsPath, description }) => {
+  mcp.tool('set_workspace', 'Update the description of a workspace. Requires workspaceId to prevent accidentally modifying the wrong workspace. Cannot change name or path — use the UI for that.',
+    { workspaceId: z.string(), description: z.string() },
+    async ({ workspaceId, description }) => {
       try {
-        const activeId = db.getActiveWorkspaceId();
-        if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
-        db.updateWorkspace(activeId, { name, path: wsPath, description });
-        emitSSE('board_update', db.getBoard(activeId));
+        const ws = db.getWorkspace(workspaceId);
+        if (!ws) return { content: [{ type: 'text', text: JSON.stringify({ error: `Workspace not found: ${workspaceId}` }) }] };
+        db.updateWorkspace(workspaceId, { description });
         const active = db.getActiveWorkspaceId();
         emitSSE('workspace_list', db.listWorkspaces().map(w => ({ ...w, active: w.id === active })));
-        const ws = db.getWorkspace(activeId);
-        return { content: [{ type: 'text', text: JSON.stringify({ id: ws.id, name: ws.name, path: ws.path, description: ws.description }) }] };
+        const updated = db.getWorkspace(workspaceId);
+        return { content: [{ type: 'text', text: JSON.stringify({ id: updated.id, name: updated.name, path: updated.path, description: updated.description }) }] };
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
   );
