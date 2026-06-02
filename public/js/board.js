@@ -23,6 +23,9 @@ function renderBoard(b) {
     b.queuedCards.forEach(id => queuedCards.add(id));
   }
 
+  // Destroy scroll listeners + Map entries before nuking the DOM,
+  // otherwise detached cardsList nodes are kept alive by virtualizedColumns.
+  virtualizedColumns.forEach((_, colId) => destroyVirtualization(colId));
   boardEl.innerHTML = '';
   board.columns.forEach(col => boardEl.appendChild(buildColumn(col)));
 
