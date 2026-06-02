@@ -1,7 +1,7 @@
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, DATA_DIR } = require('./db');
+const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, getCardNotes, DATA_DIR } = require('./db');
 const wt = require('./worktree');
 const { verifySpawnDir } = require('./path-guard');
 const { sanitizeForPrompt, wrapCardData } = require('./prompt-sanitize');
@@ -19,6 +19,32 @@ const pendingRespawn = new Map(); // cardId -> [{ workspaceId, agentType }, ...]
 // activeAgents — both live in the single HTTP-server process that owns lifecycles.
 const MAX_CONCURRENT = parseInt(process.env.VB_MAX_AGENTS || '', 10) || 3;
 const agentQueue = []; // [{ cardId, workspaceId, agentType }]
+
+// Debounce timers for user-triggered spawns (drag-and-drop / MCP move_card).
+// Gives the user a 1.5 s window to undo an accidental move before an agent
+// is spawned and starts consuming tokens. Internal spawns (dequeueNext,
+// Review-phase respawn) bypass this and call spawnAgent() directly.
+const SPAWN_DEBOUNCE_MS = 1500;
+const spawnTimers = new Map(); // cardId -> timeoutId
+
+function scheduleSpawn(cardId, workspaceId, agentType, emitSSE, modelOverride) {
+  if (spawnTimers.has(cardId)) {
+    clearTimeout(spawnTimers.get(cardId));
+    spawnTimers.delete(cardId);
+  }
+  const tid = setTimeout(() => {
+    spawnTimers.delete(cardId);
+    spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride);
+  }, SPAWN_DEBOUNCE_MS);
+  spawnTimers.set(cardId, tid);
+}
+
+function cancelScheduledSpawn(cardId) {
+  if (spawnTimers.has(cardId)) {
+    clearTimeout(spawnTimers.get(cardId));
+    spawnTimers.delete(cardId);
+  }
+}
 
 // Agent prompt/output files can contain source code and secrets from a session,
 // so keep them in the user-scoped data dir rather than world-readable os.tmpdir().
@@ -204,6 +230,19 @@ function startOutputWatcher(cardId, outputFile, emitSSE, transform) {
   }, 500);
 }
 
+function buildPriorContext(cardId) {
+  let notes;
+  try { notes = getCardNotes(cardId); } catch (_) { return ''; }
+  if (!notes || !notes.length) return '';
+  // Exclude full session output dumps (large, low signal for retry context).
+  // Keep short progress notes written by the agent via add_card_note.
+  const progress = notes
+    .filter(n => !n.content.startsWith('Agent session output') && n.content.length < 600)
+    .slice(-5);
+  if (!progress.length) return '';
+  return `Prior work (previous session):\n${progress.map(n => `- ${n.content.trim()}`).join('\n')}`;
+}
+
 function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
   const dataBlock = wrapCardData([
     { label: 'Title',       value: card.title },
@@ -254,20 +293,31 @@ Do NOT re-implement from scratch.`;
     : '';
 
   const boardApi = agentType === 'command-code'
-    ? `The vibeboard MCP tools are not available in this mode. Use shell_command to call the vibeboard HTTP API at http://localhost:${PORT} to update the board:
-- Add a progress note: POST http://localhost:${PORT}/api/cards/${card.id}/note   body: {"content":"your note"}
-- Move to a column:    POST http://localhost:${PORT}/api/cards/${card.id}/move    body: {"toColumnTitle":"Done"}
-- Complete the card:   POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
+    ? `Use the VibeBoard HTTP API to update the board (MCP not available in this mode):
+- Progress note: POST http://localhost:${PORT}/api/cards/${card.id}/note   body: {"content":"your note"}
+- Move column:   POST http://localhost:${PORT}/api/cards/${card.id}/move    body: {"toColumnTitle":"Done"}
+- Complete:      POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
 Call these often to log progress, and call complete at the end.
 Do NOT run taste commands or create/update any taste.md files.`
-    : `Use vibeboard MCP tools: add_card_note to log progress, move_card / complete_card to change status.`;
+    : `Use VibeBoard MCP tools: add_card_note to log progress, move_card / complete_card to change status.`;
 
-  return `Task on VibeBoard.
+  // Workspace description — placed first so it forms a stable cached prefix
+  // for Claude (prompt caching requires a long identical prefix). All agents
+  // benefit from having project context before the task details.
+  const wsContext = workspace.description
+    ? `Workspace: ${sanitizeForPrompt(workspace.name || '')}\n${sanitizeForPrompt(workspace.description)}\n\n`
+    : '';
+
+  const priorContext = buildPriorContext(card.id);
+  const priorSection = priorContext ? `\n${priorContext}\n` : '';
+
+  return `${wsContext}Task on VibeBoard.
 ${dataBlock ? dataBlock + '\n\n' : ''}Card ID: ${card.id} - Workspace ID: ${workspace.id}
 Work in: ${workIn}
 ${branchLine}
 ${phase}
 ${worktreeWarning}
+${priorSection}
 ${boardApi} Commit with git as you go.${custom}`;
 }
 
@@ -578,6 +628,9 @@ function agentDone(cardId, code, emitSSE) {
 }
 
 function stopAgent(cardId, emitSSE) {
+  // Cancel any pending debounced spawn for this card.
+  cancelScheduledSpawn(cardId);
+
   // Drop it from the queue first, in case it was waiting rather than running.
   let dequeued = false;
   if (isQueued(cardId)) {
@@ -651,4 +704,4 @@ function getPendingRespawnCardIds() {
   return Array.from(pendingRespawn.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt, isQueued };
+module.exports = { spawnAgent, scheduleSpawn, cancelScheduledSpawn, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt, isQueued };

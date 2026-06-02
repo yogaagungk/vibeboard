@@ -11,7 +11,7 @@ const { authMiddleware, rotateToken, getAuthToken, NETWORK_MODE } = require('./a
 const { getAgentMcpConfigs, isAgentInstalled, readAgentMcpStatus } = require('./mcp-config');
 const { refreshAvailableModels, getAvailableModels } = require('./models');
 const {
-  agentDone, spawnAgent, stopAgent,
+  agentDone, spawnAgent, scheduleSpawn, cancelScheduledSpawn, stopAgent,
   isAgentRunning, isAgentActive,
   getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, getOutputFile,
 } = require('./agent');
@@ -224,7 +224,7 @@ module.exports = function registerRoutes(app) {
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (!card.agent) return res.status(400).json({ error: 'Card has no assigned agent' });
     if (isAgentActive(cardId)) return res.status(409).json({ error: 'Agent already running or queued' });
-    spawnAgent(cardId, card.workspace_id, card.agent, emitSSE);
+    scheduleSpawn(cardId, card.workspace_id, card.agent, emitSSE);
     res.json({ ok: true });
   });
 
@@ -242,6 +242,7 @@ module.exports = function registerRoutes(app) {
 
   app.post('/api/cards/:cardId/stop', (req, res) => {
     const { cardId } = req.params;
+    cancelScheduledSpawn(cardId);
     if (!isAgentActive(cardId)) return res.status(409).json({ error: 'No agent running or queued' });
     const wasRunning = isAgentRunning(cardId);
     stopAgent(cardId);

@@ -1,7 +1,7 @@
 const db = require('./db');
 const { PORT } = require('./config');
 const { emitSSE, isHttpRunning } = require('./events');
-const { spawnAgent, stopAgent, isAgentRunning, isAgentActive } = require('./agent');
+const { scheduleSpawn, cancelScheduledSpawn, stopAgent, isAgentRunning, isAgentActive } = require('./agent');
 
 // Agent processes are tracked in-memory by the process that spawns them. The
 // HTTP server and the MCP stdio server can be two separate processes, so agent
@@ -23,7 +23,7 @@ function routeSpawnAgent(cardId, columnTitle) {
     }
     
     if (agentType) {
-      spawnAgent(cardId, card.workspace_id, agentType, emitSSE, model);
+      scheduleSpawn(cardId, card.workspace_id, agentType, emitSSE, model);
     }
   } else {
     fetch(`http://localhost:${PORT}/api/cards/${cardId}/spawn-or-queue`, { method: 'POST' }).catch(() => {});
@@ -32,6 +32,7 @@ function routeSpawnAgent(cardId, columnTitle) {
 
 async function routeStopAgent(cardId) {
   if (isHttpRunning()) {
+    cancelScheduledSpawn(cardId);
     return isAgentActive(cardId) ? stopAgent(cardId, emitSSE) : false;
   } else {
     try {
