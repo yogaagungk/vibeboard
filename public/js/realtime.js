@@ -94,7 +94,7 @@ function connectSSE() {
           if (!footer) { footer = document.createElement('div'); footer.className = 'card-footer'; el.appendChild(footer); }
           meta = document.createElement('div'); meta.className = 'card-meta'; footer.appendChild(meta);
         }
-        if (!meta.querySelector('.card-running-dot')) { const dot = document.createElement('span'); dot.className = 'card-running-dot'; dot.title = 'Agent running…'; meta.appendChild(dot); }
+        if (!meta.querySelector('.card-running-dot')) { const dot = document.createElement('span'); dot.className = 'card-running-dot'; dot.title = 'Agent running…'; meta.prepend(dot); }
       }
       if (modalCardId === data.cardId) {
         const col = board.columns.find(c => c.cards?.some(card => card.id === data.cardId));
