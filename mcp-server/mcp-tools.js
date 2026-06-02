@@ -354,6 +354,36 @@ module.exports = function registerMcpTools(mcp) {
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
+  mcp.tool(
+    'get_card',
+    'Get full details of a single card including the complete (untruncated) description. Use this to read your own task details — the spawned prompt truncates descriptions at 2000 chars.',
+    { cardId: z.string() },
+    async ({ cardId }) => {
+      try {
+        const card = db.getCard(cardId);
+        if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
+        const col = db.getColumn(card.column_id);
+        return { content: [{ type: 'text', text: JSON.stringify({
+          id:              card.id,
+          title:           card.title,
+          description:     card.description || '',
+          column:          col?.title || null,
+          tags:            card.tags || [],
+          priority:        card.priority || null,
+          due_date:        card.due_date || null,
+          agent:           card.agent || null,
+          model:           card.model || null,
+          requires_review: card.requires_review || false,
+          review_agent:    card.review_agent || null,
+          blocked_by:      card.blocked_by || [],
+          branch:          card.branch || null,
+          worktreePath:    card.worktreePath || null,
+          custom_prompt:   card.custom_prompt || null,
+        }) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
+
   mcp.tool('add_card_note', 'Add a note or checkpoint to a card',
     { cardId: z.string(), content: z.string() },
     async ({ cardId, content }) => {

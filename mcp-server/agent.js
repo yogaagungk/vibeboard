@@ -305,7 +305,7 @@ Do NOT re-implement from scratch.`;
 - Complete:      POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
 Call these often to log progress, and call complete at the end.
 Do NOT run taste commands or create/update any taste.md files.`
-    : `Use VibeBoard MCP tools: add_card_note to log progress, move_card / complete_card to change status. When reading the board use get_board({compact:true}) or get_column/list_cards instead of full get_board to avoid loading unnecessary descriptions.`;
+    : `Use VibeBoard MCP tools: get_card(cardId) to read your full task description, add_card_note to log progress, move_card / complete_card to change status. When reading the board use get_board({compact:true}) or get_column/list_cards — never plain get_board which loads all descriptions.`;
 
   // Workspace description — placed first so it forms a stable cached prefix
   // for Claude (prompt caching requires a long identical prefix). All agents
