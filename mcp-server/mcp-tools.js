@@ -6,6 +6,45 @@ const models = require('./models');
 
 // Register all MCP tools on the given McpServer. Every tool returns a JSON text
 // payload and never throws — errors are serialized so the agent can react.
+
+// Minimal card shape for listing/orientation tools (list_cards, search_cards,
+// get_column). Cuts per-card JSON from ~450 chars to ~90 chars on large boards.
+function slimCard(c) {
+  const r = { id: c.id, title: c.title };
+  if (c.column_title) r.column = c.column_title;
+  if (c.priority)     r.priority = c.priority;
+  if (c.agent)        r.agent = c.agent;
+  if (c.tags && c.tags.length)       r.tags = c.tags;
+  if (c.blocked_by && c.blocked_by.length) r.blocked_by = c.blocked_by;
+  if (c.branch)       r.branch = c.branch;
+  return r;
+}
+
+// Card shape for get_board compact mode — keeps actionable fields but drops
+// long text (description, custom_prompt) and internal DB fields.
+function compactCard(c) {
+  return {
+    id:             c.id,
+    title:          c.title,
+    agent:          c.agent   || null,
+    model:          c.model   || null,
+    priority:       c.priority || null,
+    tags:           c.tags    || [],
+    blocked_by:     c.blocked_by || [],
+    branch:         c.branch  || null,
+    worktreePath:   c.worktreePath || null,
+    has_branch_changes: c.has_branch_changes || false,
+    merged_at:      c.merged_at || null,
+    requires_review: c.requires_review || false,
+    review_agent:   c.review_agent || null,
+    due_date:       c.due_date || null,
+  };
+}
+
+// Slim confirmation returned by mutation tools (move, complete, delete).
+// Agents only need to know the action succeeded and what card was affected.
+function ack(extra) { return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...extra }) }] }; }
+
 module.exports = function registerMcpTools(mcp) {
   mcp.tool(
     'get_board',
@@ -23,26 +62,23 @@ module.exports = function registerMcpTools(mcp) {
         if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
         const board = db.getBoard(activeId);
 
-        // Strip card descriptions and logs — the agent already has its own card's
-        // description in its prompt, and descriptions of other cards are rarely needed.
-        function compactCards(cols) {
-          return cols.map(col => ({
-            ...col,
-            cards: col.cards.map(({ description: _d, custom_prompt: _cp, ...rest }) => rest),
-          }));
+        // Strip descriptions, internal DB fields, and run-stats — agents have
+        // their own card's description in the prompt already.
+        function compactCols(cols) {
+          return cols.map(col => ({ ...col, cards: col.cards.map(compactCard) }));
         }
 
         if (columnTitle) {
           const col = board.columns.find(c => c.title === columnTitle);
           if (!col) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
-          const cols = compact ? compactCards([col]) : [col];
+          const cols = compact ? compactCols([col]) : [col];
           return { content: [{ type: 'text', text: JSON.stringify({ id: board.id, name: board.name, path: board.path, description: board.description, use_worktree: board.use_worktree, columns: cols, agentLog: (excludeLogs || compact) ? [] : board.agentLog }) }] };
         }
         if (columnsOnly) {
           return { content: [{ type: 'text', text: JSON.stringify({ id: board.id, name: board.name, path: board.path, description: board.description, use_worktree: board.use_worktree, columns: board.columns.map(c => ({ id: c.id, title: c.title, color: c.color, position: c.position, wip_limit: c.wip_limit })), agentLog: (excludeLogs || compact) ? [] : board.agentLog }) }] };
         }
         if (compact) {
-          return { content: [{ type: 'text', text: JSON.stringify({ ...board, columns: compactCards(board.columns), agentLog: [] }) }] };
+          return { content: [{ type: 'text', text: JSON.stringify({ ...board, columns: compactCols(board.columns), agentLog: [] }) }] };
         }
         if (excludeLogs) {
           return { content: [{ type: 'text', text: JSON.stringify({ ...board, agentLog: [] }) }] };
@@ -154,16 +190,20 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
-  mcp.tool('get_column', 'Get all cards in a specific column', { columnTitle: z.string(), workspaceId: z.string().optional() }, async ({ columnTitle, workspaceId }) => {
-    try {
-      const activeId = workspaceId || db.getActiveWorkspaceId();
-      if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
-      const board = db.getBoard(activeId);
-      const column = board.columns.find(c => c.title === columnTitle);
-      if (!column) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
-      return { content: [{ type: 'text', text: JSON.stringify({ column, cards: column.cards }) }] };
-    } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
-  });
+  mcp.tool('get_column', 'Get cards in a column (slim format: id/title/priority/agent/tags/branch). Use get_board({compact:true,columnTitle}) for the same with more card fields.',
+    { columnTitle: z.string(), workspaceId: z.string().optional() },
+    async ({ columnTitle, workspaceId }) => {
+      try {
+        const activeId = workspaceId || db.getActiveWorkspaceId();
+        if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+        const board = db.getBoard(activeId);
+        const column = board.columns.find(c => c.title === columnTitle);
+        if (!column) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
+        const cards = column.cards.map(c => slimCard({ ...c, column_title: columnTitle }));
+        return { content: [{ type: 'text', text: JSON.stringify({ columnId: column.id, columnTitle: column.title, wip_limit: column.wip_limit || null, count: cards.length, cards }) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
 
   mcp.tool('create_card', 'Create a new card in a column (default: Backlog). blocked_by takes card IDs that must reach Done before this card can move to In Progress.',
     { title: z.string(), workspaceId: z.string().optional(), columnTitle: z.string().optional(), tags: z.array(z.string()).optional(), description: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code']).optional(), model: z.string().optional(), priority: z.enum(['high', 'medium', 'low']).optional(), due_date: z.string().optional(), blocked_by: z.array(z.string()).optional(), review_agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code']).optional(), review_model: z.string().optional() },
@@ -186,7 +226,7 @@ module.exports = function registerMcpTools(mcp) {
         const card = db.createCard(activeId, column.id, title, { description, tags, agent, model, priority, due_date, blocked_by, review_agent, review_model });
         db.addAgentLog(activeId, agent || 'system', 'create_card', `Created '${title}' in ${columnTitle}`, card.id);
         emitSSE('board_update', db.getBoard(activeId));
-        return { content: [{ type: 'text', text: JSON.stringify(card) }] };
+        return ack({ cardId: card.id, title: card.title, column: columnTitle, agent: card.agent || null, priority: card.priority || null });
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
   );
@@ -227,7 +267,8 @@ module.exports = function registerMcpTools(mcp) {
           db.addAgentLog(card.workspace_id, card.agent || 'system', 'update_card', `Updated '${card.title}'`, cardId);
         }
         emitSSE('board_update', db.getBoard(card.workspace_id));
-        return { content: [{ type: 'text', text: JSON.stringify(db.getCard(cardId)) }] };
+        const updated = db.getCard(cardId);
+        return ack({ cardId, title: updated.title, agent: updated.agent || null, priority: updated.priority || null, tags: updated.tags });
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
   );
@@ -272,7 +313,7 @@ module.exports = function registerMcpTools(mcp) {
           }
         }
 
-        return { content: [{ type: 'text', text: JSON.stringify({ card, fromColumn: fromColumn.title, toColumn: toColumnTitle }) }] };
+        return ack({ cardId, title: card.title, from: fromColumn.title, to: toColumnTitle });
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
   );
@@ -294,7 +335,7 @@ module.exports = function registerMcpTools(mcp) {
       emitSSE('board_update', db.getBoard(card.workspace_id));
       emitSSE('trigger', { card, toColumn: 'Done' });
 
-      return { content: [{ type: 'text', text: JSON.stringify({ card, fromColumn: fromColumn.title }) }] };
+      return ack({ cardId, title: card.title, from: fromColumn.title, to: 'Done' });
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
@@ -309,7 +350,7 @@ module.exports = function registerMcpTools(mcp) {
       db.addAgentLog(card.workspace_id, 'system', 'delete_card', `Deleted '${card.title}'`, cardId);
       emitSSE('board_update', db.getBoard(card.workspace_id));
 
-      return { content: [{ type: 'text', text: JSON.stringify({ deleted: true, card }) }] };
+      return ack({ deleted: cardId, title: card.title });
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
@@ -338,9 +379,8 @@ module.exports = function registerMcpTools(mcp) {
         const card = db.getCard(cardId);
         if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
         const notes = db.getCardNotes(cardId);
-        const filtered = includeOutput
-          ? notes
-          : notes.filter(n => !n.content.startsWith('Agent session output'));
+        const filtered = (includeOutput ? notes : notes.filter(n => !n.content.startsWith('Agent session output')))
+          .map(({ content, createdAt }) => ({ content, createdAt })); // drop UUID id — never used by agents
         return { content: [{ type: 'text', text: JSON.stringify({ cardId, notes: filtered, omittedOutputDumps: notes.length - filtered.length }) }] };
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
@@ -359,7 +399,7 @@ module.exports = function registerMcpTools(mcp) {
       const activeId = workspaceId || db.getActiveWorkspaceId();
       if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ count: 0, total: 0, cards: [], limit, offset }) }] };
       const result = db.searchCards(activeId, { query, tag, column: columnTitle, agent, limit, offset });
-      return { content: [{ type: 'text', text: JSON.stringify({ count: result.cards.length, total: result.total, cards: result.cards, limit, offset }) }] };
+      return { content: [{ type: 'text', text: JSON.stringify({ count: result.cards.length, total: result.total, cards: result.cards.map(slimCard) }) }] };
     } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
   });
 
@@ -390,14 +430,14 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
-  mcp.tool('list_cards', 'List cards with optional filters (more efficient than get_board for finding card IDs)',
+  mcp.tool('list_cards', 'List cards with optional filters. Returns slim format (id/title/column/priority/agent/tags/branch) — much smaller than get_board.',
     { columnTitle: z.string().optional(), tag: z.string().optional(), agent: z.enum(['claude-code', 'opencode', 'codex', 'command-code']).optional(), workspaceId: z.string().optional(), limit: z.number().int().positive().optional(), offset: z.number().int().nonnegative().optional() },
     async ({ columnTitle, tag, agent, workspaceId, limit = 50, offset = 0 }) => {
       try {
         const activeId = workspaceId || db.getActiveWorkspaceId();
-        if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ count: 0, total: 0, cards: [], limit, offset }) }] };
+        if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ count: 0, total: 0, cards: [] }) }] };
         const result = db.listCards(activeId, { column: columnTitle, tag, agent, limit, offset });
-        return { content: [{ type: 'text', text: JSON.stringify({ count: result.cards.length, total: result.total, cards: result.cards, limit, offset }) }] };
+        return { content: [{ type: 'text', text: JSON.stringify({ count: result.cards.length, total: result.total, cards: result.cards.map(slimCard) }) }] };
       } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
     }
   );
