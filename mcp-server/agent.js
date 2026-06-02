@@ -271,8 +271,28 @@ ${worktreeWarning}
 ${boardApi} Commit with git as you go.${custom}`;
 }
 
+function killProcessTree(child) {
+  if (process.platform === 'win32' && child.pid) {
+    // On Windows, child.kill() only kills the cmd.exe shell, not the agent
+    // grandchild it spawned. The grandchild keeps the stdout pipe open, so
+    // child.on('close') never fires and outStream leaks. taskkill /T /F kills
+    // the entire process tree rooted at the shell.
+    try { execSync(`taskkill /T /F /PID ${child.pid}`, { stdio: 'ignore', timeout: 5000 }); } catch (_) {}
+  } else {
+    try { child.kill(); } catch (_) {}
+  }
+}
+
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {
   const outStream = fs.createWriteStream(outputFile, { flags: 'w' });
+
+  // Without an error handler, a write failure (disk full, bad path, etc.)
+  // throws an uncaught exception and crashes the server.
+  outStream.on('error', (err) => {
+    process.stderr.write(`[agent] output stream error for card ${cardId}: ${err.message}\n`);
+    outStream.destroy();
+  });
+
   const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
   fs.writeFileSync(promptFile, prompt, 'utf8');
 
@@ -286,8 +306,11 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
   child.stdout.pipe(outStream, { end: false });
   child.stderr.pipe(outStream, { end: false });
 
-  child.on('close', (code) => {
-    outStream.end();
+  let doneFired = false;
+  function notifyDone(code) {
+    if (doneFired) return;
+    doneFired = true;
+    if (!outStream.destroyed) outStream.end();
     try { fs.unlinkSync(promptFile); } catch (_) {}
     const agentInfo = activeAgents.get(cardId);
     if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
@@ -297,23 +320,15 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: code ?? 1 }),
     });
-  });
+  }
 
+  child.on('close', (code) => notifyDone(code));
   child.on('error', (err) => {
-    outStream.write(`\n[error: ${err.message}]\n`);
-    outStream.end();
-    try { fs.unlinkSync(promptFile); } catch (_) {}
-    const agentInfo = activeAgents.get(cardId);
-    if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
-    removePid(cardId);
-    fetchWithRetry(`http://localhost:${PORT}/api/agent-done/${cardId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: 1 }),
-    });
+    if (!outStream.destroyed) outStream.write(`\n[error: ${err.message}]\n`);
+    notifyDone(1);
   });
 
-  return child;
+  return { child, outStream };
 }
 
 function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
@@ -411,7 +426,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
   try {
-    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
+    const { child, outStream } = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
     const transform = agentType === 'claude-code' ? parseClaudeStreamJson : null;
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE, transform);
 
@@ -420,13 +435,13 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
       process.stderr.write(`Agent timeout (${AGENT_TIMEOUT_MS / 60000}min) for card ${cardId}\n`);
       addCardNote(cardId, `Agent timed out after ${AGENT_TIMEOUT_MS / 60000} minutes and was stopped.`);
       addAgentLog(workspaceId, agentType, 'agent_timeout', `Timed out for card ${cardId}`, cardId);
-      try { child?.kill(); } catch (_) {}
+      killProcessTree(child);
       agentDone(cardId, 1, emitSSE);
     }, AGENT_TIMEOUT_MS);
 
     const startTime = new Date().toISOString();
     activeAgents.set(cardId, {
-      cardId, workspaceId, agentType, child,
+      cardId, workspaceId, agentType, child, outStream,
       startTime, outputFile, watchInterval, timeoutId,
       workspacePath: workspace.path,
       worktreePath,
@@ -443,7 +458,8 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
     if (leaked) {
       if (leaked.watchInterval) clearInterval(leaked.watchInterval);
       if (leaked.timeoutId) clearTimeout(leaked.timeoutId);
-      try { leaked.child?.kill(); } catch (_) {}
+      killProcessTree(leaked.child);
+      try { leaked.outStream?.destroy(); } catch (_) {}
       activeAgents.delete(cardId);
       removePid(cardId);
     }
@@ -581,7 +597,13 @@ function stopAgent(cardId, emitSSE) {
   if (!info) return dequeued;
   if (info.watchInterval) clearInterval(info.watchInterval);
   if (info.timeoutId) clearTimeout(info.timeoutId);
-  try { info.child?.kill(); } catch (_) {}
+  // Unpipe first so the dying grandchild can't write to a closed stream,
+  // then kill the process tree (taskkill /T on Windows, kill on POSIX),
+  // then destroy the output stream to release the file handle immediately.
+  try { info.child?.stdout?.unpipe(); } catch (_) {}
+  try { info.child?.stderr?.unpipe(); } catch (_) {}
+  killProcessTree(info.child);
+  try { info.outStream?.destroy(); } catch (_) {}
   activeAgents.delete(cardId);
   removePid(cardId);
   addAgentLog(info.workspaceId, info.agentType, 'agent_stopped', `Stopped agent for card ${cardId}`, cardId);
@@ -596,7 +618,10 @@ function killAllAgents() {
   for (const info of activeAgents.values()) {
     if (info.watchInterval) clearInterval(info.watchInterval);
     if (info.timeoutId) clearTimeout(info.timeoutId);
-    try { info.child?.kill(); } catch (_) {}
+    try { info.child?.stdout?.unpipe(); } catch (_) {}
+    try { info.child?.stderr?.unpipe(); } catch (_) {}
+    killProcessTree(info.child);
+    try { info.outStream?.destroy(); } catch (_) {}
   }
   activeAgents.clear();
   agentQueue.length = 0;
