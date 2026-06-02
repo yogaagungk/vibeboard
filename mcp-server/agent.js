@@ -273,16 +273,13 @@ function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
       : card.in_progress_base_sha
         ? `git log --oneline ${card.in_progress_base_sha}..HEAD && git diff ${card.in_progress_base_sha}..HEAD`
         : `git log --oneline -10 && git diff HEAD~1`;
-    phase = `Phase: REVIEW - verify the implementation completed during In Progress.
-
-Your job:
-1. Start by running: ${diffCmd}
-2. Confirm the implementation satisfies the original task (title + description above).
-3. Run any existing tests.
-4. If trivial issues found (typo, missing return, off-by-one): fix them, commit, then call complete_card.
-5. If significant issues found (wrong logic, missing feature, broken tests): call update_card(cardId, { review_issue: true }) then add_card_note describing exactly what is wrong and what needs to change, then stop. Do NOT call complete_card.
-6. If everything looks correct: call complete_card.
-Do NOT re-implement from scratch.`;
+    phase = `Phase: REVIEW
+1. Run: ${diffCmd}
+2. Verify implementation matches the task. Run existing tests.
+3. Trivial issues (typo, off-by-one): fix, commit, complete_card.
+4. Significant issues (wrong logic, broken tests): update_card({review_issue:true}), add_card_note with details, stop — do NOT complete_card.
+5. All good: complete_card.
+Do not re-implement from scratch.`;
   } else if (colTitle === 'Done') {
     phase = `Phase: DONE - work is complete; ensure everything is committed. The user merges manually.`;
   } else {
@@ -310,8 +307,13 @@ Do NOT run taste commands or create/update any taste.md files.`
   // Workspace description — placed first so it forms a stable cached prefix
   // for Claude (prompt caching requires a long identical prefix). All agents
   // benefit from having project context before the task details.
-  const wsContext = workspace.description
-    ? `Workspace: ${sanitizeForPrompt(workspace.name || '')}\n${sanitizeForPrompt(workspace.description)}\n\n`
+  const MAX_WS_DESC = 1000;
+  const wsDesc = workspace.description
+    ? sanitizeForPrompt(workspace.description).slice(0, MAX_WS_DESC) +
+      (workspace.description.length > MAX_WS_DESC ? `\n[workspace description truncated — ${workspace.description.length - MAX_WS_DESC} chars omitted]` : '')
+    : '';
+  const wsContext = wsDesc
+    ? `Workspace: ${sanitizeForPrompt(workspace.name || '')}\n${wsDesc}\n\n`
     : '';
 
   const priorContext = buildPriorContext(card.id);
