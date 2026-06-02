@@ -7,25 +7,50 @@ const models = require('./models');
 // Register all MCP tools on the given McpServer. Every tool returns a JSON text
 // payload and never throws — errors are serialized so the agent can react.
 module.exports = function registerMcpTools(mcp) {
-  mcp.tool('get_board', 'Get the full board state of the active workspace', { workspaceId: z.string().optional(), columnsOnly: z.boolean().optional(), excludeLogs: z.boolean().optional(), columnTitle: z.string().optional() }, async ({ workspaceId, columnsOnly, excludeLogs, columnTitle }) => {
-    try {
-      const activeId = workspaceId || db.getActiveWorkspaceId();
-      if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
-      const board = db.getBoard(activeId);
-      if (columnTitle) {
-        const col = board.columns.find(c => c.title === columnTitle);
-        if (!col) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
-        return { content: [{ type: 'text', text: JSON.stringify({ id: board.id, name: board.name, path: board.path, description: board.description, use_worktree: board.use_worktree, columns: [col], agentLog: excludeLogs ? [] : board.agentLog }) }] };
-      }
-      if (columnsOnly) {
-        return { content: [{ type: 'text', text: JSON.stringify({ id: board.id, name: board.name, path: board.path, description: board.description, use_worktree: board.use_worktree, columns: board.columns.map(c => ({ id: c.id, title: c.title, color: c.color, position: c.position, wip_limit: c.wip_limit })), agentLog: excludeLogs ? [] : board.agentLog }) }] };
-      }
-      if (excludeLogs) {
-        return { content: [{ type: 'text', text: JSON.stringify({ ...board, agentLog: [] }) }] };
-      }
-      return { content: [{ type: 'text', text: JSON.stringify(board) }] };
-    } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
-  });
+  mcp.tool(
+    'get_board',
+    'Get the board state. Use compact:true (recommended) to strip card descriptions and logs — saves significant context when you only need card titles/IDs to orient yourself. Use columnsOnly:true for just column structure. Use columnTitle to focus on one column.',
+    {
+      workspaceId:  z.string().optional(),
+      columnsOnly:  z.boolean().optional(),
+      excludeLogs:  z.boolean().optional(),
+      columnTitle:  z.string().optional(),
+      compact:      z.boolean().optional(),
+    },
+    async ({ workspaceId, columnsOnly, excludeLogs, columnTitle, compact }) => {
+      try {
+        const activeId = workspaceId || db.getActiveWorkspaceId();
+        if (!activeId) return { content: [{ type: 'text', text: JSON.stringify({ error: 'No active workspace' }) }] };
+        const board = db.getBoard(activeId);
+
+        // Strip card descriptions and logs — the agent already has its own card's
+        // description in its prompt, and descriptions of other cards are rarely needed.
+        function compactCards(cols) {
+          return cols.map(col => ({
+            ...col,
+            cards: col.cards.map(({ description: _d, custom_prompt: _cp, ...rest }) => rest),
+          }));
+        }
+
+        if (columnTitle) {
+          const col = board.columns.find(c => c.title === columnTitle);
+          if (!col) return { content: [{ type: 'text', text: JSON.stringify({ error: `Column not found: ${columnTitle}` }) }] };
+          const cols = compact ? compactCards([col]) : [col];
+          return { content: [{ type: 'text', text: JSON.stringify({ id: board.id, name: board.name, path: board.path, description: board.description, use_worktree: board.use_worktree, columns: cols, agentLog: (excludeLogs || compact) ? [] : board.agentLog }) }] };
+        }
+        if (columnsOnly) {
+          return { content: [{ type: 'text', text: JSON.stringify({ id: board.id, name: board.name, path: board.path, description: board.description, use_worktree: board.use_worktree, columns: board.columns.map(c => ({ id: c.id, title: c.title, color: c.color, position: c.position, wip_limit: c.wip_limit })), agentLog: (excludeLogs || compact) ? [] : board.agentLog }) }] };
+        }
+        if (compact) {
+          return { content: [{ type: 'text', text: JSON.stringify({ ...board, columns: compactCards(board.columns), agentLog: [] }) }] };
+        }
+        if (excludeLogs) {
+          return { content: [{ type: 'text', text: JSON.stringify({ ...board, agentLog: [] }) }] };
+        }
+        return { content: [{ type: 'text', text: JSON.stringify(board) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
 
   mcp.tool('list_workspaces', 'List all workspaces and which one is active', {}, async () => {
     try {
@@ -304,14 +329,22 @@ module.exports = function registerMcpTools(mcp) {
     }
   );
 
-  mcp.tool('get_card_notes', 'Get all notes for a card', { cardId: z.string() }, async ({ cardId }) => {
-    try {
-      const card = db.getCard(cardId);
-      if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
-      const notes = db.getCardNotes(cardId);
-      return { content: [{ type: 'text', text: JSON.stringify({ cardId, notes }) }] };
-    } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
-  });
+  mcp.tool(
+    'get_card_notes',
+    'Get progress notes for a card. Session output dumps (large raw terminal output) are excluded by default to save context — pass includeOutput:true only if you need the full terminal transcript.',
+    { cardId: z.string(), includeOutput: z.boolean().optional() },
+    async ({ cardId, includeOutput = false }) => {
+      try {
+        const card = db.getCard(cardId);
+        if (!card) return { content: [{ type: 'text', text: JSON.stringify({ error: `Card not found: ${cardId}` }) }] };
+        const notes = db.getCardNotes(cardId);
+        const filtered = includeOutput
+          ? notes
+          : notes.filter(n => !n.content.startsWith('Agent session output'));
+        return { content: [{ type: 'text', text: JSON.stringify({ cardId, notes: filtered, omittedOutputDumps: notes.length - filtered.length }) }] };
+      } catch (err) { return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] }; }
+    }
+  );
 
   mcp.tool('search_cards', 'Search cards by text, tag, column, agent, or status without loading the full board', {
     query: z.string().optional(),

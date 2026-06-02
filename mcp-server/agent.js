@@ -243,10 +243,16 @@ function buildPriorContext(cardId) {
   return `Prior work (previous session):\n${progress.map(n => `- ${n.content.trim()}`).join('\n')}`;
 }
 
+const MAX_DESC_CHARS = 2000;
+
 function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
+  const desc = card.description && card.description.length > MAX_DESC_CHARS
+    ? card.description.slice(0, MAX_DESC_CHARS) + `\n[description truncated — ${card.description.length - MAX_DESC_CHARS} chars omitted]`
+    : card.description;
+
   const dataBlock = wrapCardData([
     { label: 'Title',       value: card.title },
-    { label: 'Description', value: card.description },
+    { label: 'Description', value: desc },
     { label: 'Tags',        value: (card.tags || []).join(', ') },
     { label: 'Priority',    value: card.priority },
     { label: 'Due',         value: card.due_date },
@@ -299,7 +305,7 @@ Do NOT re-implement from scratch.`;
 - Complete:      POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
 Call these often to log progress, and call complete at the end.
 Do NOT run taste commands or create/update any taste.md files.`
-    : `Use VibeBoard MCP tools: add_card_note to log progress, move_card / complete_card to change status.`;
+    : `Use VibeBoard MCP tools: add_card_note to log progress, move_card / complete_card to change status. When reading the board use get_board({compact:true}) or get_column/list_cards instead of full get_board to avoid loading unnecessary descriptions.`;
 
   // Workspace description — placed first so it forms a stable cached prefix
   // for Claude (prompt caching requires a long identical prefix). All agents
