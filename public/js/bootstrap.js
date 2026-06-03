@@ -216,7 +216,12 @@ const headerAgentsCount   = document.getElementById('header-agents-count');
 // ── Utilities ──────────────────────────────────────────────────────────────
 function uid() { return crypto.randomUUID(); }
 function stableHash(o) { return JSON.stringify(o); }
-function fmtTime(iso) { return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function fmtTime(iso) {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'});
+  const time = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  return `${date}, ${time}`;
+}
 function folderName(p) { return p.replace(/[/\\]+$/, '').split(/[/\\]/).filter(Boolean).pop() || ''; }
 
 function timeAgo(isoString) {
