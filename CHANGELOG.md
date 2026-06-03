@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-03
+
+### Added
+- **`get_card` MCP tool** — returns the full, untruncated card details (title, description, column, tags, priority, blocked_by, branch, requires_review, custom_prompt, agent/model). Agents that need to re-read their task mid-session no longer have to call `get_board` or `get_column`.
+- **Spawn debounce (1.5 s)** — all user-triggered spawns (UI drag-and-drop, MCP `move_card`) wait 1.5 s before launching an agent. Moving a card back within that window costs zero tokens. Internal spawns (queue drain, Review-phase respawn) are unaffected.
+- **Workspace description in agent prompt** — the workspace "Notes" field is now included at the top of every spawn prompt, giving all agents project-level context and forming a stable cached prefix for Claude prompt caching.
+- **Prior session notes in prompt** — the last 5 short progress notes (<600 chars, excluding output dumps) from previous sessions are included as a "Prior work" section. Agents retrying a failed card can continue rather than restart from scratch.
+- **`get_board` compact mode** now strips all internal DB fields (column_id, workspace_id, agent_ran_at, last_exit_code, last_duration, last_cost, last_tokens, in_progress_base_sha, position, createdAt, review_issue) in addition to descriptions, not just `description` and `custom_prompt`.
+- **`get_card_notes` output dump filter** — session output dumps ("Agent session output…") are excluded by default; pass `includeOutput:true` to include them. Response includes `omittedOutputDumps` count.
+- **`get_board` `includeLogs` param** — agent log is now excluded by default (was included). Pass `includeLogs:true` to include. The log can reach 500 entries × ~150 chars each; excluding it by default saves up to 75 k chars per `get_board` call.
+- **Card description cap in prompt** — descriptions longer than 2 000 chars are truncated with a byte-count marker. Agents can call `get_card(cardId)` to read the full text.
+- **Workspace description cap in prompt** — workspace descriptions longer than 1 000 chars are truncated with a byte-count marker.
+
+### Changed
+- **MCP listing tools return slim card format** — `list_cards`, `search_cards`, and `get_column` now return only `{id, title, column, priority, agent, tags?, blocked_by?, branch?}` per card (~90 chars vs ~450 chars previously, ~5× reduction for large boards).
+- **Mutation tools return slim confirmations** — `move_card`, `complete_card`, `delete_card`, `create_card`, and `update_card` return `{ok, cardId, title, …}` instead of the full card object with internal DB fields.
+- **Review phase prompt condensed** (~40% shorter, same decision rules).
+- **All MCP tool descriptions trimmed** — descriptions are serialised into every API request; shorter descriptions reduce fixed per-call overhead across all 23 tools.
+- **Windows agent kill uses `taskkill /T /F`** — `child.kill()` only terminated `cmd.exe`, leaving the agent grandchild (claude.exe, codex.exe, etc.) alive and holding stdout pipe open. `killProcessTree()` now kills the full process tree on Windows.
+- **Agent stop unpipes streams immediately** — `stopAgent` and `killAllAgents` unpipe stdout/stderr and destroy outStream before killing, releasing the file handle even if the grandchild survives momentarily.
+- **`get_board` boardApi prompt hint** updated to name `get_card(cardId)` as the canonical way to read full task details, and to steer agents away from plain `get_board` toward `compact:true` / `get_column` / `list_cards`.
+- **`columnsOnly` response** stripped of color/position fields agents never use.
+
+### Fixed
+- **Running dot appeared on wrong side of agent badge** — on `agent_started` SSE the dot was `appendChild`-ed (right of badge); initial render appended it before the badge (left). Fixed with `prepend`.
+- **Virtualized column scroll listeners leaked on every board re-render** — `boardEl.innerHTML = ''` orphaned detached `cardsList` nodes and their scroll listeners in the `virtualizedColumns` Map. Now calls `destroyVirtualization` for all columns before clearing.
+- **Agent output stream missing error handler** — a disk-full or permission error on the output write stream emitted an unhandled `error` event that crashed the server. Now logs and destroys the stream gracefully.
+- **`agentDone` called twice on spawn failure** — both `child.on('error')` and `child.on('close')` fired independently, making two concurrent `fetchWithRetry` calls to `/api/agent-done`. A `doneFired` guard makes it idempotent.
+
 ## [0.3.3] - 2026-06-02
 
 ### Fixed
@@ -182,7 +211,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Queue position note** — queued agent note now shows "Position in queue: N" (removed the
   redundant "of N" which always equalled N).
 
-[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.2.14...HEAD
+[Unreleased]: https://github.com/zanuartri/vibeboard/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/zanuartri/vibeboard/compare/v0.3.3...v0.4.0
+[0.3.3]: https://github.com/zanuartri/vibeboard/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/zanuartri/vibeboard/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/zanuartri/vibeboard/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/zanuartri/vibeboard/compare/v0.2.14...v0.3.0
 [0.2.14]: https://github.com/zanuartri/vibeboard/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/zanuartri/vibeboard/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/zanuartri/vibeboard/compare/v0.2.11...v0.2.12
