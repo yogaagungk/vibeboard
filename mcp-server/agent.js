@@ -1,7 +1,7 @@
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, DATA_DIR } = require('./db');
+const { getCard, getColumn, getWorkspace, updateCard, addCardNote, addAgentLog, getCardNotes, DATA_DIR } = require('./db');
 const wt = require('./worktree');
 const { verifySpawnDir } = require('./path-guard');
 const { sanitizeForPrompt, wrapCardData } = require('./prompt-sanitize');
@@ -19,6 +19,32 @@ const pendingRespawn = new Map(); // cardId -> [{ workspaceId, agentType }, ...]
 // activeAgents — both live in the single HTTP-server process that owns lifecycles.
 const MAX_CONCURRENT = parseInt(process.env.VB_MAX_AGENTS || '', 10) || 3;
 const agentQueue = []; // [{ cardId, workspaceId, agentType }]
+
+// Debounce timers for user-triggered spawns (drag-and-drop / MCP move_card).
+// Gives the user a 1.5 s window to undo an accidental move before an agent
+// is spawned and starts consuming tokens. Internal spawns (dequeueNext,
+// Review-phase respawn) bypass this and call spawnAgent() directly.
+const SPAWN_DEBOUNCE_MS = 1500;
+const spawnTimers = new Map(); // cardId -> timeoutId
+
+function scheduleSpawn(cardId, workspaceId, agentType, emitSSE, modelOverride) {
+  if (spawnTimers.has(cardId)) {
+    clearTimeout(spawnTimers.get(cardId));
+    spawnTimers.delete(cardId);
+  }
+  const tid = setTimeout(() => {
+    spawnTimers.delete(cardId);
+    spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride);
+  }, SPAWN_DEBOUNCE_MS);
+  spawnTimers.set(cardId, tid);
+}
+
+function cancelScheduledSpawn(cardId) {
+  if (spawnTimers.has(cardId)) {
+    clearTimeout(spawnTimers.get(cardId));
+    spawnTimers.delete(cardId);
+  }
+}
 
 // Agent prompt/output files can contain source code and secrets from a session,
 // so keep them in the user-scoped data dir rather than world-readable os.tmpdir().
@@ -204,10 +230,29 @@ function startOutputWatcher(cardId, outputFile, emitSSE, transform) {
   }, 500);
 }
 
+function buildPriorContext(cardId) {
+  let notes;
+  try { notes = getCardNotes(cardId); } catch (_) { return ''; }
+  if (!notes || !notes.length) return '';
+  // Exclude full session output dumps (large, low signal for retry context).
+  // Keep short progress notes written by the agent via add_card_note.
+  const progress = notes
+    .filter(n => !n.content.startsWith('Agent session output') && n.content.length < 600)
+    .slice(-5);
+  if (!progress.length) return '';
+  return `Prior work (previous session):\n${progress.map(n => `- ${n.content.trim()}`).join('\n')}`;
+}
+
+const MAX_DESC_CHARS = 2000;
+
 function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
+  const desc = card.description && card.description.length > MAX_DESC_CHARS
+    ? card.description.slice(0, MAX_DESC_CHARS) + `\n[description truncated — ${card.description.length - MAX_DESC_CHARS} chars omitted]`
+    : card.description;
+
   const dataBlock = wrapCardData([
     { label: 'Title',       value: card.title },
-    { label: 'Description', value: card.description },
+    { label: 'Description', value: desc },
     { label: 'Tags',        value: (card.tags || []).join(', ') },
     { label: 'Priority',    value: card.priority },
     { label: 'Due',         value: card.due_date },
@@ -228,16 +273,13 @@ function buildPrompt(card, column, workspace, branch, worktreePath, agentType) {
       : card.in_progress_base_sha
         ? `git log --oneline ${card.in_progress_base_sha}..HEAD && git diff ${card.in_progress_base_sha}..HEAD`
         : `git log --oneline -10 && git diff HEAD~1`;
-    phase = `Phase: REVIEW - verify the implementation completed during In Progress.
-
-Your job:
-1. Start by running: ${diffCmd}
-2. Confirm the implementation satisfies the original task (title + description above).
-3. Run any existing tests.
-4. If trivial issues found (typo, missing return, off-by-one): fix them, commit, then call complete_card.
-5. If significant issues found (wrong logic, missing feature, broken tests): call update_card(cardId, { review_issue: true }) then add_card_note describing exactly what is wrong and what needs to change, then stop. Do NOT call complete_card.
-6. If everything looks correct: call complete_card.
-Do NOT re-implement from scratch.`;
+    phase = `Phase: REVIEW
+1. Run: ${diffCmd}
+2. Verify implementation matches the task. Run existing tests.
+3. Trivial issues (typo, off-by-one): fix, commit, complete_card.
+4. Significant issues (wrong logic, broken tests): update_card({review_issue:true}), add_card_note with details, stop — do NOT complete_card.
+5. All good: complete_card.
+Do not re-implement from scratch.`;
   } else if (colTitle === 'Done') {
     phase = `Phase: DONE - work is complete; ensure everything is committed. The user merges manually.`;
   } else {
@@ -254,25 +296,61 @@ Do NOT re-implement from scratch.`;
     : '';
 
   const boardApi = agentType === 'command-code'
-    ? `The vibeboard MCP tools are not available in this mode. Use shell_command to call the vibeboard HTTP API at http://localhost:${PORT} to update the board:
-- Add a progress note: POST http://localhost:${PORT}/api/cards/${card.id}/note   body: {"content":"your note"}
-- Move to a column:    POST http://localhost:${PORT}/api/cards/${card.id}/move    body: {"toColumnTitle":"Done"}
-- Complete the card:   POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
+    ? `Use the VibeBoard HTTP API to update the board (MCP not available in this mode):
+- Progress note: POST http://localhost:${PORT}/api/cards/${card.id}/note   body: {"content":"your note"}
+- Move column:   POST http://localhost:${PORT}/api/cards/${card.id}/move    body: {"toColumnTitle":"Done"}
+- Complete:      POST http://localhost:${PORT}/api/cards/${card.id}/complete (no body)
 Call these often to log progress, and call complete at the end.
 Do NOT run taste commands or create/update any taste.md files.`
-    : `Use vibeboard MCP tools: add_card_note to log progress, move_card / complete_card to change status.`;
+    : `Use VibeBoard MCP tools: get_card(cardId) to read your full task description, add_card_note to log progress, move_card / complete_card to change status. When reading the board use get_board({compact:true}) or get_column/list_cards — never plain get_board which loads all descriptions.`;
 
-  return `Task on VibeBoard.
+  // Workspace description — placed first so it forms a stable cached prefix
+  // for Claude (prompt caching requires a long identical prefix). All agents
+  // benefit from having project context before the task details.
+  const MAX_WS_DESC = 1000;
+  const wsDesc = workspace.description
+    ? sanitizeForPrompt(workspace.description).slice(0, MAX_WS_DESC) +
+      (workspace.description.length > MAX_WS_DESC ? `\n[workspace description truncated — ${workspace.description.length - MAX_WS_DESC} chars omitted]` : '')
+    : '';
+  const wsContext = wsDesc
+    ? `Workspace: ${sanitizeForPrompt(workspace.name || '')}\n${wsDesc}\n\n`
+    : '';
+
+  const priorContext = buildPriorContext(card.id);
+  const priorSection = priorContext ? `\n${priorContext}\n` : '';
+
+  return `${wsContext}Task on VibeBoard.
 ${dataBlock ? dataBlock + '\n\n' : ''}Card ID: ${card.id} - Workspace ID: ${workspace.id}
 Work in: ${workIn}
 ${branchLine}
 ${phase}
 ${worktreeWarning}
+${priorSection}
 ${boardApi} Commit with git as you go.${custom}`;
+}
+
+function killProcessTree(child) {
+  if (process.platform === 'win32' && child.pid) {
+    // On Windows, child.kill() only kills the cmd.exe shell, not the agent
+    // grandchild it spawned. The grandchild keeps the stdout pipe open, so
+    // child.on('close') never fires and outStream leaks. taskkill /T /F kills
+    // the entire process tree rooted at the shell.
+    try { execSync(`taskkill /T /F /PID ${child.pid}`, { stdio: 'ignore', timeout: 5000 }); } catch (_) {}
+  } else {
+    try { child.kill(); } catch (_) {}
+  }
 }
 
 function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model) {
   const outStream = fs.createWriteStream(outputFile, { flags: 'w' });
+
+  // Without an error handler, a write failure (disk full, bad path, etc.)
+  // throws an uncaught exception and crashes the server.
+  outStream.on('error', (err) => {
+    process.stderr.write(`[agent] output stream error for card ${cardId}: ${err.message}\n`);
+    outStream.destroy();
+  });
+
   const promptFile = path.join(AGENT_IO_DIR, `vb-prompt-${cardId}.txt`);
   fs.writeFileSync(promptFile, prompt, 'utf8');
 
@@ -286,8 +364,11 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
   child.stdout.pipe(outStream, { end: false });
   child.stderr.pipe(outStream, { end: false });
 
-  child.on('close', (code) => {
-    outStream.end();
+  let doneFired = false;
+  function notifyDone(code) {
+    if (doneFired) return;
+    doneFired = true;
+    if (!outStream.destroyed) outStream.end();
     try { fs.unlinkSync(promptFile); } catch (_) {}
     const agentInfo = activeAgents.get(cardId);
     if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
@@ -297,23 +378,15 @@ function launchAgent(agentType, prompt, outputFile, workspaceDir, cardId, model)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: code ?? 1 }),
     });
-  });
+  }
 
+  child.on('close', (code) => notifyDone(code));
   child.on('error', (err) => {
-    outStream.write(`\n[error: ${err.message}]\n`);
-    outStream.end();
-    try { fs.unlinkSync(promptFile); } catch (_) {}
-    const agentInfo = activeAgents.get(cardId);
-    if (agentInfo?.timeoutId) clearTimeout(agentInfo.timeoutId);
-    removePid(cardId);
-    fetchWithRetry(`http://localhost:${PORT}/api/agent-done/${cardId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: 1 }),
-    });
+    if (!outStream.destroyed) outStream.write(`\n[error: ${err.message}]\n`);
+    notifyDone(1);
   });
 
-  return child;
+  return { child, outStream };
 }
 
 function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
@@ -411,7 +484,7 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
   try { fs.unlinkSync(outputFile); } catch (_) {}
 
   try {
-    const child = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
+    const { child, outStream } = launchAgent(agentType, prompt, outputFile, spawnDir, cardId, modelToUse);
     const transform = agentType === 'claude-code' ? parseClaudeStreamJson : null;
     const watchInterval = startOutputWatcher(cardId, outputFile, emitSSE, transform);
 
@@ -420,13 +493,13 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
       process.stderr.write(`Agent timeout (${AGENT_TIMEOUT_MS / 60000}min) for card ${cardId}\n`);
       addCardNote(cardId, `Agent timed out after ${AGENT_TIMEOUT_MS / 60000} minutes and was stopped.`);
       addAgentLog(workspaceId, agentType, 'agent_timeout', `Timed out for card ${cardId}`, cardId);
-      try { child?.kill(); } catch (_) {}
+      killProcessTree(child);
       agentDone(cardId, 1, emitSSE);
     }, AGENT_TIMEOUT_MS);
 
     const startTime = new Date().toISOString();
     activeAgents.set(cardId, {
-      cardId, workspaceId, agentType, child,
+      cardId, workspaceId, agentType, child, outStream,
       startTime, outputFile, watchInterval, timeoutId,
       workspacePath: workspace.path,
       worktreePath,
@@ -443,7 +516,8 @@ function spawnAgent(cardId, workspaceId, agentType, emitSSE, modelOverride) {
     if (leaked) {
       if (leaked.watchInterval) clearInterval(leaked.watchInterval);
       if (leaked.timeoutId) clearTimeout(leaked.timeoutId);
-      try { leaked.child?.kill(); } catch (_) {}
+      killProcessTree(leaked.child);
+      try { leaked.outStream?.destroy(); } catch (_) {}
       activeAgents.delete(cardId);
       removePid(cardId);
     }
@@ -562,6 +636,9 @@ function agentDone(cardId, code, emitSSE) {
 }
 
 function stopAgent(cardId, emitSSE) {
+  // Cancel any pending debounced spawn for this card.
+  cancelScheduledSpawn(cardId);
+
   // Drop it from the queue first, in case it was waiting rather than running.
   let dequeued = false;
   if (isQueued(cardId)) {
@@ -581,7 +658,13 @@ function stopAgent(cardId, emitSSE) {
   if (!info) return dequeued;
   if (info.watchInterval) clearInterval(info.watchInterval);
   if (info.timeoutId) clearTimeout(info.timeoutId);
-  try { info.child?.kill(); } catch (_) {}
+  // Unpipe first so the dying grandchild can't write to a closed stream,
+  // then kill the process tree (taskkill /T on Windows, kill on POSIX),
+  // then destroy the output stream to release the file handle immediately.
+  try { info.child?.stdout?.unpipe(); } catch (_) {}
+  try { info.child?.stderr?.unpipe(); } catch (_) {}
+  killProcessTree(info.child);
+  try { info.outStream?.destroy(); } catch (_) {}
   activeAgents.delete(cardId);
   removePid(cardId);
   addAgentLog(info.workspaceId, info.agentType, 'agent_stopped', `Stopped agent for card ${cardId}`, cardId);
@@ -596,7 +679,10 @@ function killAllAgents() {
   for (const info of activeAgents.values()) {
     if (info.watchInterval) clearInterval(info.watchInterval);
     if (info.timeoutId) clearTimeout(info.timeoutId);
-    try { info.child?.kill(); } catch (_) {}
+    try { info.child?.stdout?.unpipe(); } catch (_) {}
+    try { info.child?.stderr?.unpipe(); } catch (_) {}
+    killProcessTree(info.child);
+    try { info.outStream?.destroy(); } catch (_) {}
   }
   activeAgents.clear();
   agentQueue.length = 0;
@@ -626,4 +712,4 @@ function getPendingRespawnCardIds() {
   return Array.from(pendingRespawn.keys());
 }
 
-module.exports = { spawnAgent, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt, isQueued };
+module.exports = { spawnAgent, scheduleSpawn, cancelScheduledSpawn, agentDone, stopAgent, killAllAgents, isAgentRunning, isAgentActive, getRunningCardIds, getQueuedCardIds, getPendingRespawnCardIds, isPendingRespawn, getOutputFile, buildShellCmd, isSafeModel, parseUsage, buildPrompt, isQueued };

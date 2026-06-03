@@ -67,24 +67,38 @@ token), `app.js` last (it calls `init()`).
 
 ## MCP tools available to agents
 
-get_board          → read full board state (params: workspaceId?, columnsOnly?, excludeLogs?, columnTitle?)
-get_column         → read cards in a specific column by title (params: columnTitle, workspaceId?)
-list_cards         → list cards with filters, more efficient than get_board (params: columnTitle?, tag?, agent?, workspaceId?, limit?, offset?)
+**Reading your task — start here:**
+get_card           → full card details incl. untruncated description (params: cardId) ← use this first
+get_card_notes     → progress notes for a card; output dumps excluded by default (params: cardId, includeOutput?)
+
+**Board navigation — prefer these over get_board:**
+get_column         → slim card list for a specific column (params: columnTitle, workspaceId?)
+list_cards         → slim card list with filters (params: columnTitle?, tag?, agent?, workspaceId?, limit?, offset?)
+search_cards       → slim card list by text/tag/column/agent (params: query?, tag?, columnTitle?, agent?, workspaceId?, limit?, offset?)
+get_board          → board state; log excluded by default (params: workspaceId?, columnsOnly?, columnTitle?, compact?, includeLogs?)
+
+**Board mutations:**
+move_card          → move a card between columns (params: cardId, toColumnTitle)
+complete_card      → move a card to Done (params: cardId)
+add_card_note      → add a progress note/checkpoint (params: cardId, content)
+create_card        → add a card (params: title, workspaceId?, columnTitle?, tags?, description?, agent?, model?, priority?, due_date?, blocked_by?)
+update_card        → update card fields (params: cardId, title?, description?, tags?, agent?, model?, priority?, due_date?, blocked_by?, requires_review?, custom_prompt?, merged_at?)
+delete_card        → remove a card (params: cardId)
+
+**Workspaces:**
 list_workspaces    → list all workspaces
 create_workspace   → create a new workspace (params: name, path, description?)
 switch_workspace   → switch to a different workspace (params: workspaceId)
 set_workspace      → update workspace description only (params: workspaceId, description) — name/path changes must be done via UI
-create_card        → add a card (params: title, workspaceId?, columnTitle?, tags?, description?, agent?, model?, priority?, due_date?, blocked_by?)
-update_card        → update card fields (params: cardId, title?, description?, tags?, agent?, model?, priority?, due_date?, blocked_by?, requires_review?, custom_prompt?, merged_at?)
-move_card          → move a card between columns (params: cardId, toColumnTitle)
-complete_card      → move a card to Done (params: cardId)
-delete_card        → remove a card (params: cardId)
-add_card_note      → add a note/checkpoint to a card (params: cardId, content)
-get_card_notes     → get all notes for a card (params: cardId)
-get_agent_status   → check if an agent is running/queued for a card (params: cardId)
-list_models        → list available models per agent type (params: agent?)
-refresh_models     → refresh the model cache from each agent's CLI (no params)
-search_cards       → search cards by query/tag/column/agent (params: query?, tag?, columnTitle?, agent?, workspaceId?, limit?, offset?)
+delete_workspace   → delete a workspace (params: workspaceId, confirm: true)
+
+**Agents & models:**
+get_agent_status   → running/queued status + last note for a card (params: cardId)
+cancel_agent       → cancel a queued or running agent (params: cardId)
+list_models        → available models per agent type (params: agent?)
+refresh_models     → refresh model cache from each agent CLI (no params)
+
+**Templates:**
 list_templates     → list card templates for a workspace (params: workspaceId?)
 create_template    → create a card template (params: name, workspaceId?, title_pattern?, tags?, agent?, model?, priority?, custom_prompt?)
 
@@ -92,8 +106,9 @@ create_template    → create a card template (params: name, workspaceId?, title
 
 When a card is moved TO "In Progress" (via move_card or the UI):
 - If the card has an assigned agent (claude-code, opencode, codex, or command-code)
+- A 1.5 s debounce fires — moving the card back within that window cancels the spawn
 - VibeBoard spawns that agent as a child process in the workspace directory
-- The agent receives a prompt with the card context
+- The agent receives a prompt containing: workspace description, full card data (description capped at 2 000 chars), phase instructions, any prior session notes (last 5 short notes from previous runs), and board API guidance
 - SSE emits event type "agent_started" with the card context
 - UI shows a toast: "⚡ Agent triggered: [card title]"
 - Agent can call add_card_note to log progress
